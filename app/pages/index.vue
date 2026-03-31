@@ -1,6 +1,8 @@
 <script setup>
 useSeoMeta({ title: 'VivaThrift - Situs Jual Beli Barang Preloved di ITS!' })
 
+const { reveal } = useScrollReveal()
+
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 const route = useRoute()
@@ -226,17 +228,17 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
       <div class="relative w-full px-4 sm:px-6 md:px-10 flex flex-col md:flex-row items-center gap-8 z-10">
         <div class="flex-1 max-w-xl">
           <!-- ITS badge -->
-          <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 mb-4 w-fit">
+          <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="vt-hero-enter vt-hero-enter-d1 flex items-center gap-2 mb-4 w-fit">
             <img src="/img/Logo ITS.png" alt="ITS" class="h-7 opacity-75" />
             <span class="vt-its-badge-text text-xs font-semibold tracking-wider uppercase">Institut Teknologi Sepuluh Nopember</span>
           </a>
-          <h1 class="vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" style="color: #1e3a8a;">
+          <h1 class="vt-hero-enter vt-hero-enter-d2 vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" style="color: #1e3a8a;">
             Temukan <span class="vt-highlight">Barang Preloved</span> Berkualitas di Sekitar ITS!
           </h1>
-          <p class="vt-hero-subtext text-lg mb-8 max-w-lg" style="color: rgba(30,58,138,0.75);">
+          <p class="vt-hero-enter vt-hero-enter-d3 vt-hero-subtext text-lg mb-8 max-w-lg" style="color: rgba(30,58,138,0.75);">
             Marketplace tepercaya khusus mahasiswa ITS. Jual beli buku mata kuliah, gadget, pakaian, hingga perlengkapan kos dengan mudah dan aman!
           </p>
-          <div class="flex gap-3 relative">
+          <div class="vt-hero-enter vt-hero-enter-d4 flex gap-3 relative">
             <button
               @click="scrollToKatalog"
               class="vt-btn-primary px-8 py-3 rounded-full text-white font-bold shadow-md transition hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5"
@@ -279,7 +281,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
     <section id="katalog" class="w-full px-4 sm:px-6 md:px-10 py-12">
 
       <!-- Heading -->
-      <div id="heading-katalog" class="flex items-center gap-3 mb-5 flex-wrap" style="scroll-margin-top: 80px;">
+      <div id="heading-katalog" :ref="reveal" class="flex items-center gap-3 mb-5 flex-wrap" style="scroll-margin-top: 80px;">
         <h2 class="vt-katalog-heading text-2xl font-bold text-[#1e3a8a] dark:text-white">
           <template v-if="activeSearch">
             Hasil pencarian &ldquo;{{ activeSearch }}&rdquo;<template v-if="activeKategori.length"> &mdash; {{ activeKategori.join(', ') }}</template>
@@ -311,7 +313,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
       </div>
 
       <!-- Filter Panel -->
-      <div class="vt-filter-panel rounded-xl p-4 mb-8 space-y-3" :style="isDark ? 'background: rgba(15,23,42,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 4px 16px rgba(0,0,0,0.3);' : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 16px rgba(30,58,138,0.08);'">
+      <div :ref="reveal" data-delay="100" class="vt-filter-panel rounded-xl p-4 mb-8 space-y-3" :style="isDark ? 'background: rgba(15,23,42,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 4px 16px rgba(0,0,0,0.3);' : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 16px rgba(30,58,138,0.08);'">
 
         <!-- Kategori -->
         <div class="space-y-1.5">
@@ -421,7 +423,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
       </div>
 
       <!-- Product Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
+      <div :ref="reveal" class="vt-stagger-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
         <ProductCard
           v-for="product in visibleProducts"
           :key="product.id"

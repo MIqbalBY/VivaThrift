@@ -496,7 +496,7 @@ watch(user, (u) => {
   <div class="min-h-screen vt-page-bg">
 
     <!-- Page Header -->
-    <div class="vt-edit-header w-full pt-24 pb-10 px-4 md:px-10">
+    <div class="vt-hero-enter vt-hero-enter-d1 vt-edit-header w-full pt-24 pb-10 px-4 md:px-10">
       <div class="max-w-3xl mx-auto flex flex-col gap-2">
         <nav class="flex items-center gap-1.5 text-xs text-white/50">
           <NuxtLink to="/" class="hover:text-white/80 transition">Beranda</NuxtLink>
@@ -509,7 +509,7 @@ watch(user, (u) => {
     </div>
 
     <!-- Tab Bar -->
-    <div class="sticky top-[73px] z-30 vt-tab-bar border-b">
+    <div class="vt-hero-enter vt-hero-enter-d2 sticky top-[73px] z-30 vt-tab-bar border-b">
       <div class="max-w-3xl mx-auto px-4 md:px-0 flex gap-0">
         <button
           @click="activeTab = 'profil'"

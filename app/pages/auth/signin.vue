@@ -54,7 +54,7 @@ async function handleLogin() {
 
 
     <!-- Tombol back di atas card -->
-    <div class="relative z-10 w-full max-w-sm mx-4 mb-3">
+    <div class="vt-hero-enter vt-hero-enter-d1 relative z-10 w-full max-w-sm mx-4 mb-3">
       <NuxtLink
         to="/"
         class="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors group"
@@ -67,7 +67,7 @@ async function handleLogin() {
     </div>
 
     <!-- Card Login -->
-    <div class="relative z-10 w-full max-w-sm mx-4 rounded-2xl px-10 py-10" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 8px 32px rgba(0,0,0,0.25);">
+    <div class="vt-hero-enter vt-hero-enter-d2 relative z-10 w-full max-w-sm mx-4 rounded-2xl px-10 py-10" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 8px 32px rgba(0,0,0,0.25);">
 
       <!-- Brand header -->
       <div class="flex flex-col items-center gap-2 mb-6">
@@ -159,7 +159,7 @@ async function handleLogin() {
     </div>
 
     <!-- Daftar -->
-    <p class="relative z-10 mt-4 text-sm text-white/60">
+    <p class="vt-hero-enter vt-hero-enter-d3 relative z-10 mt-4 text-sm text-white/60">
       Belum punya akun?
       <NuxtLink to="/auth/signup" class="text-white font-semibold hover:underline">Daftar</NuxtLink>
     </p>

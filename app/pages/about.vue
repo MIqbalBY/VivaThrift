@@ -4,6 +4,8 @@ useSeoMeta({
   description: 'Kisah, visi, dan tim di balik VivaThrift — marketplace preloved eksklusif mahasiswa ITS.',
 })
 
+const { reveal } = useScrollReveal()
+
 const stats = [
   { value: '100%', label: 'Eksklusif mahasiswa ITS', icon: '🔒' },
   { value: '2', label: 'Fakultas bergabung', icon: '🏛️' },
@@ -88,21 +90,21 @@ const values = [
           </nav>
 
           <!-- Eyebrow -->
-          <span class="vt-hero-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase w-fit">
+          <span class="vt-hero-enter vt-hero-enter-d1 vt-hero-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase w-fit">
             ✨ Tentang VivaThrift
           </span>
 
           <!-- H1 -->
-          <h1 class="font-heading text-5xl sm:text-6xl md:text-7xl font-bold leading-[1.05] tracking-tight text-white max-w-3xl">
+          <h1 class="vt-hero-enter vt-hero-enter-d2 font-heading text-5xl sm:text-6xl md:text-7xl font-bold leading-[1.05] tracking-tight text-white max-w-3xl">
             Dari <span class="vt-highlight">Mahasiswa ITS</span>,<br>Untuk <span class="vt-highlight">Mahasiswa ITS</span>.
           </h1>
 
           <!-- Subtitle -->
-          <p class="text-lg leading-relaxed text-white/70 max-w-xl">
+          <p class="vt-hero-enter vt-hero-enter-d3 text-lg leading-relaxed text-white/70 max-w-xl">
             Titik temu barang preloved dan kebutuhan ngampus paling aman se-Surabaya Timur.
           </p>
           <!-- Tag chips -->
-          <div class="flex flex-wrap gap-2">
+          <div class="vt-hero-enter vt-hero-enter-d4 flex flex-wrap gap-2">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">🛍️ Preloved Berkualitas</span>
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">♻️ Ekonomi Sirkular</span>
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">🔐 Khusus Mahasiswa ITS</span>
@@ -112,7 +114,7 @@ const values = [
       </section>
 
       <!-- STATS BAND -->
-      <section class="relative">
+      <section class="relative" :ref="reveal">
         <div class="max-w-7xl mx-auto px-6 md:px-10">
           <div class="grid grid-cols-2 md:grid-cols-4">
             <div
@@ -135,7 +137,7 @@ const values = [
     <!-- ══════════════════════════════════════
          3. CERITA KAMI
          ══════════════════════════════════════ -->
-    <section class="vt-story w-full py-24 px-6 md:px-10">
+    <section class="vt-story w-full py-24 px-6 md:px-10" :ref="reveal">
       <div class="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-start">
         <!-- Left: label + H2 (sticky on desktop) -->
         <div class="flex flex-col gap-5 md:sticky md:top-28">
@@ -169,7 +171,7 @@ const values = [
     <!-- ══════════════════════════════════════
          4. KENAPA VIVATHRIFT
          ══════════════════════════════════════ -->
-    <section class="vt-values w-full py-24 px-6 md:px-10">
+    <section class="vt-values w-full py-24 px-6 md:px-10" :ref="reveal">
       <div class="max-w-7xl mx-auto">
 
         <!-- Header -->

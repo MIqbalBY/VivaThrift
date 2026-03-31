@@ -3,6 +3,7 @@ const route = useRoute()
 const supabase = useSupabaseClient()
 const currentUser = useSupabaseUser()
 const { isDark } = useDarkMode()
+const { reveal } = useScrollReveal()
 
 const profileId = route.params.id
 const currentUserId = ref(null)
@@ -139,7 +140,7 @@ onMounted(async () => {
     <template v-else>
 
       <!-- ══ INSTAGRAM-STYLE PROFILE HEADER ══════════════════════════════════ -->
-      <div class="flex items-start gap-6 sm:gap-10 mb-6">
+      <div class="vt-hero-enter vt-hero-enter-d1 flex items-start gap-6 sm:gap-10 mb-6">
         <!-- Avatar (left) -->
         <div class="shrink-0">
           <div
@@ -343,7 +344,7 @@ onMounted(async () => {
       </div>
 
       <!-- Product grid (3 columns like Instagram) -->
-      <div v-else class="grid grid-cols-3 gap-1 sm:gap-3">
+      <div v-else class="grid grid-cols-3 gap-1 sm:gap-3 vt-stagger-grid" :ref="reveal">
         <ProductCard
           v-for="p in shownProducts"
           :key="p.id"

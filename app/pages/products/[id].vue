@@ -3,6 +3,7 @@ const route = useRoute()
 const supabase = useSupabaseClient()
 const currentUser = useSupabaseUser()
 const { isDark } = useDarkMode()
+const { reveal } = useScrollReveal()
 
 // route.params.id holds the slug (e.g. "keyboard-rexus-5b4b6d36")
 const { data: product } = await useAsyncData(`product-${route.params.id}`, async () => {
@@ -402,7 +403,7 @@ onUnmounted(() => {
   <div class="w-full max-w-7xl mx-auto px-4 md:px-8 py-8">
 
     <!-- Tombol Back -->
-    <NuxtLink to="/" class="vt-back-btn mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#1e3a8a] transition">
+    <NuxtLink to="/" class="vt-hero-enter vt-hero-enter-d1 vt-back-btn mb-6 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#1e3a8a] transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
       Kembali
     </NuxtLink>
@@ -410,7 +411,7 @@ onUnmounted(() => {
     <!-- Not found -->
     <div v-if="!product || product.status === 'deleted'" class="text-center text-gray-400 py-24">Produk tidak ditemukan.</div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-8 items-start">
+    <div v-else class="vt-hero-enter vt-hero-enter-d2 grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-8 items-start">
 
       <!-- ── Kolom Kiri: Foto ── -->
       <div class="md:sticky md:top-6 flex flex-col gap-3 min-w-0">

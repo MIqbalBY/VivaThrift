@@ -408,7 +408,7 @@ async function submitProduct() {
 
 <template>
   <div class="w-full px-4 sm:px-10 py-12 max-w-2xl mx-auto">
-    <div class="flex items-center gap-3 mb-8">
+    <div class="vt-hero-enter vt-hero-enter-d1 flex items-center gap-3 mb-8">
       <NuxtLink to="/" class="vt-back-btn text-gray-400 hover:text-blue-700 transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
@@ -417,7 +417,7 @@ async function submitProduct() {
       <h1 class="vt-detail-title font-heading text-3xl font-bold" style="color: #1e3a8a;">Jual Barang</h1>
     </div>
 
-    <div class="vt-glass rounded-2xl p-8" style="background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);">
+    <div class="vt-hero-enter vt-hero-enter-d2 vt-glass rounded-2xl p-8" style="background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);">
     <form @submit.prevent="submitProduct" class="space-y-6">
 
       <!-- Judul Barang -->

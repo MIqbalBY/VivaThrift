@@ -5,6 +5,7 @@ export default defineNuxtConfig({
     '~/assets/css/variables.css',
     '~/assets/css/dark-overrides.css',
     '~/assets/css/components.css',
+    '~/assets/css/animations.css',
   ],
   compatibilityDate: '2025-07-15',
   devServer: { port: 3004 },

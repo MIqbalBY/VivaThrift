@@ -178,7 +178,7 @@ async function placeOrder() {
 <template>
   <div class="w-full max-w-lg mx-auto px-4 py-10">
 
-    <button @click="$router.back()" class="mb-6 inline-flex items-center gap-2 text-sm transition" :class="isDark ? 'text-gray-400 hover:text-sky-300' : 'text-gray-500 hover:text-blue-800'">
+    <button @click="$router.back()" class="vt-hero-enter vt-hero-enter-d1 mb-6 inline-flex items-center gap-2 text-sm transition" :class="isDark ? 'text-gray-400 hover:text-sky-300' : 'text-gray-500 hover:text-blue-800'">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
       </svg>
@@ -186,7 +186,7 @@ async function placeOrder() {
     </button>
 
     <!-- ── Success State ── -->
-    <div v-if="orderDone" class="text-center py-16">
+    <div v-if="orderDone" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">
       <p class="text-6xl mb-4">🎉</p>
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Pesanan Berhasil!</h2>
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Silakan hubungi penjual untuk mengatur pengiriman / COD.</p>
@@ -202,7 +202,7 @@ async function placeOrder() {
     </div>
 
     <!-- ── Stock Depleted State ── -->
-    <div v-else-if="stockDepleted" class="text-center py-16">
+    <div v-else-if="stockDepleted" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">
       <p class="text-6xl mb-4">😔</p>
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Stok Habis</h2>
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Maaf, stok produk ini sudah habis karena tawaran lain telah dikonfirmasi lebih dulu.</p>
@@ -217,7 +217,7 @@ async function placeOrder() {
 
     <!-- ── Checkout Form ── -->
     <template v-else>
-      <h1 class="font-heading text-2xl font-bold mb-6" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">⚡ Checkout Tawaran</h1>
+      <h1 class="vt-hero-enter vt-hero-enter-d2 font-heading text-2xl font-bold mb-6" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">⚡ Checkout Tawaran</h1>
 
       <div
         class="vt-glass rounded-2xl p-5 mb-5"
