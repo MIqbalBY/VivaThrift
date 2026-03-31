@@ -414,11 +414,13 @@ async function submitProduct() {
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </NuxtLink>
-      <h1 class="vt-detail-title font-heading text-3xl font-bold" style="color: #1e3a8a;">Jual Barang</h1>
+      <h1 class="vt-detail-title font-heading text-3xl font-bold" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">Jual Barang</h1>
       <img src="/img/illustrations/shopping-app.svg" alt="" class="hidden md:block w-28 h-auto opacity-70 ml-auto" aria-hidden="true" />
     </div>
 
-    <div class="vt-hero-enter vt-hero-enter-d2 vt-glass rounded-2xl p-8" style="background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);">
+    <div class="vt-hero-enter vt-hero-enter-d2 vt-glass rounded-2xl p-8" :style="isDark
+      ? 'background: rgba(15,23,42,0.80); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 24px rgba(0,0,0,0.3);'
+      : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);'">
     <form @submit.prevent="submitProduct" class="space-y-6">
 
       <!-- Judul Barang -->
@@ -476,7 +478,6 @@ async function submitProduct() {
         <select
           v-model="form.condition"
           class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-          style="background: rgba(255,255,255,0.70); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
           :disabled="isSubmitting"
         >
           <option value="" disabled>Pilih kondisi barang</option>
@@ -490,7 +491,6 @@ async function submitProduct() {
         <select
           v-model="form.category_id"
           class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-          style="background: rgba(255,255,255,0.70); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
           :disabled="isSubmitting"
         >
           <option value="">Pilih kategori</option>
@@ -642,7 +642,7 @@ async function submitProduct() {
         <NuxtLink
           to="/"
           class="vt-btn-outline px-6 py-2.5 rounded-full border-2 font-semibold hover:bg-blue-50 transition text-sm"
-          style="border-color: #1e3a8a; color: #1e3a8a;"
+          :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc;' : 'border-color: #1e3a8a; color: #1e3a8a;'"
         >
           Batal
         </NuxtLink>

@@ -19,7 +19,9 @@ const emit = defineEmits<{
   <NuxtLink
     :to="`/products/${product.slug ?? product.id}`"
     class="vt-product-card group rounded-xl border border-white/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col cursor-pointer"
-    style="background: rgba(255,255,255,0.70); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);"
+    :style="isDark
+      ? 'background: rgba(15,23,42,0.80); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.08);'
+      : 'background: rgba(255,255,255,0.70); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);'"
   >
     <!-- Image -->
     <div class="relative overflow-hidden rounded-t-xl">
@@ -63,7 +65,7 @@ const emit = defineEmits<{
       <p class="vt-product-title font-bold text-sm line-clamp-2 leading-snug text-gray-900">{{ product.title }}</p>
 
       <!-- Price -->
-      <p v-if="!isSold" class="vt-product-price font-bold text-base" style="color: #1e3a8a;">Rp {{ product.price?.toLocaleString('id-ID') }}</p>
+      <p v-if="!isSold" class="vt-product-price font-bold text-base" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">Rp {{ product.price?.toLocaleString('id-ID') }}</p>
       <p v-else class="text-xs font-semibold text-red-400">Stok habis</p>
 
       <!-- Divider -->

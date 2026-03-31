@@ -232,10 +232,10 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
             <img src="/img/Logo ITS.png" alt="ITS" class="h-7 opacity-75" />
             <span class="vt-its-badge-text text-xs font-semibold tracking-wider uppercase">Institut Teknologi Sepuluh Nopember</span>
           </a>
-          <h1 class="vt-hero-enter vt-hero-enter-d2 vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" style="color: #1e3a8a;">
+          <h1 class="vt-hero-enter vt-hero-enter-d2 vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">
             Temukan <span class="vt-highlight">Barang Preloved</span> Berkualitas di Sekitar ITS!
           </h1>
-          <p class="vt-hero-enter vt-hero-enter-d3 vt-hero-subtext text-lg mb-8 max-w-lg" style="color: rgba(30,58,138,0.75);">
+          <p class="vt-hero-enter vt-hero-enter-d3 vt-hero-subtext text-lg mb-8 max-w-lg" :style="isDark ? 'color: rgba(148,163,184,0.9)' : 'color: rgba(30,58,138,0.75)'">
             Marketplace tepercaya khusus mahasiswa ITS. Jual beli buku mata kuliah, gadget, pakaian, hingga perlengkapan kos dengan mudah dan aman!
           </p>
           <div class="vt-hero-enter vt-hero-enter-d4 flex gap-3 relative">
@@ -249,7 +249,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
             <button
               @click="handleJual"
               class="vt-btn-outline px-8 py-3 rounded-full border-2 font-bold bg-white/90 backdrop-blur-sm hover:bg-blue-50 transition hover:-translate-y-0.5"
-            style="border-color: #1e3a8a; color: #1e3a8a;"
+            :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc; background: rgba(15,23,42,0.60);' : 'border-color: #1e3a8a; color: #1e3a8a;'"
             >
               Jual Barang
             </button>
@@ -305,7 +305,6 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
             :value="activeSort"
             @change="setSort($event.target.value)"
             class="vt-sort-select text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-900/20 cursor-pointer"
-            style="background: rgba(255,255,255,0.70); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
           >
             <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
@@ -444,7 +443,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         <button
           @click="showAll = true"
           class="vt-btn-show-more px-8 py-2.5 rounded-full border-2 font-semibold text-sm transition hover:bg-blue-50"
-          style="border-color: #1e3a8a; color: #1e3a8a;"
+          :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc;' : 'border-color: #1e3a8a; color: #1e3a8a;'"
         >
           Tampilkan lebih banyak ({{ (products?.length ?? 0) - maxVisible }} produk lagi)
         </button>

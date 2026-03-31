@@ -478,7 +478,9 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 </script>
 
 <template>
-  <header class="vt-navbar w-full sticky top-0 z-50" style="background: rgba(255,255,255,0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.3);">
+  <header class="vt-navbar w-full sticky top-0 z-50" :style="isDark
+    ? 'background: rgba(15,23,42,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.08);'
+    : 'background: rgba(255,255,255,0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.3);'">
 
     <!-- Top Strip -->
     <div class="vt-top-strip w-full hidden md:block" style="border-bottom: 1px solid rgba(30,58,138,0.08);">
@@ -549,7 +551,9 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
           >
             <div
               v-if="showKategori"
-              class="vt-glass-dropdown absolute left-0 top-full mt-1 w-52 rounded-xl py-1.5 z-50" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(30,58,138,0.15);"
+              class="vt-glass-dropdown absolute left-0 top-full mt-1 w-52 rounded-xl py-1.5 z-50" :style="isDark
+                ? 'background: rgba(15,23,42,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.4);'
+                : 'background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(30,58,138,0.15);'"
             >
               <button
                 @click="handleKategori('Semua Kategori')"
@@ -609,7 +613,9 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
           >
             <div
               v-if="showDropdown"
-              class="vt-glass-dropdown absolute left-0 right-0 top-full rounded-b-lg z-50 py-1 max-h-[420px] overflow-y-auto" style="background: rgba(255,255,255,0.90); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(30,58,138,0.12); border-top: none; box-shadow: 0 8px 32px rgba(30,58,138,0.12);"
+              class="vt-glass-dropdown absolute left-0 right-0 top-full rounded-b-lg z-50 py-1 max-h-[420px] overflow-y-auto" :style="isDark
+                ? 'background: rgba(15,23,42,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-top: none; box-shadow: 0 8px 32px rgba(0,0,0,0.4);'
+                : 'background: rgba(255,255,255,0.90); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(30,58,138,0.12); border-top: none; box-shadow: 0 8px 32px rgba(30,58,138,0.12);'"
             >
 
               <!-- Live Suggestions -->
@@ -839,7 +845,9 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               <span v-else-if="profilePending" class="w-4 h-4 rounded-full border-2 border-white/50 border-t-white animate-spin"></span>
               <span v-else>{{ userInitials }}</span>
             </button>
-            <div class="vt-glass-dropdown absolute right-0 top-full mt-2 w-48 rounded-xl py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(30,58,138,0.15);">
+            <div class="vt-glass-dropdown absolute right-0 top-full mt-2 w-48 rounded-xl py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50" :style="isDark
+              ? 'background: rgba(15,23,42,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.4);'
+              : 'background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(30,58,138,0.15);'">
               <div class="px-4 py-2 border-b border-gray-100">
                 <p class="text-xs font-semibold text-gray-700 truncate">{{ userProfile?.name || user.email }}</p>
                 <p v-if="userProfile?.name" class="text-xs text-gray-400 truncate">{{ user.email }}</p>

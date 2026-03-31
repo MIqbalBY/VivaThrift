@@ -535,46 +535,49 @@ onUnmounted(() => {
 
         <!-- ── Aksi: Buyer: Chat / Wishlist / Share | Seller: Share only ── -->
         <p v-if="chatError" class="text-xs text-red-500 px-1">{{ chatError }}</p>
-        <div v-if="!isSeller" class="vt-action-bar flex items-center rounded-xl overflow-hidden text-sm" style="background: rgba(255,255,255,0.65); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.45); box-shadow: 0 2px 12px rgba(30,58,138,0.08);">
+        <div v-if="!isSeller" class="vt-action-bar flex items-center rounded-xl overflow-hidden text-sm" :style="isDark
+          ? 'background: rgba(15,25,50,0.80); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 2px 12px rgba(0,0,0,0.3);'
+          : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.45); box-shadow: 0 2px 12px rgba(30,58,138,0.08);'">
           <button
             @click="openChat"
             :disabled="chatLoading"
-            class="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-white/40 transition text-gray-600 disabled:opacity-40"
+            class="flex-1 flex flex-col items-center gap-1 py-3 transition disabled:opacity-40" :class="isDark ? 'text-gray-300 hover:bg-white/10' : 'text-gray-600 hover:bg-white/40'"
           >
             <svg v-if="!chatLoading" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.836L3 20l1.09-3.27C3.39 15.522 3 13.809 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
             <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
             <span>Chat</span>
           </button>
-          <div class="vt-action-bar-divider w-px self-stretch" style="background: rgba(30,58,138,0.12);"></div>
+          <div class="vt-action-bar-divider w-px self-stretch" :style="isDark ? 'background: rgba(255,255,255,0.10)' : 'background: rgba(30,58,138,0.12)'"></div>
           <button
             @click="toggleWishlist"
-            class="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-white/40 transition"
-            :class="wishlist ? 'text-red-500' : 'text-gray-600'"
+            class="flex-1 flex flex-col items-center gap-1 py-3 transition" :class="[wishlist ? 'text-red-500' : isDark ? 'text-gray-300' : 'text-gray-600', isDark ? 'hover:bg-white/10' : 'hover:bg-white/40']"
           >
             <svg class="w-5 h-5" :fill="wishlist ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
             <span>{{ wishlist ? 'Disimpan' : 'Wishlist' }}</span>
           </button>
-          <div class="vt-action-bar-divider w-px self-stretch" style="background: rgba(30,58,138,0.12);"></div>
+          <div class="vt-action-bar-divider w-px self-stretch" :style="isDark ? 'background: rgba(255,255,255,0.10)' : 'background: rgba(30,58,138,0.12)'"></div>
           <button
             @click="shareProduct"
-            class="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-white/40 transition text-gray-600"
+            class="flex-1 flex flex-col items-center gap-1 py-3 transition" :class="isDark ? 'text-gray-300 hover:bg-white/10' : 'text-gray-600 hover:bg-white/40'"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
             <span>Share</span>
           </button>
         </div>
-        <div v-else class="vt-action-bar flex items-center rounded-xl overflow-hidden text-sm" style="background: rgba(255,255,255,0.65); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.45); box-shadow: 0 2px 12px rgba(30,58,138,0.08);">
+        <div v-else class="vt-action-bar flex items-center rounded-xl overflow-hidden text-sm" :style="isDark
+          ? 'background: rgba(15,25,50,0.80); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 2px 12px rgba(0,0,0,0.3);'
+          : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.45); box-shadow: 0 2px 12px rgba(30,58,138,0.08);'">
           <NuxtLink
             :to="`/products/edit/${route.params.id}`"
-            class="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-white/40 transition text-gray-600"
+            class="flex-1 flex flex-col items-center gap-1 py-3 transition" :class="isDark ? 'text-gray-300 hover:bg-white/10' : 'text-gray-600 hover:bg-white/40'"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
             <span>Edit</span>
           </NuxtLink>
-          <div class="vt-action-bar-divider w-px self-stretch" style="background: rgba(30,58,138,0.12);"></div>
+          <div class="vt-action-bar-divider w-px self-stretch" :style="isDark ? 'background: rgba(255,255,255,0.10)' : 'background: rgba(30,58,138,0.12)'"></div>
           <button
             @click="shareProduct"
-            class="flex-1 flex flex-col items-center gap-1 py-3 hover:bg-white/40 transition text-gray-600"
+            class="flex-1 flex flex-col items-center gap-1 py-3 transition" :class="isDark ? 'text-gray-300 hover:bg-white/10' : 'text-gray-600 hover:bg-white/40'"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
             <span>Share</span>
@@ -611,13 +614,13 @@ onUnmounted(() => {
         </div>
 
         <!-- Judul -->
-        <h1 class="vt-detail-title font-heading text-2xl md:text-3xl font-bold leading-tight" style="color: #1e3a8a;">{{ product.title }}</h1>
+        <h1 class="vt-detail-title font-heading text-2xl md:text-3xl font-bold leading-tight" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">{{ product.title }}</h1>
 
         <!-- Date -->
         <p class="text-xs text-gray-400 text-right">{{ productDateLabel }}</p>
 
         <!-- Harga -->
-        <p class="vt-detail-price text-2xl font-bold" style="color: #1e3a8a;">
+        <p class="vt-detail-price text-2xl font-bold" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">
           Rp {{ product.price?.toLocaleString('id-ID') }}
         </p>
 
@@ -642,7 +645,9 @@ onUnmounted(() => {
         <div
           v-if="product.users"
           class="vt-glass flex items-center gap-3 p-3 rounded-xl transition cursor-pointer hover:shadow-md"
-          style="background: rgba(255,255,255,0.65); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.45); box-shadow: 0 2px 12px rgba(30,58,138,0.08);"
+          :style="isDark
+            ? 'background: rgba(15,25,50,0.80); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 2px 12px rgba(0,0,0,0.3);'
+            : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.45); box-shadow: 0 2px 12px rgba(30,58,138,0.08);'"
           @click="profileCardUserId = product.users.id"
         >
           <div class="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'">
@@ -684,9 +689,11 @@ onUnmounted(() => {
         />
 
         <!-- Alamat Pengirim + Jarak -->
-        <div v-if="sellerAddress" class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm" style="background: rgba(255,255,255,0.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.4);">
-          <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          <span class="text-gray-700 truncate">
+        <div v-if="sellerAddress" class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm" :style="isDark
+          ? 'background: rgba(15,25,50,0.70); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.08);'
+          : 'background: rgba(255,255,255,0.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.4);'">
+          <svg class="w-4 h-4 shrink-0" :class="isDark ? 'text-sky-400' : 'text-blue-600'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span :class="isDark ? 'text-gray-300' : 'text-gray-700'" class="truncate">
             {{ sellerAddress.label }}
             <template v-if="distanceLoading"> — <span class="text-gray-400">menghitung…</span></template>
             <template v-else-if="distanceKm"> — {{ distanceKm }} km</template>
@@ -703,7 +710,9 @@ onUnmounted(() => {
         </div>
 
         <!-- ── Panel Beli (buyer) ── -->
-        <div v-if="!isSeller" class="vt-glass rounded-2xl p-4 flex flex-col gap-4" style="background: rgba(255,255,255,0.70); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 20px rgba(30,58,138,0.10);">
+        <div v-if="!isSeller" class="vt-glass rounded-2xl p-4 flex flex-col gap-4" :style="isDark
+          ? 'background: rgba(15,25,50,0.80); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.3);'
+          : 'background: rgba(255,255,255,0.70); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 20px rgba(30,58,138,0.10);'">
           <!-- Stok & Qty -->
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -745,8 +754,9 @@ onUnmounted(() => {
             <button
               @click="buyNow"
               :disabled="isOutOfStock"
-              class="vt-buy-outline-btn flex-1 py-3 rounded-xl border-2 font-bold hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm"
-              style="border-color: #1e3a8a; color: #1e3a8a;"
+              class="vt-buy-outline-btn flex-1 py-3 rounded-xl border-2 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition text-sm"
+              :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc;' : 'border-color: #1e3a8a; color: #1e3a8a;'"
+              :class="isDark ? 'hover:bg-sky-900/30' : 'hover:bg-blue-50'"
             >
               ⚡ Beli Langsung
             </button>
@@ -829,9 +839,11 @@ onUnmounted(() => {
         style="background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);"
         @click.self="cancelEdit"
       >
-        <div class="w-full max-w-lg rounded-2xl p-6 flex flex-col gap-5 mt-8 mb-8" style="background: rgba(255,255,255,0.97); box-shadow: 0 8px 40px rgba(30,58,138,0.18);">
+        <div class="w-full max-w-lg rounded-2xl p-6 flex flex-col gap-5 mt-8 mb-8" :style="isDark
+          ? 'background: rgba(15,23,42,0.97); box-shadow: 0 8px 40px rgba(0,0,0,0.4);'
+          : 'background: rgba(255,255,255,0.97); box-shadow: 0 8px 40px rgba(30,58,138,0.18);'">
           <div class="flex items-center justify-between">
-            <h2 class="font-heading text-xl font-bold" style="color: #1e3a8a;">✏️ Edit Produk</h2>
+            <h2 class="font-heading text-xl font-bold" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">✏️ Edit Produk</h2>
             <button @click="cancelEdit" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
