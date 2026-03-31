@@ -63,7 +63,7 @@ async function handleLogin() {
       <!-- Brand header -->
       <div class="flex flex-col items-center gap-2 mb-6">
         <div class="flex items-center gap-3">
-          <img src="/img/Logo Vivathrift.png" alt="VivaThrift" class="h-10" />
+          <img src="/img/Logo VivaThrift.png" alt="VivaThrift" class="h-10" />
           <div class="w-px h-8 bg-white/25"></div>
           <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" title="Institut Teknologi Sepuluh Nopember">
             <img src="/img/Logo ITS.png" alt="ITS" class="h-9 opacity-90" />
