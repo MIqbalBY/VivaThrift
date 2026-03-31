@@ -133,7 +133,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="w-full max-w-2xl mx-auto px-4 md:px-8 py-6">
+  <div class="w-full max-w-4xl mx-auto px-4 md:px-8 py-6">
 
     <!-- Back -->
     <button
