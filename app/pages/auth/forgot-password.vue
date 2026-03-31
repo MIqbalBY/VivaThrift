@@ -31,7 +31,11 @@ async function handleResetRequest() {
     if (error) throw error
     successMsg.value = true
   } catch (err) {
-    errorMsg.value = err.message ?? 'Gagal mengirim link reset password. Coba lagi nanti.'
+    const msg = err.message?.toLowerCase() ?? ''
+    if (msg.includes('rate limit') || msg.includes('too many requests'))
+      errorMsg.value = 'Terlalu banyak permintaan. Coba lagi nanti.'
+    else
+      errorMsg.value = 'Gagal mengirim link reset password. Coba lagi nanti.'
   } finally {
     isLoading.value = false
   }
