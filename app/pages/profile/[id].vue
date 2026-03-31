@@ -5,29 +5,29 @@ const currentUser = useSupabaseUser()
 const { isDark } = useDarkMode()
 const { reveal } = useScrollReveal()
 
-const profileId = route.params.id
+const profileId = computed(() => route.params.id)
 const currentUserId = ref(null)
 
 // ── Fetch profile ────────────────────────────────────────────────────────────────────
-const { data: profile } = await useAsyncData(`profile-${profileId}`, async () => {
+const { data: profile } = await useAsyncData(`profile-${route.params.id}`, async () => {
   const { data } = await supabase
     .from('users')
     .select('id, name, nrp, faculty, department, avatar_url, gender, bio, created_at')
-    .eq('id', profileId)
+    .eq('id', profileId.value)
     .single()
   return data
-})
+}, { watch: [profileId] })
 
 useHead({ title: computed(() => profile.value?.name ? `${profile.value.name} — VivaThrift` : 'Profil — VivaThrift') })
 
 // ── Fetch seller rating ──────────────────────────────────────────────────────
 const sellerRating = ref(null)
 const ratingCount = ref(0)
-useAsyncData(`profile-rating-${profileId}`, async () => {
+useAsyncData(`profile-rating-${route.params.id}`, async () => {
   const { data } = await supabase
     .from('reviews')
     .select('rating_seller')
-    .eq('reviewee_id', profileId)
+    .eq('reviewee_id', profileId.value)
   const arr = (data ?? []).map(r => r.rating_seller).filter(v => v != null)
   ratingCount.value = arr.length
   sellerRating.value = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -36,17 +36,17 @@ useAsyncData(`profile-rating-${profileId}`, async () => {
 // ── Fetch follow counts ──────────────────────────────────────────────────────
 const followersCount = ref(0)
 const followingCount = ref(0)
-useAsyncData(`profile-follows-${profileId}`, async () => {
+useAsyncData(`profile-follows-${route.params.id}`, async () => {
   const [{ count: fc }, { count: fgc }] = await Promise.all([
-    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', profileId),
-    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', profileId),
+    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', profileId.value),
+    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', profileId.value),
   ])
   followersCount.value = fc ?? 0
   followingCount.value = fgc ?? 0
 })
 
 // ── Fetch products (all statuses) ────────────────────────────────────────────
-const { data: products } = await useAsyncData(`profile-products-${profileId}`, async () => {
+const { data: products } = await useAsyncData(`profile-products-${route.params.id}`, async () => {
   const { data } = await supabase
     .from('products')
     .select(`
@@ -54,7 +54,7 @@ const { data: products } = await useAsyncData(`profile-products-${profileId}`, a
       product_media ( media_url, media_type, thumbnail_url, is_primary ),
       categories ( name )
     `)
-    .eq('seller_id', profileId)
+    .eq('seller_id', profileId.value)
     .in('status', ['active', 'sold'])
     .order('created_at', { ascending: false })
   return data ?? []
@@ -68,7 +68,7 @@ const shownProducts  = computed(() => productTab.value === 'dijual' ? activeProd
 // ── Follow state ─────────────────────────────────────────────────────────────
 const isFollowing = ref(false)
 const followLoading = ref(false)
-const isSelf = computed(() => !!currentUserId.value && currentUserId.value === profileId)
+const isSelf = computed(() => !!currentUserId.value && currentUserId.value === profileId.value)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -88,13 +88,13 @@ async function toggleFollow() {
   if (isFollowing.value) {
     await supabase.from('follows').delete()
       .eq('follower_id', currentUserId.value)
-      .eq('following_id', profileId)
+      .eq('following_id', profileId.value)
     isFollowing.value = false
     followersCount.value = Math.max(0, followersCount.value - 1)
   } else {
     await supabase.from('follows').insert({
       follower_id: currentUserId.value,
-      following_id: profileId,
+      following_id: profileId.value,
     })
     isFollowing.value = true
     followersCount.value += 1
@@ -106,11 +106,11 @@ onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   currentUserId.value = session?.user?.id ?? currentUser.value?.id ?? null
 
-  if (currentUserId.value && currentUserId.value !== profileId) {
+  if (currentUserId.value && currentUserId.value !== profileId.value) {
     const { data: f } = await supabase
       .from('follows').select('id')
       .eq('follower_id', currentUserId.value)
-      .eq('following_id', profileId)
+      .eq('following_id', profileId.value)
       .maybeSingle()
     isFollowing.value = !!f
   }
