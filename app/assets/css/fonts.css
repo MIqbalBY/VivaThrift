@@ -1,0 +1,11 @@
+/* ══════════════════════════════════════════════════════════════════
+   FONTS — Custom font declarations
+   ══════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Himpun';
+  src: url('/fonts/Himpun.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
