@@ -76,6 +76,56 @@ useAsyncData(`seller-rating-${route.params.id}`, async () => {
   sellerRating.value = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
 })
 
+// Seller address + distance
+const sellerAddress = ref(null)
+const distanceKm = ref(null)
+const distanceLoading = ref(false)
+
+async function fetchSellerAddressAndDistance(buyerId) {
+  const sellerId = product.value?.users?.id
+  if (!sellerId) return
+
+  const db = supabase
+
+  // Fetch seller's seller-type address
+  const { data: sAddr } = await db
+    .from('addresses')
+    .select('label, lat, lng')
+    .eq('user_id', sellerId)
+    .eq('address_type', 'seller')
+    .maybeSingle()
+
+  if (!sAddr || !sAddr.label) return
+  sellerAddress.value = sAddr
+
+  // Need buyer to calc distance
+  if (!buyerId || buyerId === sellerId) return
+  if (!sAddr.lat || !sAddr.lng) return
+
+  // Fetch buyer's shipping address
+  const { data: bAddr } = await db
+    .from('addresses')
+    .select('lat, lng')
+    .eq('user_id', buyerId)
+    .eq('address_type', 'shipping')
+    .maybeSingle()
+
+  if (!bAddr || !bAddr.lat || !bAddr.lng) return
+
+  distanceLoading.value = true
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${sAddr.lng},${sAddr.lat};${bAddr.lng},${bAddr.lat}?overview=false`
+    const res = await $fetch(url)
+    if (res?.routes?.[0]?.distance != null) {
+      distanceKm.value = (res.routes[0].distance / 1000).toFixed(2)
+    }
+  } catch {
+    // OSRM unavailable — distance stays null
+  } finally {
+    distanceLoading.value = false
+  }
+}
+
 function formatDate(iso) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -389,6 +439,7 @@ onMounted(async () => {
     await fetchSellerChats()
     setupSellerChatsRealtime()
   }
+  fetchSellerAddressAndDistance(currentUserId.value)
 })
 
 onUnmounted(() => {
@@ -628,6 +679,16 @@ onUnmounted(() => {
           :user-id="profileCardUserId"
           @close="profileCardUserId = null"
         />
+
+        <!-- Alamat Pengirim + Jarak -->
+        <div v-if="sellerAddress" class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm" style="background: rgba(255,255,255,0.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.4);">
+          <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span class="text-gray-700 truncate">
+            {{ sellerAddress.label }}
+            <template v-if="distanceLoading"> — <span class="text-gray-400">menghitung…</span></template>
+            <template v-else-if="distanceKm"> — {{ distanceKm }} km</template>
+          </span>
+        </div>
 
         <!-- Deskripsi -->
         <div class="border-t border-gray-100 pt-4">

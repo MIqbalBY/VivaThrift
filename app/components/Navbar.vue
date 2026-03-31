@@ -19,7 +19,7 @@ async function fetchProfile(uid) {
 }
 
 async function fetchNavAddress(uid) {
-  const { data } = await supabase.from('addresses').select('label, city, full_address').eq('user_id', uid).maybeSingle()
+  const { data } = await supabase.from('addresses').select('label, city, full_address').eq('user_id', uid).eq('address_type', 'shipping').maybeSingle()
   userAddress.value = data ?? null
 }
 
