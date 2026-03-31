@@ -326,6 +326,7 @@ async function submitProduct() {
   errorMsg.value = ''
   if (!form.title.trim()) return (errorMsg.value = 'Judul barang wajib diisi.')
   if (!form.price || Number(form.price) <= 0) return (errorMsg.value = 'Harga harus lebih dari 0.')
+  if (!form.stock || Number(form.stock) < 1) return (errorMsg.value = 'Stok harus minimal 1.')
   if (!form.condition) return (errorMsg.value = 'Kondisi barang wajib dipilih.')
   if (!form.category_id) return (errorMsg.value = 'Kategori wajib dipilih.')
   if (!form.description.trim()) return (errorMsg.value = 'Deskripsi wajib diisi.')
@@ -460,7 +461,7 @@ async function submitProduct() {
 
       <!-- Stok -->
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">📦 Stok</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">📦 Stok <span class="text-red-500">*</span></label>
         <input
           v-model="form.stock"
           type="number"

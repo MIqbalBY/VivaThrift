@@ -369,7 +369,12 @@ async function saveEdits() {
   errorMsg.value = ''
   if (!form.title.trim()) return (errorMsg.value = 'Judul barang wajib diisi.')
   if (!form.price || Number(form.price) <= 0) return (errorMsg.value = 'Harga harus lebih dari 0.')
+  if (!form.stock || Number(form.stock) < 1) return (errorMsg.value = 'Stok harus minimal 1.')
   if (!form.condition) return (errorMsg.value = 'Kondisi barang wajib dipilih.')
+  if (!form.category_id) return (errorMsg.value = 'Kategori wajib dipilih.')
+  if (!form.description.trim()) return (errorMsg.value = 'Deskripsi wajib diisi.')
+  const hasPhoto = mediaList.value.some(m => m.type === 'image')
+  if (!hasPhoto) return (errorMsg.value = 'Tambahkan minimal 1 foto produk.')
 
   isSubmitting.value = true
   try {
@@ -551,7 +556,7 @@ async function deleteProduct() {
 
         <!-- Stok -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">📦 Stok</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">📦 Stok <span class="text-red-500">*</span></label>
           <input
             v-model.number="form.stock"
             type="number"
@@ -577,20 +582,20 @@ async function deleteProduct() {
 
         <!-- Kategori -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">🏷️ Kategori</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">🏷️ Kategori <span class="text-red-500">*</span></label>
           <select
             v-model="form.category_id"
             class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
             :disabled="isSubmitting"
           >
-            <option value="">Pilih kategori (opsional)</option>
+            <option value="">Pilih kategori</option>
             <option v-for="cat in (categories ?? [])" :key="cat.id" :value="cat.id">{{ kategoriLabel(cat.name) }}</option>
           </select>
         </div>
 
         <!-- Deskripsi -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Deskripsi</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Deskripsi <span class="text-red-500">*</span></label>
           <div class="flex items-center gap-1 mb-1">
             <button type="button" @click="applyFormat('**')" title="Bold" class="px-2 py-1 rounded border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 transition"><b>B</b></button>
             <button type="button" @click="applyFormat('*')" title="Italic" class="px-2 py-1 rounded border border-gray-300 text-xs text-gray-700 hover:bg-gray-100 transition"><i>I</i></button>
@@ -609,7 +614,7 @@ async function deleteProduct() {
         <!-- Upload Media -->
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1">
-            Foto &amp; Video
+            Foto &amp; Video <span class="text-red-500">*</span>
             <span class="text-gray-400 font-normal ml-1">
               ({{ photoCount }}/{{ PHOTO_MAX }} foto · {{ videoCount }}/{{ VIDEO_MAX }} video)
             </span>
