@@ -115,7 +115,7 @@ async function handleLogin() {
         </div>
 
         <!-- Forgot password -->
-        <a href="#" class="block text-sm text-white/70 hover:text-white hover:underline -mt-2 transition-colors">Lupa password?</a>
+        <NuxtLink to="/auth/forgot-password" class="block text-sm text-white/70 hover:text-white hover:underline -mt-2 transition-colors">Lupa password?</NuxtLink>
 
         <!-- Signup success notification -->
         <div v-if="signupSuccess" class="flex items-start gap-2.5 border border-green-200 rounded-xl px-4 py-3 -mt-1" style="background: linear-gradient(to right, #f0fdf4, #dcfce7, #bbf7d0);">
