@@ -8,15 +8,9 @@ const errorMsg = ref('')
 
 onMounted(async () => {
   try {
-    // Supabase redirects with hash fragments containing access_token, refresh_token, type
-    // The @nuxtjs/supabase module auto-handles the session exchange from the URL hash
-    // We need to wait for the session to be established, then redirect based on type
-
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const type = hashParams.get('type') || route.query.type
-
-    // Wait briefly for Supabase client to process the hash tokens
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // For PKCE flow: Supabase client's _initialize() automatically exchanges
+    // the ?code= param for a session. getSession() awaits initialization.
+    const type = route.query.type
 
     const { data: { session } } = await supabase.auth.getSession()
 

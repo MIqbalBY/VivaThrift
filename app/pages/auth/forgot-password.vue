@@ -29,6 +29,8 @@ async function handleResetRequest() {
       redirectTo: `${window.location.origin}/auth/confirm?type=recovery`,
     })
     if (error) throw error
+    // Flag for supabase-recovery plugin — PKCE flow doesn't fire PASSWORD_RECOVERY event
+    localStorage.setItem('__vt_pending_recovery', Date.now().toString())
     successMsg.value = true
   } catch (err) {
     const msg = err.message?.toLowerCase() ?? ''

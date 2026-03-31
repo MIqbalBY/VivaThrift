@@ -15,6 +15,9 @@ const isChecking = ref(true)
 
 // Verify that user has a valid recovery session
 onMounted(async () => {
+  // Clean up recovery flag
+  localStorage.removeItem('__vt_pending_recovery')
+
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
