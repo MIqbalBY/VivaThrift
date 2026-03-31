@@ -25,3 +25,8 @@ logs
 
 .vercel
 .env*.local
+
+# Agent/AI config (local only)
+.claude/
+.agents/
+skills-lock.json
