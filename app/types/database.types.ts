@@ -23,6 +23,7 @@ export interface Database {
           phone: string | null
           gender: string | null
           bio: string | null
+          username: string | null
         }
       }
       categories: {

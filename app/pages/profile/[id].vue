@@ -8,26 +8,40 @@ const { reveal } = useScrollReveal()
 const profileId = computed(() => route.params.id)
 const currentUserId = ref(null)
 
+// Determine if param is a username (not a UUID)
+const isUUID = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+
 // ── Fetch profile ────────────────────────────────────────────────────────────────────
 const { data: profile } = await useAsyncData(`profile-${route.params.id}`, async () => {
-  const { data } = await supabase
+  const paramVal = profileId.value
+  let query = supabase
     .from('users')
-    .select('id, name, nrp, faculty, department, avatar_url, gender, bio, created_at')
-    .eq('id', profileId.value)
-    .single()
+    .select('id, name, username, nrp, faculty, department, avatar_url, gender, bio, created_at')
+  if (isUUID(paramVal)) {
+    query = query.eq('id', paramVal)
+  } else {
+    // Strip leading @ if present
+    const uname = paramVal.startsWith('@') ? paramVal.slice(1) : paramVal
+    query = query.eq('username', uname.toLowerCase())
+  }
+  const { data } = await query.single()
   return data
 }, { watch: [profileId] })
 
 useHead({ title: computed(() => profile.value?.name ? `${profile.value.name} — VivaThrift` : 'Profil — VivaThrift') })
 
+// ── Resolved profile user ID (always UUID after fetch) ──────────────────────
+const resolvedId = computed(() => profile.value?.id ?? profileId.value)
+
 // ── Fetch seller rating ──────────────────────────────────────────────────────
 const sellerRating = ref(null)
 const ratingCount = ref(0)
 useAsyncData(`profile-rating-${route.params.id}`, async () => {
+  if (!resolvedId.value) return
   const { data } = await supabase
     .from('reviews')
     .select('rating_seller')
-    .eq('reviewee_id', profileId.value)
+    .eq('reviewee_id', resolvedId.value)
   const arr = (data ?? []).map(r => r.rating_seller).filter(v => v != null)
   ratingCount.value = arr.length
   sellerRating.value = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
@@ -37,9 +51,10 @@ useAsyncData(`profile-rating-${route.params.id}`, async () => {
 const followersCount = ref(0)
 const followingCount = ref(0)
 useAsyncData(`profile-follows-${route.params.id}`, async () => {
+  if (!resolvedId.value) return
   const [{ count: fc }, { count: fgc }] = await Promise.all([
-    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', profileId.value),
-    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', profileId.value),
+    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('following_id', resolvedId.value),
+    supabase.from('follows').select('id', { count: 'exact', head: true }).eq('follower_id', resolvedId.value),
   ])
   followersCount.value = fc ?? 0
   followingCount.value = fgc ?? 0
@@ -54,7 +69,7 @@ const { data: products } = await useAsyncData(`profile-products-${route.params.i
       product_media ( media_url, media_type, thumbnail_url, is_primary ),
       categories ( name )
     `)
-    .eq('seller_id', profileId.value)
+    .eq('seller_id', resolvedId.value)
     .in('status', ['active', 'sold'])
     .order('created_at', { ascending: false })
   return data ?? []
@@ -68,7 +83,7 @@ const shownProducts  = computed(() => productTab.value === 'dijual' ? activeProd
 // ── Follow state ─────────────────────────────────────────────────────────────
 const isFollowing = ref(false)
 const followLoading = ref(false)
-const isSelf = computed(() => !!currentUserId.value && currentUserId.value === profileId.value)
+const isSelf = computed(() => !!currentUserId.value && currentUserId.value === resolvedId.value)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -88,13 +103,13 @@ async function toggleFollow() {
   if (isFollowing.value) {
     await supabase.from('follows').delete()
       .eq('follower_id', currentUserId.value)
-      .eq('following_id', profileId.value)
+      .eq('following_id', resolvedId.value)
     isFollowing.value = false
     followersCount.value = Math.max(0, followersCount.value - 1)
   } else {
     await supabase.from('follows').insert({
       follower_id: currentUserId.value,
-      following_id: profileId.value,
+      following_id: resolvedId.value,
     })
     isFollowing.value = true
     followersCount.value += 1
@@ -106,11 +121,11 @@ onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   currentUserId.value = session?.user?.id ?? currentUser.value?.id ?? null
 
-  if (currentUserId.value && currentUserId.value !== profileId.value) {
+  if (currentUserId.value && currentUserId.value !== resolvedId.value) {
     const { data: f } = await supabase
       .from('follows').select('id')
       .eq('follower_id', currentUserId.value)
-      .eq('following_id', profileId.value)
+      .eq('following_id', resolvedId.value)
       .maybeSingle()
     isFollowing.value = !!f
   }
@@ -157,14 +172,18 @@ onMounted(async () => {
         <!-- Right side: name + stats + buttons -->
         <div class="flex-1 min-w-0 pt-1">
           <!-- Name row -->
-          <div class="flex flex-wrap items-center gap-3 mb-3">
+          <div class="flex flex-wrap items-center gap-3 mb-1">
             <h1 class="text-lg sm:text-xl font-bold truncate" :class="isDark ? 'text-white' : 'text-gray-900'">
               {{ profile.name }}
               <span v-if="profile.gender === 'Laki-laki'" title="Laki-laki" class="text-base">♂️</span>
               <span v-else-if="profile.gender === 'Perempuan'" title="Perempuan" class="text-base">♀️</span>
             </h1>
+          </div>
+          <!-- Username -->
+          <p v-if="profile.username" class="text-sm mb-3" :class="isDark ? 'text-sky-400' : 'text-blue-700'">@{{ profile.username }}</p>
+          <div v-else class="mb-3"></div>
 
-            <!-- Action buttons (desktop inline) -->
+          <!-- Action buttons (desktop inline) -->
             <div class="hidden sm:flex items-center gap-2">
               <template v-if="!isSelf">
                 <button
@@ -193,7 +212,6 @@ onMounted(async () => {
                 Edit Profil
               </NuxtLink>
             </div>
-          </div>
 
           <!-- Stats row (desktop) -->
           <div class="hidden sm:flex items-center gap-6 mb-3">

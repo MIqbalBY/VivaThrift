@@ -40,7 +40,7 @@ async function loadProfile() {
 
   const [{ data: u }, { data: reviews }, { count: fc }, { count: fgc }] = await Promise.all([
     supabase.from('users')
-      .select('id, name, nrp, faculty, department, avatar_url, gender')
+      .select('id, name, nrp, faculty, department, avatar_url, gender, username')
       .eq('id', props.userId)
       .single(),
     supabase.from('reviews')
@@ -160,6 +160,9 @@ onUnmounted(() => {
               <span v-if="userProfile.gender === 'Laki-laki'" title="Laki-laki" class="text-base">♂️</span>
               <span v-else-if="userProfile.gender === 'Perempuan'" title="Perempuan" class="text-base">♀️</span>
             </p>
+            <p v-if="userProfile.username" class="text-xs mt-0.5" :class="isDark ? 'text-sky-400' : 'text-blue-600'">
+              @{{ userProfile.username }}
+            </p>
             <p class="text-xs mt-0.5" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
               {{ userProfile.nrp ?? '-' }}
             </p>
@@ -218,7 +221,7 @@ onUnmounted(() => {
 
             <!-- Lihat Profile -->
             <NuxtLink
-              :to="`/profile/${userProfile.id}`"
+              :to="userProfile.username ? `/profile/@${userProfile.username}` : `/profile/${userProfile.id}`"
               @click="emit('close')"
               class="w-full py-2.5 rounded-xl text-sm font-bold text-center transition"
               :style="isDark

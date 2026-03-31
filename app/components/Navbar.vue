@@ -13,7 +13,7 @@ const profilePending = ref(true)
 const userAddress = useState('userAddress', () => null)
 
 async function fetchProfile(uid) {
-  const { data } = await supabase.from('users').select('name, avatar_url').eq('id', uid).single()
+  const { data } = await supabase.from('users').select('name, avatar_url, username').eq('id', uid).single()
   if (data) userProfile.value = data
   profilePending.value = false
 }
@@ -850,9 +850,10 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               : 'background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(30,58,138,0.15);'">
               <div class="px-4 py-2 border-b border-gray-100">
                 <p class="text-xs font-semibold text-gray-700 truncate">{{ userProfile?.name || user.email }}</p>
-                <p v-if="userProfile?.name" class="text-xs text-gray-400 truncate">{{ user.email }}</p>
+                <p v-if="userProfile?.username" class="text-xs truncate" :class="isDark ? 'text-sky-400' : 'text-blue-600'">@{{ userProfile.username }}</p>
+                <p v-else-if="userProfile?.name" class="text-xs text-gray-400 truncate">{{ user.email }}</p>
               </div>
-              <NuxtLink :to="`/profile/${user.id}`" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
+              <NuxtLink :to="userProfile?.username ? `/profile/@${userProfile.username}` : `/profile/${user.id}`" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
                 Lihat Profil
               </NuxtLink>
@@ -1019,7 +1020,8 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                   </div>
                   <div class="flex flex-col min-w-0">
                     <span class="text-sm font-medium text-gray-700 dark:text-slate-300 truncate max-w-[180px]">{{ userProfile?.name || user.email }}</span>
-                    <span v-if="userProfile?.name" class="text-xs text-gray-400 truncate max-w-[180px]">{{ user.email }}</span>
+                    <span v-if="userProfile?.username" class="text-xs truncate max-w-[180px]" :class="isDark ? 'text-sky-400' : 'text-blue-600'">@{{ userProfile.username }}</span>
+                    <span v-else-if="userProfile?.name" class="text-xs text-gray-400 truncate max-w-[180px]">{{ user.email }}</span>
                   </div>
                 </div>
                 <button @click="() => { handleLogout(); showMobileMenu = false }" class="text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">

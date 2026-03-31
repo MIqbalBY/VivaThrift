@@ -58,6 +58,7 @@ const FAKULTAS_DEPARTEMEN = {
 
 // ─── Profile state ───────────────────────────────────────────────────────────
 const name       = ref('')
+const username   = ref('')
 const faculty    = ref('')
 const department = ref('')
 const avatarUrl  = ref('')
@@ -73,18 +74,43 @@ const profileMsgType = ref('') // 'ok' | 'err'
 
 const profileLoading = ref(false)
 
+const usernameError = ref('')
+const usernameChecking = ref(false)
+let usernameTimer = null
+const usernameRegex = /^[a-zA-Z0-9._]{3,30}$/
+const originalUsername = ref('')
+
+watch(username, (val) => {
+  usernameError.value = ''
+  if (usernameTimer) clearTimeout(usernameTimer)
+  if (!val) return
+  if (!usernameRegex.test(val)) {
+    usernameError.value = 'Hanya huruf, angka, titik (.) dan underscore (_). 3–30 karakter.'
+    return
+  }
+  if (val.toLowerCase() === originalUsername.value.toLowerCase()) return
+  usernameChecking.value = true
+  usernameTimer = setTimeout(async () => {
+    const { data } = await supabase.from('users').select('id').eq('username', val.toLowerCase()).maybeSingle()
+    usernameChecking.value = false
+    if (data) usernameError.value = 'Username sudah digunakan.'
+  }, 500)
+})
+
 async function fetchProfile(uid = user.value?.id) {
   if (!uid) return
   profileLoading.value = true
   const { data, error } = await supabase
     .from('users')
-    .select('name, faculty, department, avatar_url, nrp, email, gender, bio')
+    .select('name, username, faculty, department, avatar_url, nrp, email, gender, bio')
     .eq('id', uid)
     .maybeSingle()
   profileLoading.value = false
   if (error) { console.error('[fetchProfile]', error.message); return }
   if (!data) return
   name.value        = data.name        ?? ''
+  username.value    = data.username     ?? ''
+  originalUsername.value = data.username ?? ''
   faculty.value     = data.faculty     ?? ''
   department.value  = data.department  ?? ''
   avatarUrl.value   = data.avatar_url  ?? ''
@@ -94,28 +120,50 @@ async function fetchProfile(uid = user.value?.id) {
   gender.value     = data.gender     ?? ''
   bio.value        = data.bio        ?? ''
 
-  // Sync ke shared Navbar state (avatar + nama)
+  // Sync ke shared Navbar state (avatar + nama + username)
   const sharedProfile = useState('userProfile')
-  sharedProfile.value = { ...(sharedProfile.value ?? {}), name: data.name ?? '', avatar_url: data.avatar_url ?? null }
+  sharedProfile.value = { ...(sharedProfile.value ?? {}), name: data.name ?? '', avatar_url: data.avatar_url ?? null, username: data.username ?? null }
 }
 
 
 async function saveProfile() {
   const uid = user.value?.id ?? _userId.value
   if (!uid) return
+  if (username.value && !usernameRegex.test(username.value)) {
+    profileMsg.value = 'Username tidak valid.'
+    profileMsgType.value = 'err'
+    return
+  }
+  if (usernameError.value) {
+    profileMsg.value = usernameError.value
+    profileMsgType.value = 'err'
+    return
+  }
   profileSaving.value = true
   profileMsg.value = ''
+  const updates = {
+    name: name.value.trim(),
+    gender: gender.value || null,
+    bio: bio.value.trim() || null,
+    username: username.value.trim().toLowerCase() || null,
+  }
   const { error } = await supabase
     .from('users')
-    .update({ name: name.value.trim(), gender: gender.value || null, bio: bio.value.trim() || null })
+    .update(updates)
     .eq('id', uid)
   profileSaving.value = false
   if (error) {
-    profileMsg.value = 'Gagal menyimpan: ' + error.message
+    profileMsg.value = error.message.includes('idx_users_username_lower')
+      ? 'Username sudah digunakan.'
+      : 'Gagal menyimpan: ' + error.message
     profileMsgType.value = 'err'
   } else {
+    originalUsername.value = username.value.trim().toLowerCase()
     profileMsg.value = 'Profil berhasil disimpan! ✅'
     profileMsgType.value = 'ok'
+    // Sync username to shared Navbar state
+    const sharedProfile = useState('userProfile')
+    sharedProfile.value = { ...(sharedProfile.value ?? {}), username: updates.username }
     setTimeout(() => { profileMsg.value = '' }, 3000)
   }
 }
@@ -660,7 +708,8 @@ watch(user, (u) => {
                 <span v-else-if="gender === 'Perempuan'" title="Perempuan">♀️</span>
               </p>
               <p class="text-xs text-gray-500 dark:text-slate-400 truncate">
-                {{ nrp || '-' }}
+                <span v-if="username" class="text-blue-600 dark:text-sky-400 font-medium">@{{ username }}</span>
+                <template v-else>{{ nrp || '-' }}</template>
                 <template v-if="faculty || department">
                   ({{ [fakultasAkronim(faculty), department].filter(Boolean).join(' - ') }})
                 </template>
@@ -707,6 +756,24 @@ watch(user, (u) => {
                 class="vt-input"
                 maxlength="100"
               />
+            </div>
+
+            <!-- Username -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Username</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 text-sm select-none">@</span>
+                <input
+                  v-model="username"
+                  type="text"
+                  placeholder="username_kamu"
+                  class="vt-input pl-8"
+                  maxlength="30"
+                />
+              </div>
+              <div v-if="usernameChecking" class="text-xs text-gray-400">Memeriksa...</div>
+              <div v-else-if="usernameError" class="text-xs text-red-500 dark:text-red-400">{{ usernameError }}</div>
+              <div v-else-if="username && !usernameError" class="text-xs text-gray-400 dark:text-slate-500">Huruf, angka, titik (.) dan underscore (_). 3–30 karakter.</div>
             </div>
 
             <!-- Bio -->

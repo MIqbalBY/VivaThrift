@@ -5,6 +5,7 @@ useSeoMeta({ title: 'Daftar — VivaThrift' })
 const supabase = useSupabaseClient()
 
 const name = ref('')
+const username = ref('')
 const nrp = ref('')
 const faculty = ref('')
 const department = ref('')
@@ -16,6 +17,7 @@ const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const isLoading = ref(false)
 const errorMsg = ref('')
+const step = ref(1)
 
 const FAKULTAS_DEPARTEMEN = {
   'Fakultas Desain Kreatif dan Bisnis Digital (FDKBD)': [
@@ -86,10 +88,55 @@ const departemenOptions = computed(() => {
 
 watch(faculty, () => { department.value = '' })
 
+const usernameError = ref('')
+const usernameChecking = ref(false)
+let usernameTimer = null
+const usernameRegex = /^[a-zA-Z0-9._]{3,30}$/
+
+watch(username, (val) => {
+  usernameError.value = ''
+  if (usernameTimer) clearTimeout(usernameTimer)
+  if (!val) return
+  if (!usernameRegex.test(val)) {
+    usernameError.value = 'Hanya huruf, angka, titik (.) dan underscore (_). 3–30 karakter.'
+    return
+  }
+  usernameChecking.value = true
+  usernameTimer = setTimeout(async () => {
+    const { data } = await supabase.from('users').select('id').eq('username', val.toLowerCase()).maybeSingle()
+    usernameChecking.value = false
+    if (data) usernameError.value = 'Username sudah digunakan.'
+  }, 500)
+})
+
+function validateStep1() {
+  errorMsg.value = ''
+  if (!name.value.trim() || !username.value.trim() || !nrp.value.trim() || !faculty.value || !department.value || !gender.value) {
+    errorMsg.value = 'Semua field wajib diisi.'
+    return false
+  }
+  if (!usernameRegex.test(username.value)) {
+    errorMsg.value = 'Username tidak valid.'
+    return false
+  }
+  if (usernameError.value) {
+    errorMsg.value = usernameError.value
+    return false
+  }
+  return true
+}
+
+function goStep2() {
+  if (validateStep1()) {
+    errorMsg.value = ''
+    step.value = 2
+  }
+}
+
 async function handleSignup() {
   errorMsg.value = ''
 
-  if (!name.value.trim() || !nrp.value.trim() || !faculty.value || !department.value || !gender.value || !email.value.trim() || !password.value || !confirmPassword.value) {
+  if (!email.value.trim() || !password.value || !confirmPassword.value) {
     errorMsg.value = 'Semua field wajib diisi.'
     return
   }
@@ -119,6 +166,7 @@ async function handleSignup() {
         id: data.user.id,
         email: email.value.trim(),
         name: name.value.trim(),
+        username: username.value.trim().toLowerCase(),
         nrp: nrp.value.trim(),
         faculty: faculty.value,
         department: department.value,
@@ -186,10 +234,25 @@ async function handleSignup() {
       <!-- Illustration -->
       <img src="/img/illustrations/sign-up.svg" alt="" class="w-32 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
 
-      <h1 class="font-heading text-[1.85rem] font-bold text-white mb-6 leading-tight">Daftar</h1>
+      <h1 class="font-heading text-[1.85rem] font-bold text-white mb-1 leading-tight">Daftar</h1>
+      <!-- Step indicator -->
+      <div class="flex items-center gap-2 mb-6">
+        <div class="flex items-center gap-1.5">
+          <span class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center" :class="step === 1 ? 'bg-white text-blue-900' : 'bg-white/30 text-white'">1</span>
+          <span class="text-xs text-white/70">Data Diri</span>
+        </div>
+        <div class="flex-1 h-px" :class="step >= 2 ? 'bg-white/70' : 'bg-white/20'"></div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center" :class="step === 2 ? 'bg-white text-blue-900' : 'bg-white/30 text-white'">2</span>
+          <span class="text-xs text-white/70">Akun</span>
+        </div>
+      </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSignup" class="space-y-5">
+      <form @submit.prevent="step === 1 ? goStep2() : handleSignup()" class="space-y-5">
+
+        <!-- ══ STEP 1: Data Diri ══ -->
+        <template v-if="step === 1">
 
         <!-- Nama Lengkap -->
         <div class="border-b border-white/30 focus-within:border-white/70 transition-colors pb-1">
@@ -201,6 +264,24 @@ async function handleSignup() {
             class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
             :disabled="isLoading"
           />
+        </div>
+
+        <!-- NRP -->
+        <div class="border-b border-white/30 focus-within:border-white/70 transition-colors pb-1">
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm select-none">@</span>
+            <input
+              v-model="username"
+              type="text"
+              placeholder="Username (misal: m_iqbal_by)"
+              autocomplete="off"
+              class="w-full pl-8 pr-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+              :disabled="isLoading"
+              maxlength="30"
+            />
+          </div>
+          <div v-if="usernameChecking" class="text-xs text-white/40 mt-0.5 px-3">Memeriksa...</div>
+          <div v-else-if="usernameError" class="text-xs text-red-300 mt-0.5 px-3">{{ usernameError }}</div>
         </div>
 
         <!-- NRP -->
@@ -273,6 +354,31 @@ async function handleSignup() {
           </div>
         </div>
 
+        <!-- Error (step 1) -->
+        <p v-if="errorMsg" class="text-red-300 text-sm">{{ errorMsg }}</p>
+
+        <!-- Lanjut button -->
+        <div class="flex justify-end pt-1">
+          <button
+            type="submit"
+            class="px-8 py-2.5 rounded-full text-white font-semibold text-sm transition hover:opacity-90 hover:shadow-lg flex items-center gap-2 shadow-md" style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);"
+          >
+            Lanjut
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+          </button>
+        </div>
+
+        </template>
+
+        <!-- ══ STEP 2: Akun ══ -->
+        <template v-if="step === 2">
+
+        <!-- Back to step 1 -->
+        <button type="button" @click="step = 1; errorMsg = ''" class="inline-flex items-center gap-1 text-sm text-white/60 hover:text-white transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+          Kembali
+        </button>
+
         <!-- Email -->
         <div class="border-b border-white/30 focus-within:border-white/70 transition-colors pb-1">
           <input
@@ -344,6 +450,8 @@ async function handleSignup() {
             {{ isLoading ? 'Memproses...' : 'Daftar' }}
           </button>
         </div>
+
+        </template>
 
       </form>
     </div>
