@@ -84,6 +84,9 @@ async function handleResetRequest() {
         >VivaThrift</span>
       </div>
 
+      <!-- Illustration -->
+      <img src="/img/illustrations/secure-login.svg" alt="" class="w-28 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
+
       <!-- Heading -->
       <h1 class="font-heading text-[1.85rem] font-bold text-white mb-2 leading-tight">Lupa Password</h1>
       <p class="text-white/60 text-sm mb-6 leading-relaxed">

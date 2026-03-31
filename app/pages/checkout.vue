@@ -187,7 +187,7 @@ async function placeOrder() {
 
     <!-- ── Success State ── -->
     <div v-if="orderDone" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">
-      <p class="text-6xl mb-4">🎉</p>
+      <img src="/img/illustrations/order-confirmed.svg" alt="Pesanan berhasil" class="w-48 h-auto mx-auto mb-4 opacity-90" />
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Pesanan Berhasil!</h2>
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Silakan hubungi penjual untuk mengatur pengiriman / COD.</p>
       <NuxtLink
@@ -203,7 +203,7 @@ async function placeOrder() {
 
     <!-- ── Stock Depleted State ── -->
     <div v-else-if="stockDepleted" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">
-      <p class="text-6xl mb-4">😔</p>
+      <img src="/img/illustrations/void.svg" alt="Stok habis" class="w-44 h-auto mx-auto mb-4 opacity-80" />
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Stok Habis</h2>
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Maaf, stok produk ini sudah habis karena tawaran lain telah dikonfirmasi lebih dulu.</p>
       <NuxtLink

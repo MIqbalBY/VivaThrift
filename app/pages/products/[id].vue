@@ -460,7 +460,10 @@ onUnmounted(() => {
     </NuxtLink>
 
     <!-- Not found -->
-    <div v-if="!product || product.status === 'deleted'" class="text-center text-gray-400 py-24">Produk tidak ditemukan.</div>
+    <div v-if="!product || product.status === 'deleted'" class="flex flex-col items-center text-center text-gray-400 py-24">
+      <img src="/img/illustrations/page-not-found.svg" alt="Produk tidak ditemukan" class="w-52 h-auto opacity-80 mb-4" />
+      <p class="font-semibold text-lg dark:text-gray-400">Produk tidak ditemukan.</p>
+    </div>
 
     <div v-else class="vt-hero-enter vt-hero-enter-d2 grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-8 items-start">
 

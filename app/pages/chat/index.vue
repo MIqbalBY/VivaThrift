@@ -186,10 +186,10 @@ function avatarInitials(name) {
       </svg>
     </div>
 
-    <div v-else-if="!chats?.length" class="text-center text-gray-400 py-20">
-      <p class="text-5xl mb-4">💬</p>
-      <p class="text-base font-medium">Belum ada percakapan.</p>
-      <NuxtLink to="/" class="text-blue-700 text-sm underline mt-2 inline-block">Temukan barang yang ingin dibeli</NuxtLink>
+    <div v-else-if="!chats?.length" class="flex flex-col items-center text-center text-gray-400 py-20">
+      <img src="/img/illustrations/messaging.svg" alt="Belum ada percakapan" class="w-48 h-auto opacity-80 mb-4" />
+      <p class="text-base font-medium dark:text-gray-400">Belum ada percakapan.</p>
+      <NuxtLink to="/" class="text-blue-700 dark:text-sky-400 text-sm underline mt-2 inline-block">Temukan barang yang ingin dibeli</NuxtLink>
     </div>
 
     <div v-else class="flex flex-col gap-2">

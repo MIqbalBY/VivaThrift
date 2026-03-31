@@ -65,6 +65,9 @@ onMounted(async () => {
         >VivaThrift</span>
       </div>
 
+      <!-- Illustration -->
+      <img src="/img/illustrations/mail-sent.svg" alt="" class="w-28 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
+
       <!-- Loading -->
       <div v-if="isProcessing" class="flex flex-col items-center gap-3 py-6">
         <svg class="w-8 h-8 animate-spin text-white/60" fill="none" viewBox="0 0 24 24">

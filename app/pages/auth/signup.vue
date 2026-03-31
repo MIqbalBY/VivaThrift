@@ -183,6 +183,9 @@ async function handleSignup() {
         >VivaThrift</span>
       </div>
 
+      <!-- Illustration -->
+      <img src="/img/illustrations/sign-up.svg" alt="" class="w-32 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
+
       <h1 class="font-heading text-[1.85rem] font-bold text-white mb-6 leading-tight">Daftar</h1>
 
       <!-- Form -->

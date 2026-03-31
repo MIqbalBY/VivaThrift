@@ -415,6 +415,7 @@ async function submitProduct() {
         </svg>
       </NuxtLink>
       <h1 class="vt-detail-title font-heading text-3xl font-bold" style="color: #1e3a8a;">Jual Barang</h1>
+      <img src="/img/illustrations/shopping-app.svg" alt="" class="hidden md:block w-28 h-auto opacity-70 ml-auto" aria-hidden="true" />
     </div>
 
     <div class="vt-hero-enter vt-hero-enter-d2 vt-glass rounded-2xl p-8" style="background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);">

@@ -216,7 +216,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
     <!-- Hero Section -->
     <section class="vt-hero-bg relative w-full bg-blue-50 overflow-hidden min-h-[500px] flex items-center">
       <img
-        src="/img/Banner.png"
+        src="/img/Banner 1.png"
         alt="Banner VivaThrift"
         class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
       />
@@ -433,9 +433,9 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         />
 
         <div v-if="!products || products.length === 0" class="col-span-full flex flex-col items-center justify-center py-20 gap-3">
-          <span class="text-5xl">🍃</span>
-          <p class="text-gray-500 font-semibold text-lg">Belum ada produk tersedia</p>
-          <p class="text-gray-400 text-sm">Jadilah yang pertama menjual barang di sini!</p>
+          <img src="/img/illustrations/empty-cart.svg" alt="Belum ada produk" class="w-52 h-auto opacity-80" />
+          <p class="text-gray-500 dark:text-gray-400 font-semibold text-lg mt-2">Belum ada produk tersedia</p>
+          <p class="text-gray-400 dark:text-gray-500 text-sm">Jadilah yang pertama menjual barang di sini!</p>
         </div>
       </div>
 

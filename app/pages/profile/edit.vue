@@ -555,14 +555,17 @@ watch(user, (u) => {
 
     <!-- Page Header -->
     <div class="vt-hero-enter vt-hero-enter-d1 vt-edit-header w-full pt-24 pb-10 px-4 md:px-10">
-      <div class="max-w-3xl mx-auto flex flex-col gap-2">
-        <nav class="flex items-center gap-1.5 text-xs text-white/50">
-          <NuxtLink to="/" class="hover:text-white/80 transition">Beranda</NuxtLink>
-          <span>/</span>
-          <span class="text-white/70">Pengaturan</span>
-        </nav>
-        <h1 class="font-heading text-3xl font-bold text-white leading-tight">⚙️ Pengaturan</h1>
-        <p class="text-white/65 text-sm">Kelola informasi akun dan alamat pengirimanmu.</p>
+      <div class="max-w-3xl mx-auto flex items-center gap-4">
+        <div class="flex flex-col gap-2 flex-1">
+          <nav class="flex items-center gap-1.5 text-xs text-white/50">
+            <NuxtLink to="/" class="hover:text-white/80 transition">Beranda</NuxtLink>
+            <span>/</span>
+            <span class="text-white/70">Pengaturan</span>
+          </nav>
+          <h1 class="font-heading text-3xl font-bold text-white leading-tight">⚙️ Pengaturan</h1>
+          <p class="text-white/65 text-sm">Kelola informasi akun dan alamat pengirimanmu.</p>
+        </div>
+        <img src="/img/illustrations/personal-settings.svg" alt="" class="hidden md:block w-28 h-auto opacity-70 shrink-0" aria-hidden="true" />
       </div>
     </div>
 

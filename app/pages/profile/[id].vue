@@ -132,8 +132,8 @@ onMounted(async () => {
     </button>
 
     <!-- Not found -->
-    <div v-if="!profile" class="text-center py-24 text-gray-400">
-      <span class="text-5xl block mb-3">🤷</span>
+    <div v-if="!profile" class="flex flex-col items-center text-center py-24 text-gray-400">
+      <img src="/img/illustrations/not-found.svg" alt="Profil tidak ditemukan" class="w-48 h-auto opacity-80 mb-4" />
       Profil tidak ditemukan.
     </div>
 
@@ -338,8 +338,8 @@ onMounted(async () => {
       </div>
 
       <!-- Empty state -->
-      <div v-if="!shownProducts.length" class="text-center py-16" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
-        <span class="text-5xl block mb-3">{{ productTab === 'dijual' ? '📭' : '🏷️' }}</span>
+      <div v-if="!shownProducts.length" class="flex flex-col items-center text-center py-16" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+        <img src="/img/illustrations/empty.svg" alt="Belum ada barang" class="w-44 h-auto opacity-75 mb-3" />
         {{ productTab === 'dijual' ? 'Belum ada barang yang dijual.' : 'Belum ada barang yang terjual/habis.' }}
       </div>
 

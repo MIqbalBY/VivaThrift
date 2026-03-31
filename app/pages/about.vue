@@ -145,6 +145,7 @@ const values = [
           <h2 class="font-heading text-4xl md:text-5xl font-bold leading-tight vt-story-heading">
             Mengapa<br><span class="vt-brand-text font-himpun">VivaThrift</span><br>Ada?
           </h2>
+          <img src="/img/illustrations/team-spirit.svg" alt="" class="w-48 h-auto opacity-70 mt-4 hidden md:block" aria-hidden="true" />
         </div>
 
         <!-- Right: paragraphs -->
