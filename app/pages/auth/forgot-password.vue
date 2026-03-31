@@ -2,10 +2,11 @@
 definePageMeta({ layout: false })
 
 const supabase = useSupabaseClient()
+const route = useRoute()
 
 const email = ref('')
 const isLoading = ref(false)
-const errorMsg = ref('')
+const errorMsg = ref(route.query.expired === 'true' ? 'Link reset password sudah kedaluwarsa. Silakan kirim ulang.' : '')
 const successMsg = ref(false)
 
 async function handleResetRequest() {
