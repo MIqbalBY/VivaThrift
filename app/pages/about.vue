@@ -276,9 +276,9 @@ const values = [
          6. CTA BAND
          ══════════════════════════════════════ -->
     <section class="vt-cta relative overflow-hidden py-28 px-6 md:px-16">
-      <!-- Sky glow -->
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[280px] pointer-events-none blur-3xl rounded-full"
-           style="background: #38bdf8; opacity: 0.06;"></div>
+      <!-- Banner 4 background -->
+      <img src="/img/Banner 4.png" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
+      <div class="absolute inset-0 pointer-events-none vt-cta-overlay"></div>
       <!-- Floating deco -->
       <span class="absolute top-10 left-10 text-5xl opacity-10 rotate-12 hidden md:block select-none pointer-events-none" aria-hidden="true">📦</span>
       <span class="absolute top-14 right-16 text-4xl opacity-10 -rotate-6 hidden md:block select-none pointer-events-none" aria-hidden="true">🛍️</span>
@@ -584,5 +584,13 @@ const values = [
 .dark .vt-cta-primary {
   background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);
   box-shadow: 0 4px 20px rgba(56, 189, 248, 0.30);
+}
+
+/* ── CTA banner overlay ── */
+.vt-cta-overlay {
+  background: linear-gradient(160deg, rgba(7,89,133,0.82) 0%, rgba(3,105,161,0.75) 50%, rgba(14,165,233,0.68) 100%);
+}
+.dark .vt-cta-overlay {
+  background: linear-gradient(160deg, rgba(10,18,32,0.88) 0%, rgba(13,24,41,0.82) 100%);
 }
 </style>

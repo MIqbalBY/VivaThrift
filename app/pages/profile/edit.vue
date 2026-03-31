@@ -602,8 +602,10 @@ watch(user, (u) => {
   <div class="min-h-screen vt-page-bg">
 
     <!-- Page Header -->
-    <div class="vt-hero-enter vt-hero-enter-d1 vt-edit-header w-full pt-24 pb-10 px-4 md:px-10">
-      <div class="max-w-3xl mx-auto flex items-center gap-4">
+    <div class="vt-hero-enter vt-hero-enter-d1 vt-edit-header relative w-full pt-24 pb-10 px-4 md:px-10 overflow-hidden">
+      <img src="/img/Banner 3.png" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
+      <div class="absolute inset-0 pointer-events-none vt-edit-header-overlay"></div>
+      <div class="relative max-w-3xl mx-auto flex items-center gap-4">
         <div class="flex flex-col gap-2 flex-1">
           <nav class="flex items-center gap-1.5 text-xs text-white/50">
             <NuxtLink to="/" class="hover:text-white/80 transition">Beranda</NuxtLink>
@@ -767,7 +769,8 @@ watch(user, (u) => {
                   v-model="username"
                   type="text"
                   placeholder="username_kamu"
-                  class="vt-input pl-8"
+                  class="vt-input"
+                  style="padding-left: 1.75rem"
                   maxlength="30"
                 />
               </div>
@@ -1545,10 +1548,13 @@ watch(user, (u) => {
   background: #0f172a;
 }
 .vt-edit-header {
-  background: linear-gradient(160deg, #0c4a6e 0%, #0369a1 50%, #0ea5e9 100%);
+  background: transparent;
 }
-.dark .vt-edit-header {
-  background: linear-gradient(160deg, #0a1220 0%, #0d1829 100%);
+.vt-edit-header-overlay {
+  background: linear-gradient(160deg, rgba(12,74,110,0.80) 0%, rgba(3,105,161,0.70) 50%, rgba(14,165,233,0.60) 100%);
+}
+.dark .vt-edit-header-overlay {
+  background: linear-gradient(160deg, rgba(10,18,32,0.85) 0%, rgba(13,24,41,0.80) 100%);
 }
 .vt-tab-bar {
   background: rgba(255,255,255,0.9);
