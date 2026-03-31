@@ -9,7 +9,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devServer: { port: 3004 },
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/supabase', '@vercel/analytics'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/supabase', '@vercel/analytics', '@vercel/speed-insights'],
   supabase: {
     redirect: false
   },

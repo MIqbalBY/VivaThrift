@@ -90,6 +90,32 @@ export interface Database {
           created_at: string | null
         }
       }
+      user_settings: {
+        Row: {
+          user_id: string
+          chat_popup: boolean
+          notif_product: boolean
+          show_online: boolean
+          read_receipts: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          user_id: string
+          chat_popup?: boolean
+          notif_product?: boolean
+          show_online?: boolean
+          read_receipts?: boolean
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          chat_popup?: boolean
+          notif_product?: boolean
+          show_online?: boolean
+          read_receipts?: boolean
+          updated_at?: string
+        }
+      }
     }
   }
 }

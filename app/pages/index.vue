@@ -1,4 +1,6 @@
 <script setup>
+useSeoMeta({ title: 'VivaThrift - Situs Jual Beli Barang Preloved di ITS!' })
+
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 const route = useRoute()

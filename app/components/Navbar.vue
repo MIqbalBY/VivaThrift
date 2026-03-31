@@ -3,6 +3,7 @@ const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 const route = useRoute()
 const { isDark, toggle } = useDarkMode()
+const { settings: userSettings, fetchSettings: fetchUserSettings, resetSettings: resetUserSettings } = useUserSettings()
 
 // Shared profile state (synced with edit.vue via useState)
 const userProfile = useState('userProfile', () => null)
@@ -50,6 +51,8 @@ function dismissChatNotification(id) {
 }
 
 function showChatNotification(chatId, senderId, content) {
+  // Respect user's chat popup preference
+  if (!userSettings.value.chat_popup) return
   // If a card for this chat is already visible, update it in place and reset the timer.
   const existing = chatNotifications.value.find(n => n.chatId === chatId)
   if (existing) {
@@ -175,6 +178,7 @@ onMounted(async () => {
     startNavPoll(session.user.id)
     fetchNotifications(session.user.id)
     setupNotifChannel(session.user.id)
+    fetchUserSettings(session.user.id)
   } else {
     profilePending.value = false
   }
@@ -188,6 +192,7 @@ onMounted(async () => {
       navUnreadCount.value = 0
       notifications.value = []
       notifUnreadCount.value = 0
+      resetUserSettings()
       if (navPollTimer) { clearInterval(navPollTimer); navPollTimer = null }
       if (navChatChannel) {
         supabase.removeChannel(navChatChannel)
@@ -203,6 +208,7 @@ onMounted(async () => {
       if (!navPollTimer) startNavPoll(session.user.id)
       fetchNotifications(session.user.id)
       setupNotifChannel(session.user.id)
+      fetchUserSettings(session.user.id)
     }
   })
 
@@ -711,7 +717,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
             <svg class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
               <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
             </svg>
-            <span v-if="notifUnreadCount > 0"
+            <span v-if="notifUnreadCount > 0 && userSettings.notif_product"
               class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
               :style="isDark ? 'background:linear-gradient(135deg,#0ea5e9,#38bdf8); pointer-events:none;' : 'background:linear-gradient(135deg,#1e3a8a,#2563eb); pointer-events:none;'">
               {{ notifUnreadCount > 99 ? '99+' : notifUnreadCount }}
@@ -838,6 +844,11 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                 <p class="text-xs font-semibold text-gray-700 truncate">{{ userProfile?.name || user.email }}</p>
                 <p v-if="userProfile?.name" class="text-xs text-gray-400 truncate">{{ user.email }}</p>
               </div>
+              <NuxtLink :to="`/profile/${user.id}`" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                Lihat Profil
+              </NuxtLink>
+              <div class="border-t border-gray-100 my-1"></div>
               <NuxtLink to="/profile/edit" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
                 Profil Saya
@@ -845,6 +856,14 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               <NuxtLink to="/profile/edit?tab=alamat" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
                 Alamat
+              </NuxtLink>
+              <NuxtLink to="/profile/edit?tab=keamanan" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+                Keamanan
+              </NuxtLink>
+              <NuxtLink to="/profile/edit?tab=notifikasi" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+                Notifikasi
               </NuxtLink>
               <div class="border-t border-gray-100 my-1"></div>
               <button
@@ -1009,6 +1028,12 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                 <NuxtLink to="/profile/edit?tab=alamat" @click="showMobileMenu = false" class="flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
                   📍 Alamat
                 </NuxtLink>
+                <NuxtLink to="/profile/edit?tab=keamanan" @click="showMobileMenu = false" class="flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
+                  🔒 Keamanan
+                </NuxtLink>
+                <NuxtLink to="/profile/edit?tab=notifikasi" @click="showMobileMenu = false" class="flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
+                  ⚙️ Pengaturan
+                </NuxtLink>
                 <NuxtLink to="/chat" @click="showMobileMenu = false" class="relative flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
                   💬 Chat
                   <span v-if="navUnreadCount > 0"
@@ -1022,7 +1047,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                   class="relative flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
                 >
                   🔔 Notifikasi
-                  <span v-if="notifUnreadCount > 0"
+                  <span v-if="notifUnreadCount > 0 && userSettings.notif_product"
                     class="ml-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold text-white"
                     style="background:#ef4444;">
                     {{ notifUnreadCount > 99 ? '99+' : notifUnreadCount }}
