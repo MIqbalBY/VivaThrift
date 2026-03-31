@@ -22,6 +22,7 @@ export interface Database {
           avatar_url: string | null
           phone: string | null
           gender: string | null
+          bio: string | null
         }
       }
       categories: {

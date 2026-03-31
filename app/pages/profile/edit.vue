@@ -65,6 +65,7 @@ const nrp        = ref('')
 const email      = ref('')
 const phone      = ref('')
 const gender     = ref('')
+const bio        = ref('')
 
 const profileSaving  = ref(false)
 const profileMsg     = ref('')
@@ -77,7 +78,7 @@ async function fetchProfile(uid = user.value?.id) {
   profileLoading.value = true
   const { data, error } = await supabase
     .from('users')
-    .select('name, faculty, department, avatar_url, nrp, email, gender')
+    .select('name, faculty, department, avatar_url, nrp, email, gender, bio')
     .eq('id', uid)
     .maybeSingle()
   profileLoading.value = false
@@ -91,6 +92,7 @@ async function fetchProfile(uid = user.value?.id) {
   email.value       = data.email       ?? user.value?.email ?? ''
   phone.value       = data.phone       ?? ''
   gender.value     = data.gender     ?? ''
+  bio.value        = data.bio        ?? ''
 
   // Sync ke shared Navbar state (avatar + nama)
   const sharedProfile = useState('userProfile')
@@ -105,7 +107,7 @@ async function saveProfile() {
   profileMsg.value = ''
   const { error } = await supabase
     .from('users')
-    .update({ name: name.value.trim(), gender: gender.value || null })
+    .update({ name: name.value.trim(), gender: gender.value || null, bio: bio.value.trim() || null })
     .eq('id', uid)
   profileSaving.value = false
   if (error) {
@@ -646,6 +648,19 @@ watch(user, (u) => {
               />
             </div>
 
+            <!-- Bio -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Bio</label>
+              <textarea
+                v-model="bio"
+                placeholder="Tulis biomu di sini... (opsional)"
+                class="vt-input resize-none"
+                maxlength="160"
+                rows="3"
+              />
+              <span class="text-xs self-end" :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{ bio.length }}/160</span>
+            </div>
+
             <!-- Jenis Kelamin -->
             <div class="flex flex-col gap-1.5">
               <label class="text-xs font-semibold vt-label">Jenis Kelamin</label>
@@ -969,8 +984,9 @@ watch(user, (u) => {
             </div>
             <button
               @click="toggleSetting('chat_popup')"
-              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-              :class="userSettings.chat_popup ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-600'"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+              :style="userSettings.chat_popup ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
+              :class="!userSettings.chat_popup ? 'bg-gray-300 dark:bg-slate-600' : ''"
               role="switch" :aria-checked="userSettings.chat_popup"
             >
               <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.chat_popup ? 'translate-x-5' : 'translate-x-0'" />
@@ -987,8 +1003,9 @@ watch(user, (u) => {
             </div>
             <button
               @click="toggleSetting('read_receipts')"
-              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-              :class="userSettings.read_receipts ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-600'"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+              :style="userSettings.read_receipts ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
+              :class="!userSettings.read_receipts ? 'bg-gray-300 dark:bg-slate-600' : ''"
               role="switch" :aria-checked="userSettings.read_receipts"
             >
               <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.read_receipts ? 'translate-x-5' : 'translate-x-0'" />
@@ -1005,8 +1022,9 @@ watch(user, (u) => {
             </div>
             <button
               @click="toggleSetting('show_online')"
-              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-              :class="userSettings.show_online ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-600'"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+              :style="userSettings.show_online ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
+              :class="!userSettings.show_online ? 'bg-gray-300 dark:bg-slate-600' : ''"
               role="switch" :aria-checked="userSettings.show_online"
             >
               <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.show_online ? 'translate-x-5' : 'translate-x-0'" />
@@ -1029,8 +1047,9 @@ watch(user, (u) => {
             </div>
             <button
               @click="toggleSetting('notif_product')"
-              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-              :class="userSettings.notif_product ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-600'"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+              :style="userSettings.notif_product ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
+              :class="!userSettings.notif_product ? 'bg-gray-300 dark:bg-slate-600' : ''"
               role="switch" :aria-checked="userSettings.notif_product"
             >
               <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.notif_product ? 'translate-x-5' : 'translate-x-0'" />
