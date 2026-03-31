@@ -3,6 +3,7 @@ import { Cropper } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
 
 definePageMeta({ middleware: 'auth' })
+useSeoMeta({ title: 'Jual Barang — VivaThrift' })
 
 const { isDark } = useDarkMode()
 const supabase = useSupabaseClient()

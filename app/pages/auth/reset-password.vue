@@ -1,5 +1,6 @@
 <script setup>
 definePageMeta({ layout: false })
+useSeoMeta({ title: 'Atur Ulang Password — VivaThrift' })
 
 const supabase = useSupabaseClient()
 
@@ -239,10 +240,10 @@ async function handleResetPassword() {
             <div class="flex gap-1">
               <div class="h-1 flex-1 rounded-full transition-colors" :class="password.length >= 6 ? 'bg-green-400' : 'bg-white/20'"></div>
               <div class="h-1 flex-1 rounded-full transition-colors" :class="password.length >= 8 ? 'bg-green-400' : 'bg-white/20'"></div>
-              <div class="h-1 flex-1 rounded-full transition-colors" :class="/(?=.*[A-Z])(?=.*[0-9])/.test(password) ? 'bg-green-400' : 'bg-white/20'"></div>
+              <div class="h-1 flex-1 rounded-full transition-colors" :class="password.length >= 8 && /(?=.*[A-Z])(?=.*[0-9])/.test(password) ? 'bg-green-400' : 'bg-white/20'"></div>
             </div>
             <p class="text-xs" :class="password.length >= 6 ? 'text-green-400/80' : 'text-white/40'">
-              {{ password.length < 6 ? `${password.length}/6 karakter minimum` : password.length < 8 ? 'Cukup kuat' : /(?=.*[A-Z])(?=.*[0-9])/.test(password) ? 'Sangat kuat 💪' : 'Kuat' }}
+              {{ password.length < 6 ? `${password.length}/6 karakter minimum` : password.length < 8 ? 'Cukup kuat' : password.length >= 8 && /(?=.*[A-Z])(?=.*[0-9])/.test(password) ? 'Sangat kuat 💪' : 'Kuat' }}
             </p>
           </div>
 

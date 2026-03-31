@@ -1,5 +1,6 @@
 <script setup>
 definePageMeta({ layout: false })
+useSeoMeta({ title: 'Lupa Password — VivaThrift' })
 
 const supabase = useSupabaseClient()
 const route = useRoute()

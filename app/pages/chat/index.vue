@@ -1,5 +1,6 @@
 <script setup>
 definePageMeta({ middleware: 'auth' })
+useSeoMeta({ title: 'Pesan — VivaThrift' })
 
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()

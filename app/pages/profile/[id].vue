@@ -1,6 +1,4 @@
 <script setup>
-useSeoMeta({ title: 'Profil — VivaThrift' })
-
 const route = useRoute()
 const supabase = useSupabaseClient()
 const currentUser = useSupabaseUser()
@@ -9,7 +7,7 @@ const { isDark } = useDarkMode()
 const profileId = route.params.id
 const currentUserId = ref(null)
 
-// ── Fetch profile ────────────────────────────────────────────────────────────
+// ── Fetch profile ────────────────────────────────────────────────────────────────────
 const { data: profile, error: profileError } = await useAsyncData(`profile-${profileId}`, async () => {
   const { data } = await supabase
     .from('users')
@@ -18,6 +16,8 @@ const { data: profile, error: profileError } = await useAsyncData(`profile-${pro
     .single()
   return data
 })
+
+useHead({ title: computed(() => profile.value?.name ? `${profile.value.name} — VivaThrift` : 'Profil — VivaThrift') })
 
 // ── Fetch seller rating ──────────────────────────────────────────────────────
 const sellerRating = ref(null)

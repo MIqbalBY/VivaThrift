@@ -59,6 +59,12 @@ if (!checkoutData.value) await navigateTo('/')
 
 const offer = computed(() => checkoutData.value?.offer ?? null)
 
+useHead({ title: computed(() => {
+  const productTitle = offer.value?.product?.title
+  if (productTitle) return `Checkout ${productTitle} — VivaThrift`
+  return 'Checkout — VivaThrift'
+}) })
+
 // If an order already exists, jump straight to success view
 if (checkoutData.value?.alreadyOrdered) {
   orderDone.value = true

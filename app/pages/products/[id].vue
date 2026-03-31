@@ -22,6 +22,8 @@ const { data: product } = await useAsyncData(`product-${route.params.id}`, async
   return data
 })
 
+useHead({ title: computed(() => product.value?.title ? `${product.value.title} — VivaThrift` : 'Produk — VivaThrift') })
+
 const allMedia = computed(() => {
   const media = product.value?.product_media
   if (!media || media.length === 0) return []

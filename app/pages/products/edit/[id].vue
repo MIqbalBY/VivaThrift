@@ -25,6 +25,8 @@ const { data: product } = await useAsyncData(`edit-product-${param}`, async () =
   return data
 })
 
+useHead({ title: computed(() => product.value?.title ? `Edit ${product.value.title} — VivaThrift` : 'Edit Produk — VivaThrift') })
+
 if (!product.value) {
   await navigateTo('/')
 }

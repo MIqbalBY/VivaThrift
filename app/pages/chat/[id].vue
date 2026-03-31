@@ -27,6 +27,12 @@ const { data: chat } = await useAsyncData(`chat-${chatId}`, async () => {
   return data
 })
 
+useHead({ title: computed(() => {
+  const productTitle = chat.value?.product?.title
+  if (productTitle) return `Chat ${productTitle} — VivaThrift`
+  return 'Chat — VivaThrift'
+}) })
+
 // Resolve user ID reliably (useSupabaseUser() can be null before auth state settles)
 const { data: { session } } = await supabase.auth.getSession()
 const currentUserId = ref(session?.user?.id ?? currentUser.value?.id ?? null)

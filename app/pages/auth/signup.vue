@@ -1,5 +1,6 @@
 <script setup>
 definePageMeta({ layout: false })
+useSeoMeta({ title: 'Daftar — VivaThrift' })
 
 const supabase = useSupabaseClient()
 
