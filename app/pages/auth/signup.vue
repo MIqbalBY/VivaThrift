@@ -220,7 +220,7 @@ async function handleSignup() {
     <div class="vt-hero-enter vt-hero-enter-d1 relative z-10 w-full max-w-sm mx-4 mb-3">
       <NuxtLink
         to="/auth/signin"
-        class="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors group"
+        class="inline-flex items-center gap-1.5 text-sm text-white/90 hover:text-white transition-colors group"
       >
         <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
@@ -243,7 +243,9 @@ async function handleSignup() {
         </div>
         <span
           class="font-himpun text-[2.1rem] leading-none"
-          style="background: linear-gradient(to right, #38bdf8, #7dd3fc, #bae6fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
+          :style="isDark
+            ? 'background: linear-gradient(to right, #38bdf8, #7dd3fc, #bae6fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'
+            : 'background: linear-gradient(to right, #1e3a8a, #2563eb, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'"
         >VivaThrift</span>
       </div>
 
@@ -378,7 +380,8 @@ async function handleSignup() {
         <div class="flex justify-end pt-1">
           <button
             type="submit"
-            class="px-8 py-2.5 rounded-full text-white font-semibold text-sm transition hover:opacity-90 hover:shadow-lg flex items-center gap-2 shadow-md" style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);"
+            class="px-8 py-2.5 rounded-full text-white font-semibold text-sm transition hover:opacity-90 hover:shadow-lg flex items-center gap-2 shadow-md"
+            :style="isDark ? 'background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);'"
           >
             Lanjut
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
@@ -458,7 +461,8 @@ async function handleSignup() {
           <button
             type="submit"
             :disabled="isLoading"
-            class="px-8 py-2.5 rounded-full text-white font-semibold text-sm transition hover:opacity-90 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 shadow-md" style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);"
+            class="px-8 py-2.5 rounded-full text-white font-semibold text-sm transition hover:opacity-90 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 shadow-md"
+            :style="isDark ? 'background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);'"
           >
             <svg v-if="isLoading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -474,10 +478,16 @@ async function handleSignup() {
     </div>
 
     <!-- Link ke Login -->
-    <p class="relative z-10 mt-4 text-sm text-white/60">
+    <p class="relative z-10 mt-4 text-sm text-white/80">
       Sudah punya akun?
       <NuxtLink to="/auth/signin" class="text-white font-semibold hover:underline">Masuk</NuxtLink>
     </p>
 
   </div>
 </template>
+
+<style scoped>
+input::placeholder {
+  color: rgba(255, 255, 255, 0.70);
+}
+</style>
