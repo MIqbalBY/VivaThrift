@@ -1,5 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  site: {
+    url: 'https://vivathrift.store',
+    name: 'VivaThrift',
+  },
   css: [
     '~/assets/css/fonts.css',
     '~/assets/css/variables.css',
@@ -17,13 +21,15 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
     '@vercel/analytics',
     '@vercel/speed-insights',
+    '@nuxtjs/sitemap',
+    '@nuxtjs/robots',
   ],
   supabase: {
     redirect: false
   },
   image: {
     quality: 80,
-    formats: ['webp', 'avif'],
+    format: ['webp', 'avif'],
   },
   fonts: {
     families: [
@@ -56,6 +62,16 @@ export default defineNuxtConfig({
   },
   nitro: {
     compressPublicAssets: true,
+  },
+  sitemap: {
+    xslColumns: [
+      { label: 'URL', width: '65%' },
+      { label: 'Last Modified', select: 'sitemap:lastmod', width: '25%' },
+    ],
+    exclude: ['/auth/**', '/chat/**', '/checkout', '/profile/edit', '/products/create', '/products/edit/**'],
+  },
+  robots: {
+    disallow: ['/auth/', '/chat/', '/checkout', '/profile/edit', '/products/create', '/products/edit/'],
   },
   experimental: {
     payloadExtraction: true,

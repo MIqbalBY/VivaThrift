@@ -1,4 +1,6 @@
 <script setup>
+import { FACULTIES_DEPARTMENTS } from '~/data/faculties'
+
 definePageMeta({ layout: false })
 useSeoMeta({ title: 'Daftar — VivaThrift' })
 
@@ -21,71 +23,9 @@ const isLoading = ref(false)
 const errorMsg = ref('')
 const step = ref(1)
 
-const FAKULTAS_DEPARTEMEN = {
-  'Fakultas Desain Kreatif dan Bisnis Digital (FDKBD)': [
-    'Desain Interior',
-    'Desain Komunikasi Visual',
-    'Desain Produk Industri',
-    'Manajemen Bisnis',
-    'Studi Pembangunan',
-  ],
-  'Fakultas Kedokteran dan Kesehatan (FKK)': [
-    'Kedokteran',
-    'Teknologi Kedokteran',
-  ],
-  'Fakultas Sains dan Analitika Data (FSAD)': [
-    'Aktuaria',
-    'Biologi',
-    'Fisika',
-    'Kimia',
-    'Matematika',
-    'Statistika',
-  ],
-  'Fakultas Teknik Sipil, Perencanaan, dan Kebumian (FTSPK)': [
-    'Arsitektur',
-    'Perencanaan Wilayah dan Kota',
-    'Teknik Geofisika',
-    'Teknik Geomatika',
-    'Teknik Lingkungan',
-    'Teknik Sipil',
-  ],
-  'Fakultas Teknologi Elektro dan Informatika Cerdas (FTEIC)': [
-    'Sistem Informasi',
-    'Teknik Biomedik',
-    'Teknik Elektro',
-    'Teknik Informatika',
-    'Teknik Komputer',
-    'Teknik Telekomunikasi',
-    'Teknologi Informasi',
-  ],
-  'Fakultas Teknologi Industri dan Rekayasa Sistem (FTIRS)': [
-    'Teknik dan Sistem Industri',
-    'Teknik Fisika',
-    'Teknik Kimia',
-    'Teknik Material',
-    'Teknik Mesin',
-    'Teknik Pangan',
-  ],
-  'Fakultas Teknologi Kelautan (FTK)': [
-    'Teknik Kelautan',
-    'Teknik Lepas Pantai',
-    'Teknik Perkapalan',
-    'Teknik Sistem Perkapalan',
-    'Teknik Transportasi Laut',
-  ],
-  'Fakultas Vokasi (FV)': [
-    'Statistika Bisnis',
-    'Teknik Elektro Otomasi',
-    'Teknik Infrastruktur Sipil',
-    'Teknik Instrumentasi',
-    'Teknik Kimia Industri',
-    'Teknik Mesin Industri',
-  ],
-}
-
-const departemenOptions = computed(() => {
+const departmentOptions = computed(() => {
   if (!faculty.value) return []
-  return FAKULTAS_DEPARTEMEN[faculty.value] ?? []
+  return FACULTIES_DEPARTMENTS[faculty.value] ?? []
 })
 
 watch(faculty, () => { department.value = '' })
@@ -334,7 +274,7 @@ async function handleSignup() {
               :disabled="isLoading"
             >
               <option value="" disabled hidden style="color: #1f2937;">Pilih Fakultas</option>
-              <option v-for="f in Object.keys(FAKULTAS_DEPARTEMEN)" :key="f" :value="f" style="color: #1f2937; background: white;">{{ f }}</option>
+              <option v-for="f in Object.keys(FACULTIES_DEPARTMENTS)" :key="f" :value="f" style="color: #1f2937; background: white;">{{ f }}</option>
             </select>
             <svg class="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
@@ -355,7 +295,7 @@ async function handleSignup() {
               :disabled="isLoading || !faculty"
             >
               <option value="" disabled hidden style="color: #1f2937;">{{ faculty ? 'Pilih Departemen' : 'Pilih Fakultas terlebih dahulu' }}</option>
-              <option v-for="d in departemenOptions" :key="d" :value="d" style="color: #1f2937; background: white;">{{ d }}</option>
+              <option v-for="d in departmentOptions" :key="d" :value="d" style="color: #1f2937; background: white;">{{ d }}</option>
             </select>
             <svg class="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors" :class="(!faculty || isLoading) ? 'text-white/20' : 'text-white/50'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>

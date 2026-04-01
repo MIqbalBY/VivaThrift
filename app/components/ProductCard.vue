@@ -52,7 +52,7 @@ const emit = defineEmits<{
 
       <!-- Floating badges top-left -->
       <div class="absolute top-2 left-2 flex flex-col items-start gap-1">
-        <span v-if="product.condition" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm', isDark ? 'bg-blue-900/80 text-blue-200 border border-blue-700' : 'bg-blue-50 text-blue-800 border border-blue-100']">{{ kondisiLabel(product.condition) }}</span>
+        <span v-if="product.condition" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm', isDark ? 'bg-blue-900/80 text-blue-200 border border-blue-700' : 'bg-blue-50 text-blue-800 border border-blue-100']">{{ conditionLabel(product.condition) }}</span>
         <span v-if="product.is_negotiable" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm', isDark ? 'bg-green-900/80 text-green-200 border border-green-700' : 'bg-green-50 text-green-700 border border-green-100']">🤝 Nego</span>
         <span v-if="product.is_cod" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm', isDark ? 'bg-green-900/80 text-green-200 border border-green-700' : 'bg-green-50 text-green-700 border border-green-100']">🚲 COD</span>
       </div>
@@ -60,7 +60,7 @@ const emit = defineEmits<{
       <!-- Category badge bottom-right -->
       <div v-if="product.categories?.name" class="absolute bottom-2 right-2">
         <span :class="['text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm border', isDark ? 'bg-blue-900/80 text-blue-200 border-blue-700' : 'bg-white/80 text-gray-700 border-gray-200']">
-          {{ kategoriLabel(product.categories.name) }}
+          {{ categoryLabel(product.categories.name) }}
         </span>
       </div>
     </div>
@@ -98,7 +98,7 @@ const emit = defineEmits<{
             <p class="vt-product-seller-meta text-xs text-gray-500 truncate">
               {{ product.users?.nrp ?? '-' }}
               <template v-if="product.users?.faculty || product.users?.department">
-                ({{ [fakultasAkronim(product.users?.faculty), product.users?.department].filter(Boolean).join(' - ') }})
+                ({{ [facultyAcronym(product.users?.faculty), product.users?.department].filter(Boolean).join(' - ') }})
               </template>
             </p>
             <!-- Rating -->

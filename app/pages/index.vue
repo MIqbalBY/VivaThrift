@@ -1,5 +1,8 @@
 <script setup>
-useSeoMeta({ title: 'VivaThrift - Situs Jual Beli Barang Preloved di ITS!' })
+useSeoMeta({
+  title: 'VivaThrift — Marketplace Preloved Mahasiswa ITS',
+  description: 'Jual beli barang preloved khusus mahasiswa ITS Surabaya. Temukan fashion, elektronik, buku, dan kebutuhan kuliah dengan harga terjangkau.',
+})
 
 const { reveal } = useScrollReveal()
 
@@ -16,51 +19,43 @@ const showError = ref(false)
 let errorTimer = null
 
 // -- Filters from URL ----------------------------------------------
-const activeKategori = computed(() => {
-  const v = route.query.kategori
+const activeCategory   = computed(() => {
+  const v = route.query.category
   return v ? String(v).split(',').filter(Boolean) : []
 })
-const activeSearch   = computed(() => route.query.q      ? String(route.query.q)      : null)
-const activeKondisi  = computed(() => {
-  const v = route.query.kondisi
+const activeSearch     = computed(() => route.query.q      ? String(route.query.q)      : null)
+const activeCondition  = computed(() => {
+  const v = route.query.condition
   return v ? String(v).split(',').filter(Boolean) : []
 })
-const activeSort     = computed(() => route.query.sort   ? String(route.query.sort)   : 'terbaru')
-const activeNego     = computed(() => route.query.nego   ? String(route.query.nego)   : null)
-const activeCod      = computed(() => route.query.cod    ? String(route.query.cod)    : null)
+const activeSort       = computed(() => route.query.sort   ? String(route.query.sort)   : 'newest')
+const activeNegotiable = computed(() => route.query.negotiable ? String(route.query.negotiable) : null)
+const activeCod        = computed(() => route.query.cod    ? String(route.query.cod)    : null)
 
 const hasActiveFilter = computed(() =>
-  activeKategori.value.length > 0 ||
-  activeKondisi.value.length  > 0 ||
-  activeNego.value !== null       ||
+  activeCategory.value.length > 0 ||
+  activeCondition.value.length  > 0 ||
+  activeNegotiable.value !== null       ||
   activeCod.value  !== null       ||
-  activeSort.value !== 'terbaru'
+  activeSort.value !== 'newest'
 )
 
-// -- Dynamic categories from DB -----------------------------------
-const { data: categoriesData } = useAsyncData('categories-list', async () => {
-  const { data } = await supabase.from('categories').select('name').order('name')
-  return data?.map(c => c.name) ?? []
-}, { lazy: true })
-const CATEGORIES = computed(() => {
-  const list = categoriesData.value ?? []
-  const sorted = list.filter(c => c !== 'Lainnya')
-  if (list.includes('Lainnya')) sorted.push('Lainnya')
-  return sorted
-})
+// -- Dynamic categories from DB (reuse navbar composable) ---------
+const { dbCategories } = useNavCategories()
+const CATEGORIES = computed(() => dbCategories.value ?? [])
 const CATEGORIES_ROW1 = computed(() => CATEGORIES.value.slice(0, 6))
 const CATEGORIES_ROW2 = computed(() => CATEGORIES.value.slice(6))
 
 const SORT_OPTIONS = [
-  { value: 'terbaru',    label: '🕐 Terbaru'         },
-  { value: 'terlama',    label: '⏳ Terlama'          },
-  { value: 'harga_asc',  label: '💰 Harga Terendah'  },
-  { value: 'harga_desc', label: '💎 Harga Tertinggi' },
+  { value: 'newest',     label: '🕐 Terbaru'         },
+  { value: 'oldest',     label: '⏳ Terlama'          },
+  { value: 'price_asc',  label: '💰 Harga Terendah'  },
+  { value: 'price_desc', label: '💎 Harga Tertinggi' },
 ]
 
 // -- Condition list (always show all 5) ---------------------------
-const kondisiOptions = computed(() =>
-  Object.keys(KONDISI_META).sort((a, b) => KONDISI_META[a].order - KONDISI_META[b].order)
+const conditionOptions = computed(() =>
+  Object.keys(CONDITION_META).sort((a, b) => CONDITION_META[a].order - CONDITION_META[b].order)
 )
 
 // -- URL query helpers ---------------------------------------------
@@ -73,24 +68,24 @@ function updateQuery(patch) {
   router.push({ query: q })
 }
 
-function toggleKategori(cat) {
-  const cur  = activeKategori.value
+function toggleCategory(cat) {
+  const cur  = activeCategory.value
   const next = cur.includes(cat) ? cur.filter(c => c !== cat) : [...cur, cat]
-  updateQuery({ kategori: next.length ? next.join(',') : undefined })
+  updateQuery({ category: next.length ? next.join(',') : undefined })
 }
 
-function toggleKondisi(k) {
-  const cur  = activeKondisi.value
+function toggleCondition(k) {
+  const cur  = activeCondition.value
   const next = cur.includes(k) ? cur.filter(c => c !== k) : [...cur, k]
-  updateQuery({ kondisi: next.length ? next.join(',') : undefined })
+  updateQuery({ condition: next.length ? next.join(',') : undefined })
 }
 
 function setSort(s) {
-  updateQuery({ sort: s === 'terbaru' ? undefined : s })
+  updateQuery({ sort: s === 'newest' ? undefined : s })
 }
 
-function toggleNego(n) {
-  updateQuery({ nego: activeNego.value === n ? undefined : n })
+function toggleNegotiable(n) {
+  updateQuery({ negotiable: activeNegotiable.value === n ? undefined : n })
 }
 
 function toggleCod(c) {
@@ -102,7 +97,7 @@ function clearFilters() {
 }
 
 // -- Page helpers --------------------------------------------------
-function handleJual() {
+function handleSell() {
   if (!user.value) {
     showError.value = true
     clearTimeout(errorTimer)
@@ -112,28 +107,28 @@ function handleJual() {
   navigateTo('/products/create')
 }
 
-function scrollToKatalog() {
-  document.getElementById('heading-katalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+function scrollToCatalog() {
+  document.getElementById('heading-catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 // -- Products query ------------------------------------------------
 const SORT_MAP = {
-  terbaru:    { col: 'created_at', asc: false },
-  terlama:    { col: 'created_at', asc: true  },
-  harga_asc:  { col: 'price',      asc: true  },
-  harga_desc: { col: 'price',      asc: false },
+  newest:     { col: 'created_at', asc: false },
+  oldest:     { col: 'created_at', asc: true  },
+  price_asc:  { col: 'price',      asc: true  },
+  price_desc: { col: 'price',      asc: false },
 }
 
 const { data: products } = useAsyncData(
-  () => `products-${activeKategori.value.join(',')}-${activeSearch.value ?? ''}-${activeKondisi.value.join(',')}-${activeSort.value}-${activeNego.value ?? ''}-${activeCod.value ?? ''}`,
+  () => `products-${activeCategory.value.join(',')}-${activeSearch.value ?? ''}-${activeCondition.value.join(',')}-${activeSort.value}-${activeNegotiable.value ?? ''}-${activeCod.value ?? ''}`,
   async () => {
-    const hasCatFilter = activeKategori.value.length > 0
+    const hasCatFilter = activeCategory.value.length > 0
     const selectStr = `id, slug, title, price, condition, is_negotiable, is_cod, created_at, updated_at,
       product_media ( media_url, media_type, thumbnail_url, is_primary ),
       users ( id, name, nrp, faculty, department, avatar_url, gender ),
       ${hasCatFilter ? 'categories!inner(name)' : 'categories(name)'}`
 
-    const sort = SORT_MAP[activeSort.value] ?? SORT_MAP.terbaru
+    const sort = SORT_MAP[activeSort.value] ?? SORT_MAP.newest
 
     let query = supabase
       .from('products')
@@ -141,15 +136,15 @@ const { data: products } = useAsyncData(
       .eq('status', 'active')
       .order(sort.col, { ascending: sort.asc })
 
-    if (hasCatFilter)                 query = query.in('categories.name', activeKategori.value)
-    if (activeKondisi.value.length)   query = query.in('condition', activeKondisi.value)
-    if (activeNego.value === 'ya')    query = query.eq('is_negotiable', true)
-    if (activeNego.value === 'tidak') query = query.eq('is_negotiable', false)
-    if (activeCod.value  === 'ya')    query = query.eq('is_cod', true)
-    if (activeCod.value  === 'tidak') query = query.eq('is_cod', false)
+    if (hasCatFilter)                     query = query.in('categories.name', activeCategory.value)
+    if (activeCondition.value.length)     query = query.in('condition', activeCondition.value)
+    if (activeNegotiable.value === 'yes') query = query.eq('is_negotiable', true)
+    if (activeNegotiable.value === 'no')  query = query.eq('is_negotiable', false)
+    if (activeCod.value  === 'yes')       query = query.eq('is_cod', true)
+    if (activeCod.value  === 'no')        query = query.eq('is_cod', false)
     if (activeSearch.value)           query = query.ilike('title', `%${activeSearch.value}%`)
 
-    const isFiltered = hasCatFilter || activeSearch.value || activeKondisi.value.length || activeNego.value || activeCod.value
+    const isFiltered = hasCatFilter || activeSearch.value || activeCondition.value.length || activeNegotiable.value || activeCod.value
     const { data, error } = await query.limit(isFiltered ? 50 : 12)
     if (error) { console.error('[products]', error.message, error.details); return [] }
     if (!data?.length) return []
@@ -177,7 +172,7 @@ const { data: products } = useAsyncData(
       return { ...p, _sellerRating: avgRating, _ratingCount: arr.length }
     })
   },
-  { lazy: true, watch: [activeKategori, activeSearch, activeKondisi, activeSort, activeNego, activeCod] }
+  { lazy: true, watch: [activeCategory, activeSearch, activeCondition, activeSort, activeNegotiable, activeCod] }
 )
 
 // -- Show more -----------------------------------------------------
@@ -206,7 +201,7 @@ const visibleProducts = computed(() => {
   return showAll.value ? list : list.slice(0, maxVisible.value)
 })
 
-watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, activeCod], () => {
+watch([activeCategory, activeSearch, activeCondition, activeSort, activeNegotiable, activeCod], () => {
   showAll.value = false
 })
 </script>
@@ -243,14 +238,14 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
           </p>
           <div class="flex gap-3 relative">
             <button
-              @click="scrollToKatalog"
+              @click="scrollToCatalog"
               class="vt-btn-primary px-8 py-3 rounded-full text-white font-bold shadow-md transition hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5"
             style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);"
             >
               Mulai Jelajah
             </button>
             <button
-              @click="handleJual"
+              @click="handleSell"
               class="vt-btn-outline px-8 py-3 rounded-full border-2 font-bold bg-white/90 backdrop-blur-sm hover:bg-blue-50 transition hover:-translate-y-0.5"
             :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc; background: rgba(15,23,42,0.60);' : 'border-color: #1e3a8a; color: #1e3a8a;'"
             >
@@ -284,12 +279,12 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
     <section id="katalog" class="w-full px-4 sm:px-6 md:px-10 py-12">
 
       <!-- Heading -->
-      <div id="heading-katalog" :ref="reveal" class="flex items-center gap-3 mb-5 flex-wrap" style="scroll-margin-top: 80px;">
+      <div id="heading-catalog" :ref="reveal" class="flex items-center gap-3 mb-5 flex-wrap" style="scroll-margin-top: 80px;">
         <h2 class="vt-katalog-heading text-2xl font-bold text-[#1e3a8a] dark:text-white">
           <template v-if="activeSearch">
-            Hasil pencarian &ldquo;{{ activeSearch }}&rdquo;<template v-if="activeKategori.length"> &mdash; {{ activeKategori.join(', ') }}</template>
+            Hasil pencarian &ldquo;{{ activeSearch }}&rdquo;<template v-if="activeCategory.length"> &mdash; {{ activeCategory.join(', ') }}</template>
           </template>
-          <template v-else-if="activeKategori.length">{{ activeKategori.join(', ') }}</template>
+          <template v-else-if="activeCategory.length">{{ activeCategory.join(', ') }}</template>
           <template v-else>Cari barang preloved impianmu!</template>
         </h2>
         <button
@@ -325,15 +320,15 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
               <button
                 v-for="cat in CATEGORIES_ROW1"
                 :key="cat"
-                @click="toggleKategori(cat)"
+                @click="toggleCategory(cat)"
                 :class="[
                   'px-3 py-1 rounded-full text-sm border transition',
-                  activeKategori.includes(cat)
+                  activeCategory.includes(cat)
                     ? 'vt-btn-primary text-white border-transparent'
                     : isDark ? 'text-slate-300 border-slate-600 hover:border-blue-400 hover:text-blue-300' : 'vt-filter-tag text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-700'
                 ]"
-                :style="activeKategori.includes(cat) ? 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);' : isDark ? 'background: rgba(30,58,138,0.35);' : 'background: rgba(255,255,255,0.70);'"
-              >{{ kategoriLabel(cat) }}</button>
+                :style="activeCategory.includes(cat) ? 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);' : isDark ? 'background: rgba(30,58,138,0.35);' : 'background: rgba(255,255,255,0.70);'"
+              >{{ categoryLabel(cat) }}</button>
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -342,58 +337,58 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
               <button
                 v-for="cat in CATEGORIES_ROW2"
                 :key="cat"
-                @click="toggleKategori(cat)"
+                @click="toggleCategory(cat)"
                 :class="[
                   'px-3 py-1 rounded-full text-sm border transition',
-                  activeKategori.includes(cat)
+                  activeCategory.includes(cat)
                     ? 'vt-btn-primary text-white border-transparent'
                     : isDark ? 'text-slate-300 border-slate-600 hover:border-blue-400 hover:text-blue-300' : 'vt-filter-tag text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-700'
                 ]"
-                :style="activeKategori.includes(cat) ? 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);' : isDark ? 'background: rgba(30,58,138,0.35);' : 'background: rgba(255,255,255,0.70);'"
-              >{{ kategoriLabel(cat) }}</button>
+                :style="activeCategory.includes(cat) ? 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);' : isDark ? 'background: rgba(30,58,138,0.35);' : 'background: rgba(255,255,255,0.70);'"
+              >{{ categoryLabel(cat) }}</button>
             </div>
           </div>
         </div>
 
         <!-- Kondisi -->
-        <div v-if="kondisiOptions && kondisiOptions.length" class="flex flex-wrap items-center gap-2">
+        <div v-if="conditionOptions && conditionOptions.length" class="flex flex-wrap items-center gap-2">
           <span :class="['vt-filter-label text-xs font-semibold uppercase tracking-wide w-20 shrink-0', isDark ? 'text-slate-400' : 'text-gray-500']">Kondisi</span>
           <button
-            v-for="k in kondisiOptions"
+            v-for="k in conditionOptions"
             :key="k"
-            @click="toggleKondisi(k)"
+            @click="toggleCondition(k)"
             :class="[
               'px-3 py-1 rounded-full text-sm border transition',
-              activeKondisi.includes(k)
+              activeCondition.includes(k)
                 ? 'vt-btn-primary text-white border-transparent'
                 : isDark ? 'text-slate-300 border-slate-600 hover:border-blue-400 hover:text-blue-300' : 'vt-filter-tag text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-700'
             ]"
-            :style="activeKondisi.includes(k) ? 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);' : isDark ? 'background: rgba(30,58,138,0.35);' : 'background: rgba(255,255,255,0.70);'"
-          >{{ kondisiLabel(k) }}</button>
+            :style="activeCondition.includes(k) ? 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);' : isDark ? 'background: rgba(30,58,138,0.35);' : 'background: rgba(255,255,255,0.70);'"
+          >{{ conditionLabel(k) }}</button>
         </div>
 
         <!-- Nego -->
         <div class="flex flex-wrap items-center gap-2">
           <span :class="['vt-filter-label text-xs font-semibold uppercase tracking-wide w-20 shrink-0', isDark ? 'text-slate-400' : 'text-gray-500']">Nego</span>
           <button
-            @click="toggleNego('ya')"
+            @click="toggleNegotiable('yes')"
             :class="[
               'px-3 py-1 rounded-full text-sm border transition',
-              activeNego === 'ya'
+              activeNegotiable === 'yes'
                 ? 'vt-btn-primary text-white border-transparent'
                 : isDark ? 'text-slate-300 border-slate-600 hover:border-green-400 hover:text-green-300' : 'vt-filter-tag text-gray-600 border-gray-200 hover:border-green-500 hover:text-green-700'
             ]"
-            :style="activeNego === 'ya' ? 'background: linear-gradient(to right, #14532d, #16a34a, #4ade80);' : isDark ? 'background: rgba(20,83,45,0.40);' : 'background: rgba(255,255,255,0.70);'"
+            :style="activeNegotiable === 'yes' ? 'background: linear-gradient(to right, #14532d, #16a34a, #4ade80);' : isDark ? 'background: rgba(20,83,45,0.40);' : 'background: rgba(255,255,255,0.70);'"
           >🤝 Bisa Nego</button>
           <button
-            @click="toggleNego('tidak')"
+            @click="toggleNegotiable('no')"
             :class="[
               'px-3 py-1 rounded-full text-sm border transition',
-              activeNego === 'tidak'
+              activeNegotiable === 'no'
                 ? 'text-white border-transparent'
                 : isDark ? 'text-slate-300 border-slate-600 hover:border-red-400 hover:text-red-300' : 'vt-filter-tag text-gray-600 border-gray-200 hover:border-red-400 hover:text-red-600'
             ]"
-            :style="activeNego === 'tidak' ? 'background: linear-gradient(to right, #7f1d1d, #dc2626, #f87171);' : isDark ? 'background: rgba(20,83,45,0.40);' : 'background: rgba(255,255,255,0.70);'"
+            :style="activeNegotiable === 'no' ? 'background: linear-gradient(to right, #7f1d1d, #dc2626, #f87171);' : isDark ? 'background: rgba(20,83,45,0.40);' : 'background: rgba(255,255,255,0.70);'"
           >🚫 Tidak Nego</button>
         </div>
 
@@ -401,24 +396,24 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         <div class="flex flex-wrap items-center gap-2">
           <span :class="['vt-filter-label text-xs font-semibold uppercase tracking-wide w-20 shrink-0', isDark ? 'text-slate-400' : 'text-gray-500']">COD</span>
           <button
-            @click="toggleCod('ya')"
+            @click="toggleCod('yes')"
             :class="[
               'px-3 py-1 rounded-full text-sm border transition',
-              activeCod === 'ya'
+              activeCod === 'yes'
                 ? 'vt-btn-primary text-white border-transparent'
                 : isDark ? 'text-slate-300 border-slate-600 hover:border-green-400 hover:text-green-300' : 'vt-filter-tag text-gray-600 border-gray-200 hover:border-green-500 hover:text-green-700'
             ]"
-            :style="activeCod === 'ya' ? 'background: linear-gradient(to right, #14532d, #16a34a, #4ade80);' : isDark ? 'background: rgba(20,83,45,0.40);' : 'background: rgba(255,255,255,0.70);'"
+            :style="activeCod === 'yes' ? 'background: linear-gradient(to right, #14532d, #16a34a, #4ade80);' : isDark ? 'background: rgba(20,83,45,0.40);' : 'background: rgba(255,255,255,0.70);'"
           >🚲 Tersedia COD</button>
           <button
-            @click="toggleCod('tidak')"
+            @click="toggleCod('no')"
             :class="[
               'px-3 py-1 rounded-full text-sm border transition',
-              activeCod === 'tidak'
+              activeCod === 'no'
                 ? 'text-white border-transparent'
                 : isDark ? 'text-slate-300 border-slate-600 hover:border-red-400 hover:text-red-300' : 'vt-filter-tag text-gray-600 border-gray-200 hover:border-red-400 hover:text-red-600'
             ]"
-            :style="activeCod === 'tidak' ? 'background: linear-gradient(to right, #7f1d1d, #dc2626, #f87171);' : isDark ? 'background: rgba(20,83,45,0.40);' : 'background: rgba(255,255,255,0.70);'"
+            :style="activeCod === 'no' ? 'background: linear-gradient(to right, #7f1d1d, #dc2626, #f87171);' : isDark ? 'background: rgba(20,83,45,0.40);' : 'background: rgba(255,255,255,0.70);'"
           >🚧 Non COD</button>
         </div>
 

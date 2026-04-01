@@ -1,6 +1,6 @@
 <script setup>
 useSeoMeta({
-  title: 'Tentang VivaThrift — Dari Mahasiswa ITS, Untuk Mahasiswa ITS',
+  title: 'Tentang Kami',
   description: 'Kisah, visi, dan tim di balik VivaThrift — marketplace preloved eksklusif mahasiswa ITS.',
 })
 

@@ -75,10 +75,10 @@ const { data: products } = await useAsyncData(`profile-products-${route.params.i
   return data ?? []
 })
 
-const productTab = ref('dijual')
+const productTab = ref('active')
 const activeProducts = computed(() => (products.value ?? []).filter(p => p.status === 'active' && (p.stock === null || p.stock > 0)))
 const soldProducts   = computed(() => (products.value ?? []).filter(p => p.status === 'sold'  || (p.stock !== null && p.stock === 0)))
-const shownProducts  = computed(() => productTab.value === 'dijual' ? activeProducts.value : soldProducts.value)
+const shownProducts  = computed(() => productTab.value === 'active' ? activeProducts.value : soldProducts.value)
 
 // ── Follow state ─────────────────────────────────────────────────────────────
 const isFollowing = ref(false)
@@ -235,7 +235,7 @@ onMounted(async () => {
               {{ profile.nrp ?? '-' }}
             </p>
             <p v-if="profile.faculty || profile.department" class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-              {{ [fakultasAkronim(profile.faculty), profile.department].filter(Boolean).join(' · ') }}
+              {{ [facultyAcronym(profile.faculty), profile.department].filter(Boolean).join(' · ') }}
             </p>
           </div>
         </div>
@@ -249,7 +249,7 @@ onMounted(async () => {
             {{ profile.nrp ?? '-' }}
           </p>
           <p v-if="profile.faculty || profile.department" class="text-sm" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-            {{ [fakultasAkronim(profile.faculty), profile.department].filter(Boolean).join(' · ') }}
+            {{ [facultyAcronym(profile.faculty), profile.department].filter(Boolean).join(' · ') }}
           </p>
         </div>
 
@@ -332,9 +332,9 @@ onMounted(async () => {
       <!-- Tab bar -->
       <div class="flex border-b mb-4" :class="isDark ? 'border-white/10' : 'border-gray-200'">
         <button
-          @click="productTab = 'dijual'"
+          @click="productTab = 'active'"
           class="flex-1 flex items-center justify-center gap-2 py-3 text-xs sm:text-sm font-semibold transition border-b-2 -mb-px"
-          :class="productTab === 'dijual'
+          :class="productTab === 'active'
             ? (isDark ? 'border-sky-400 text-sky-400' : 'border-blue-800 text-blue-800')
             : (isDark ? 'border-transparent text-gray-500 hover:text-gray-300' : 'border-transparent text-gray-400 hover:text-gray-600')"
         >
@@ -343,9 +343,9 @@ onMounted(async () => {
           <span class="text-xs px-1.5 py-0.5 rounded-full" :class="isDark ? 'bg-white/10' : 'bg-gray-100'">{{ activeProducts.length }}</span>
         </button>
         <button
-          @click="productTab = 'terjual'"
+          @click="productTab = 'sold'"
           class="flex-1 flex items-center justify-center gap-2 py-3 text-xs sm:text-sm font-semibold transition border-b-2 -mb-px"
-          :class="productTab === 'terjual'
+          :class="productTab === 'sold'
             ? (isDark ? 'border-sky-400 text-sky-400' : 'border-blue-800 text-blue-800')
             : (isDark ? 'border-transparent text-gray-500 hover:text-gray-300' : 'border-transparent text-gray-400 hover:text-gray-600')"
         >
@@ -358,7 +358,7 @@ onMounted(async () => {
       <!-- Empty state -->
       <div v-if="!shownProducts.length" class="flex flex-col items-center text-center py-16" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
         <img src="/img/illustrations/empty.svg" alt="Belum ada barang" width="176" height="176" loading="lazy" class="w-44 h-auto opacity-75 mb-3" />
-        {{ productTab === 'dijual' ? 'Belum ada barang yang dijual.' : 'Belum ada barang yang terjual/habis.' }}
+        {{ productTab === 'active' ? 'Belum ada barang yang dijual.' : 'Belum ada barang yang terjual/habis.' }}
       </div>
 
       <!-- Product grid (3 columns like Instagram) -->
@@ -367,7 +367,7 @@ onMounted(async () => {
           v-for="p in shownProducts"
           :key="p.id"
           :product="p"
-          :is-sold="productTab === 'terjual'"
+          :is-sold="productTab === 'sold'"
         />
       </div>
 

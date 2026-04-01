@@ -1,0 +1,166 @@
+export function useChatRealtime(
+  chatId: string | string[],
+  chat: Ref<any>,
+  myId: Ref<string | null>,
+  messages: Ref<any[]>,
+  supabase: any,
+  patchReplyRefs: (msgId: string, patch: Record<string, any>) => void,
+  scrollToBottom: () => void,
+  markMessagesAsRead: (ts?: string | null) => void,
+  clearUnreadDivider: () => void,
+  localProductStock: Ref<number | null>,
+  localProductStatus: Ref<string | null>,
+) {
+  const channel = ref<any>(null)
+  let roomRetryTimer: ReturnType<typeof setTimeout> | null = null
+
+  function setupChatChannel() {
+    if (roomRetryTimer) { clearTimeout(roomRetryTimer); roomRetryTimer = null }
+    if (channel.value) { supabase.removeChannel(channel.value); channel.value = null }
+    channel.value = supabase
+      .channel(`chat-room-${chatId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
+        async (payload: any) => {
+          if (messages.value.some(m => m.id === payload.new.id)) return
+          let offer = null
+          let reply = null
+          if (payload.new.offer_id) {
+            const { data: offerData } = await supabase
+              .from('offers')
+              .select('id, offered_price, quantity, status')
+              .eq('id', payload.new.offer_id)
+              .single()
+            offer = offerData
+          }
+          if (payload.new.reply_to_id) {
+            const local = messages.value.find(m => m.id === payload.new.reply_to_id)
+            if (local) {
+              reply = { id: local.id, content: local.content, sender_id: local.sender_id, is_deleted: local.is_deleted, offer_id: local.offer_id, sender: local.sender ? { name: local.sender.name } : null }
+            } else {
+              const { data: replyData } = await supabase
+                .from('messages')
+                .select('id, content, sender_id, is_deleted, offer_id, sender:users!sender_id(name)')
+                .eq('id', payload.new.reply_to_id)
+                .single()
+              reply = replyData
+            }
+          }
+          if (messages.value.some(m => m.id === payload.new.id)) return
+          const basic = { ...payload.new, offer, reply, sender: null }
+          messages.value.push(basic)
+          clearUnreadDivider()
+          if (payload.new.sender_id !== myId.value) {
+            markMessagesAsRead(payload.new.created_at)
+          }
+          scrollToBottom()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'offers', filter: `chat_id=eq.${chatId}` },
+        (payload: any) => {
+          const updated = payload.new
+          const msg = messages.value.find(m => m.offer_id === updated.id)
+          if (msg?.offer) msg.offer.status = updated.status
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'products', filter: `id=eq.${chat.value?.product?.id}` },
+        (payload: any) => {
+          const p = payload.new
+          if (p.stock !== undefined) localProductStock.value = p.stock
+          if (p.status !== undefined) localProductStatus.value = p.status
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
+        (payload: any) => {
+          const idx = messages.value.findIndex(m => m.id === payload.new.id)
+          if (idx >= 0) {
+            messages.value[idx] = { ...messages.value[idx], ...payload.new }
+          }
+          const { id, content, is_deleted } = payload.new
+          patchReplyRefs(id, { content, is_deleted })
+        }
+      )
+      .on('broadcast', { event: 'message-deleted' }, ({ payload }: any) => {
+        if (payload?.sender_id === myId.value) return
+        const idx = messages.value.findIndex(m => m.id === payload.msgId)
+        if (idx >= 0) {
+          messages.value[idx] = { ...messages.value[idx], is_deleted: true, content: '$$DELETED$$' }
+        }
+        patchReplyRefs(payload.msgId, { is_deleted: true, content: '$$DELETED$$' })
+      })
+      .on('broadcast', { event: 'message-edited' }, ({ payload }: any) => {
+        if (payload?.sender_id === myId.value) return
+        const idx = messages.value.findIndex(m => m.id === payload.msgId)
+        if (idx >= 0) {
+          messages.value[idx] = { ...messages.value[idx], content: payload.content, edited_at: payload.edited_at }
+        }
+        patchReplyRefs(payload.msgId, { content: payload.content })
+      })
+      .on('broadcast', { event: 'offer-updated' }, ({ payload }: any) => {
+        const msg = messages.value.find(m => m.offer_id === payload.offerId || m.offer?.id === payload.offerId)
+        if (msg?.offer) msg.offer.status = payload.status
+      })
+      .on('broadcast', { event: 'new-message' }, ({ payload }: any) => {
+        if (!payload?.message || payload.message.sender_id === myId.value) return
+        if (messages.value.some(m => m.id === payload.message.id)) return
+        messages.value.push({ ...payload.message, offer: null, sender: null, reply: payload.reply ?? null })
+        clearUnreadDivider()
+        markMessagesAsRead(payload.message.created_at)
+        scrollToBottom()
+      })
+      .on('broadcast', { event: 'new-offer' }, ({ payload }: any) => {
+        if (!payload?.message || payload.message.sender_id === myId.value) return
+        if (messages.value.some(m => m.id === payload.message.id)) return
+        messages.value.push({ ...payload.message, offer: payload.offer, reply: null, sender: null })
+        clearUnreadDivider()
+        markMessagesAsRead(payload.message.created_at)
+        scrollToBottom()
+      })
+      .on('broadcast', { event: 'messages-read' }, ({ payload }: any) => {
+        if (!payload?.msgIds || payload.readBy === myId.value) return
+        for (const m of messages.value) {
+          if (payload.msgIds.includes(m.id)) m.is_read = true
+        }
+      })
+      .subscribe((status: string) => {
+        if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+          roomRetryTimer = setTimeout(setupChatChannel, 3000)
+        }
+      })
+  }
+
+  function onRoomVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+      setupChatChannel()
+      markMessagesAsRead()
+    }
+  }
+  function onRoomOnline() { setupChatChannel() }
+
+  function startRealtime() {
+    setupChatChannel()
+    document.addEventListener('visibilitychange', onRoomVisibilityChange)
+    window.addEventListener('online', onRoomOnline)
+  }
+
+  function stopRealtime() {
+    if (roomRetryTimer) { clearTimeout(roomRetryTimer); roomRetryTimer = null }
+    if (channel.value) { supabase.removeChannel(channel.value); channel.value = null }
+    document.removeEventListener('visibilitychange', onRoomVisibilityChange)
+    window.removeEventListener('online', onRoomOnline)
+  }
+
+  return {
+    channel,
+    setupChatChannel,
+    startRealtime,
+    stopRealtime,
+  }
+}

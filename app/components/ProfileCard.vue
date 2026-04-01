@@ -18,7 +18,7 @@ const isFollowing = ref(false)
 const followLoading = ref(false)
 const currentUserId = ref(null)
 
-function fakultasAkronim(f) {
+function facultyAcronym(f) {
   if (!f) return ''
   const m = /\(([^)]+)\)$/.exec(f)
   return m ? m[1] : f
@@ -167,7 +167,7 @@ onUnmounted(() => {
               {{ userProfile.nrp ?? '-' }}
             </p>
             <p v-if="userProfile.faculty || userProfile.department" class="text-xs mt-0.5" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-              {{ [fakultasAkronim(userProfile.faculty), userProfile.department].filter(Boolean).join(' · ') }}
+              {{ [facultyAcronym(userProfile.faculty), userProfile.department].filter(Boolean).join(' · ') }}
             </p>
           </div>
 

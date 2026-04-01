@@ -30,3 +30,8 @@ logs
 .claude/
 .agents/
 skills-lock.json
+
+# Playwright MCP
+playwright-report/
+test-results/
+.playwright/

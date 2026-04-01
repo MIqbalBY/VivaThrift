@@ -1,7 +1,7 @@
 // Shared product metadata, labels, and helpers
 // Auto-imported across all pages & components by Nuxt
 
-export const KONDISI_META: Record<string, { emoji: string; order: number }> = {
+export const CONDITION_META: Record<string, { emoji: string; order: number }> = {
   'Baru':        { emoji: '🆕', order: 0 },
   'Seperti Baru':{ emoji: '✨', order: 1 },
   'Baik':        { emoji: '👍', order: 2 },
@@ -9,7 +9,7 @@ export const KONDISI_META: Record<string, { emoji: string; order: number }> = {
   'Bekas':       { emoji: '♻️', order: 4 },
 }
 
-export const KATEGORI_META: Record<string, string> = {
+export const CATEGORY_META: Record<string, string> = {
   'Aksesori & Gadget':       '📱',
   'Buku & Alat Tulis':       '📚',
   'Dapur & Peralatan Makan': '🍳',
@@ -24,13 +24,13 @@ export const KATEGORI_META: Record<string, string> = {
   'Lainnya':                 '📦',
 }
 
-export function kondisiLabel(k: string): string {
-  const meta = KONDISI_META[k]
+export function conditionLabel(k: string): string {
+  const meta = CONDITION_META[k]
   return meta ? `${meta.emoji} ${k}` : k
 }
 
-export function kategoriLabel(cat: string): string {
-  const emoji = KATEGORI_META[cat]
+export function categoryLabel(cat: string): string {
+  const emoji = CATEGORY_META[cat]
   return emoji ? `${emoji} ${cat}` : cat
 }
 
@@ -42,7 +42,7 @@ export function getPrimaryImage(product: any): string | null {
   return primary.media_url
 }
 
-export function fakultasAkronim(f: string | null | undefined): string {
+export function facultyAcronym(f: string | null | undefined): string {
   if (!f) return ''
   const m = /\(([^)]+)\)$/.exec(f)
   return m ? (m[1] as string) : f
@@ -62,4 +62,26 @@ export function productDate(p: any): { label: string; date: string } {
   const c = p.created_at, u = p.updated_at
   if (u && c && new Date(u).getTime() - new Date(c).getTime() > 60000) return { label: 'Diedit pada', date: formatDate(u) }
   return { label: 'Ditambahkan pada', date: formatDate(c) }
+}
+
+export const CONDITIONS = [
+  { value: 'Baru',         label: '🆕 Baru' },
+  { value: 'Seperti Baru', label: '✨ Seperti Baru' },
+  { value: 'Baik',         label: '👍 Baik' },
+  { value: 'Cukup Baik',   label: '👌 Cukup Baik' },
+  { value: 'Bekas',        label: '♻️ Bekas' },
+]
+
+export function generateSlug(title: string, id: string): string {
+  const base = title.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+  return `${base}-${id.slice(0, 8)}`
+}
+
+export function stripUrls(str: string): string {
+  return str.replace(/https?:\/\/[^\s]+/gi, '').replace(/\s{2,}/g, ' ').trim()
 }
