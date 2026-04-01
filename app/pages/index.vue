@@ -216,7 +216,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
     <!-- Hero Section -->
     <section class="vt-hero-bg relative w-full bg-blue-50 overflow-hidden min-h-[500px] flex items-center">
       <img
-        src="/img/Banner 1.png"
+        src="/img/banner-1.png"
         alt="Banner VivaThrift"
         class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
       />
@@ -229,7 +229,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         <div class="flex-1 max-w-xl">
           <!-- ITS badge -->
           <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="vt-hero-enter vt-hero-enter-d1 flex items-center gap-2 mb-4 w-fit">
-            <img src="/img/Logo ITS.png" alt="ITS" class="h-7 opacity-75" />
+            <img src="/img/logo-its.png" alt="ITS" class="h-7 opacity-75" />
             <span class="vt-its-badge-text text-xs font-semibold tracking-wider uppercase">Institut Teknologi Sepuluh Nopember</span>
           </a>
           <h1 class="vt-hero-enter vt-hero-enter-d2 vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">

@@ -18,7 +18,7 @@ export default defineNuxtConfig({
     head: {
       title: 'VivaThrift - Situs Jual Beli Barang Preloved di ITS!',
       link: [
-        { rel: 'icon', type: 'image/png', href: '/img/Logo VivaThrift.png' },
+        { rel: 'icon', type: 'image/png', href: '/img/logo-vivathrift.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap' }

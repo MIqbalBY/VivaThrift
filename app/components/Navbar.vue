@@ -519,7 +519,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2 select-none shrink-0" @click.prevent="goHome">
-          <img src="/img/Logo VivaThrift.png" alt="VivaThrift Logo" class="h-9 -translate-y-0.5" />
+          <img src="/img/logo-vivathrift.png" alt="VivaThrift Logo" class="h-9 -translate-y-0.5" />
           <span
             class="vt-logo-text font-himpun text-3xl leading-none"
             style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"

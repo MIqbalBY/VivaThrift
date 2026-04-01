@@ -78,7 +78,7 @@ const values = [
       <section class="relative flex flex-col justify-center min-h-[520px] pt-28 overflow-hidden">
         <!-- ITS Logo badge -->
         <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="absolute top-8 right-10 z-10 hidden md:flex items-center gap-3">
-          <img src="/img/Logo ITS.png" alt="ITS" class="h-14" />
+          <img src="/img/logo-its.png" alt="ITS" class="h-14" />
           <span class="text-white/80 text-xs font-semibold tracking-widest uppercase leading-tight">Institut Teknologi<br>Sepuluh Nopember</span>
         </a>
         <div class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 w-full flex flex-col gap-7 py-16">

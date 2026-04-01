@@ -44,7 +44,7 @@ onMounted(async () => {
     class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden font-sans"
   >
     <!-- Background -->
-    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/img/Banner 2.png');"></div>
+    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/img/banner-2.png');"></div>
     <div class="absolute inset-0 bg-black/40"></div>
 
     <!-- Card -->
@@ -53,10 +53,10 @@ onMounted(async () => {
       <!-- Brand header -->
       <div class="flex flex-col items-center gap-2 mb-6">
         <div class="flex items-center gap-3">
-          <img src="/img/Logo VivaThrift.png" alt="VivaThrift" class="h-10" />
+          <img src="/img/logo-vivathrift.png" alt="VivaThrift" class="h-10" />
           <div class="w-px h-8 bg-white/25"></div>
           <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" title="Institut Teknologi Sepuluh Nopember">
-            <img src="/img/Logo ITS.png" alt="ITS" class="h-9 opacity-90" />
+            <img src="/img/logo-its.png" alt="ITS" class="h-9 opacity-90" />
           </a>
         </div>
         <span
