@@ -22,6 +22,8 @@ export interface Database {
           avatar_url: string | null
           phone: string | null
           gender: string | null
+          bio: string | null
+          username: string | null
         }
       }
       categories: {
@@ -88,6 +90,32 @@ export interface Database {
           lat: number | null
           lng: number | null
           created_at: string | null
+        }
+      }
+      user_settings: {
+        Row: {
+          user_id: string
+          chat_popup: boolean
+          notif_product: boolean
+          show_online: boolean
+          read_receipts: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          user_id: string
+          chat_popup?: boolean
+          notif_product?: boolean
+          show_online?: boolean
+          read_receipts?: boolean
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          chat_popup?: boolean
+          notif_product?: boolean
+          show_online?: boolean
+          read_receipts?: boolean
+          updated_at?: string
         }
       }
     }

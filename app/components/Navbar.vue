@@ -3,6 +3,7 @@ const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 const route = useRoute()
 const { isDark, toggle } = useDarkMode()
+const { settings: userSettings, fetchSettings: fetchUserSettings, resetSettings: resetUserSettings } = useUserSettings()
 
 // Shared profile state (synced with edit.vue via useState)
 const userProfile = useState('userProfile', () => null)
@@ -12,13 +13,13 @@ const profilePending = ref(true)
 const userAddress = useState('userAddress', () => null)
 
 async function fetchProfile(uid) {
-  const { data } = await supabase.from('users').select('name, avatar_url').eq('id', uid).single()
+  const { data } = await supabase.from('users').select('name, avatar_url, username').eq('id', uid).single()
   if (data) userProfile.value = data
   profilePending.value = false
 }
 
 async function fetchNavAddress(uid) {
-  const { data } = await supabase.from('addresses').select('label, city, full_address').eq('user_id', uid).maybeSingle()
+  const { data } = await supabase.from('addresses').select('label, city, full_address').eq('user_id', uid).eq('address_type', 'shipping').maybeSingle()
   userAddress.value = data ?? null
 }
 
@@ -50,6 +51,8 @@ function dismissChatNotification(id) {
 }
 
 function showChatNotification(chatId, senderId, content) {
+  // Respect user's chat popup preference
+  if (!userSettings.value.chat_popup) return
   // If a card for this chat is already visible, update it in place and reset the timer.
   const existing = chatNotifications.value.find(n => n.chatId === chatId)
   if (existing) {
@@ -170,11 +173,16 @@ onMounted(async () => {
     if (!userProfile.value) await fetchProfile(session.user.id)
     else profilePending.value = false
     if (!userAddress.value) fetchNavAddress(session.user.id)
-    fetchNavUnread(session.user.id)
-    setupNavChannel(session.user.id)
-    startNavPoll(session.user.id)
-    fetchNotifications(session.user.id)
-    setupNotifChannel(session.user.id)
+    // Defer non-critical realtime subscriptions to avoid blocking first paint
+    const uid = session.user.id
+    setTimeout(() => {
+      fetchNavUnread(uid)
+      setupNavChannel(uid)
+      startNavPoll(uid)
+      fetchNotifications(uid)
+      setupNotifChannel(uid)
+      fetchUserSettings(uid)
+    }, 100)
   } else {
     profilePending.value = false
   }
@@ -188,6 +196,7 @@ onMounted(async () => {
       navUnreadCount.value = 0
       notifications.value = []
       notifUnreadCount.value = 0
+      resetUserSettings()
       if (navPollTimer) { clearInterval(navPollTimer); navPollTimer = null }
       if (navChatChannel) {
         supabase.removeChannel(navChatChannel)
@@ -203,6 +212,7 @@ onMounted(async () => {
       if (!navPollTimer) startNavPoll(session.user.id)
       fetchNotifications(session.user.id)
       setupNotifChannel(session.user.id)
+      fetchUserSettings(session.user.id)
     }
   })
 
@@ -393,7 +403,7 @@ const { data: dbCategories } = await useAsyncData('navbar-categories', async () 
   const sorted = names.filter(n => n !== 'Lainnya')
   if (names.includes('Lainnya')) sorted.push('Lainnya')
   return sorted
-})
+}, { lazy: true })
 
 const KATEGORI_META = {
   'Aksesori & Gadget':       '📱',
@@ -472,7 +482,9 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 </script>
 
 <template>
-  <header class="vt-navbar w-full sticky top-0 z-50" style="background: rgba(255,255,255,0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.3);">
+  <header class="vt-navbar w-full sticky top-0 z-50" :style="isDark
+    ? 'background: rgba(15,23,42,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.08);'
+    : 'background: rgba(255,255,255,0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.3);'">
 
     <!-- Top Strip -->
     <div class="vt-top-strip w-full hidden md:block" style="border-bottom: 1px solid rgba(30,58,138,0.08);">
@@ -511,7 +523,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2 select-none shrink-0" @click.prevent="goHome">
-          <img src="/img/Logo VivaThrift.png" alt="VivaThrift Logo" class="h-9 -translate-y-0.5" />
+          <img src="/img/logo-vivathrift.png" alt="VivaThrift Logo" width="36" height="36" class="h-9 -translate-y-0.5" fetchpriority="high" />
           <span
             class="vt-logo-text font-himpun text-3xl leading-none"
             style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
@@ -543,7 +555,9 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
           >
             <div
               v-if="showKategori"
-              class="vt-glass-dropdown absolute left-0 top-full mt-1 w-52 rounded-xl py-1.5 z-50" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(30,58,138,0.15);"
+              class="vt-glass-dropdown absolute left-0 top-full mt-1 w-52 rounded-xl py-1.5 z-50" :style="isDark
+                ? 'background: rgba(15,23,42,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.4);'
+                : 'background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(30,58,138,0.15);'"
             >
               <button
                 @click="handleKategori('Semua Kategori')"
@@ -603,7 +617,9 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
           >
             <div
               v-if="showDropdown"
-              class="vt-glass-dropdown absolute left-0 right-0 top-full rounded-b-lg z-50 py-1 max-h-[420px] overflow-y-auto" style="background: rgba(255,255,255,0.90); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(30,58,138,0.12); border-top: none; box-shadow: 0 8px 32px rgba(30,58,138,0.12);"
+              class="vt-glass-dropdown absolute left-0 right-0 top-full rounded-b-lg z-50 py-1 max-h-[420px] overflow-y-auto" :style="isDark
+                ? 'background: rgba(15,23,42,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-top: none; box-shadow: 0 8px 32px rgba(0,0,0,0.4);'
+                : 'background: rgba(255,255,255,0.90); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(30,58,138,0.12); border-top: none; box-shadow: 0 8px 32px rgba(30,58,138,0.12);'"
             >
 
               <!-- Live Suggestions -->
@@ -629,7 +645,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                     class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                   >
                     <div class="w-9 h-9 rounded shrink-0 overflow-hidden bg-gray-100">
-                      <img v-if="getSuggestionImage(product)" :src="getSuggestionImage(product)" class="w-full h-full object-cover" />
+                      <img v-if="getSuggestionImage(product)" :src="getSuggestionImage(product)" width="40" height="40" loading="lazy" class="w-full h-full object-cover" />
                       <div v-else class="w-full h-full bg-gray-200"></div>
                     </div>
                     <div class="flex-1 min-w-0 text-left">
@@ -711,7 +727,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
             <svg class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
               <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
             </svg>
-            <span v-if="notifUnreadCount > 0"
+            <span v-if="notifUnreadCount > 0 && userSettings.notif_product"
               class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
               :style="isDark ? 'background:linear-gradient(135deg,#0ea5e9,#38bdf8); pointer-events:none;' : 'background:linear-gradient(135deg,#1e3a8a,#2563eb); pointer-events:none;'">
               {{ notifUnreadCount > 99 ? '99+' : notifUnreadCount }}
@@ -763,7 +779,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                 >
                   <!-- Product image or icon -->
                   <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" :class="isDark ? 'bg-slate-700' : 'bg-gray-100'">
-                    <img v-if="getNotifProductImage(n)" :src="getNotifProductImage(n)" class="w-full h-full object-cover" />
+                    <img v-if="getNotifProductImage(n)" :src="getNotifProductImage(n)" width="40" height="40" loading="lazy" class="w-full h-full object-cover" />
                     <span v-else class="text-lg">{{ getNotifIcon(n.type) }}</span>
                   </div>
                   <!-- Content -->
@@ -829,15 +845,23 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               class="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-bold transition" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'"
               aria-label="Profil"
             >
-              <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" class="w-full h-full object-cover" />
+              <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" width="36" height="36" class="w-full h-full object-cover" />
               <span v-else-if="profilePending" class="w-4 h-4 rounded-full border-2 border-white/50 border-t-white animate-spin"></span>
               <span v-else>{{ userInitials }}</span>
             </button>
-            <div class="vt-glass-dropdown absolute right-0 top-full mt-2 w-48 rounded-xl py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(30,58,138,0.15);">
+            <div class="vt-glass-dropdown absolute right-0 top-full mt-2 w-48 rounded-xl py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50" :style="isDark
+              ? 'background: rgba(15,23,42,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.4);'
+              : 'background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 32px rgba(30,58,138,0.15);'">
               <div class="px-4 py-2 border-b border-gray-100">
                 <p class="text-xs font-semibold text-gray-700 truncate">{{ userProfile?.name || user.email }}</p>
-                <p v-if="userProfile?.name" class="text-xs text-gray-400 truncate">{{ user.email }}</p>
+                <p v-if="userProfile?.username" class="text-xs truncate" :class="isDark ? 'text-sky-400' : 'text-blue-600'">@{{ userProfile.username }}</p>
+                <p v-else-if="userProfile?.name" class="text-xs text-gray-400 truncate">{{ user.email }}</p>
               </div>
+              <NuxtLink :to="userProfile?.username ? `/profile/@${userProfile.username}` : `/profile/${user.id}`" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                Lihat Profil
+              </NuxtLink>
+              <div class="border-t border-gray-100 my-1"></div>
               <NuxtLink to="/profile/edit" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
                 Profil Saya
@@ -845,6 +869,14 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               <NuxtLink to="/profile/edit?tab=alamat" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
                 Alamat
+              </NuxtLink>
+              <NuxtLink to="/profile/edit?tab=keamanan" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+                Keamanan
+              </NuxtLink>
+              <NuxtLink to="/profile/edit?tab=notifikasi" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+                Notifikasi
               </NuxtLink>
               <div class="border-t border-gray-100 my-1"></div>
               <button
@@ -986,13 +1018,14 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               <div class="flex items-center justify-between px-1">
                 <div class="flex items-center gap-2">
                   <div class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-bold shrink-0" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'">
-                    <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" class="w-full h-full object-cover" />
+                    <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" width="48" height="48" class="w-full h-full object-cover" />
                     <span v-else-if="profilePending" class="w-3.5 h-3.5 rounded-full border-2 border-white/50 border-t-white animate-spin"></span>
                     <span v-else>{{ userInitials }}</span>
                   </div>
                   <div class="flex flex-col min-w-0">
                     <span class="text-sm font-medium text-gray-700 dark:text-slate-300 truncate max-w-[180px]">{{ userProfile?.name || user.email }}</span>
-                    <span v-if="userProfile?.name" class="text-xs text-gray-400 truncate max-w-[180px]">{{ user.email }}</span>
+                    <span v-if="userProfile?.username" class="text-xs truncate max-w-[180px]" :class="isDark ? 'text-sky-400' : 'text-blue-600'">@{{ userProfile.username }}</span>
+                    <span v-else-if="userProfile?.name" class="text-xs text-gray-400 truncate max-w-[180px]">{{ user.email }}</span>
                   </div>
                 </div>
                 <button @click="() => { handleLogout(); showMobileMenu = false }" class="text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
@@ -1009,6 +1042,12 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                 <NuxtLink to="/profile/edit?tab=alamat" @click="showMobileMenu = false" class="flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
                   📍 Alamat
                 </NuxtLink>
+                <NuxtLink to="/profile/edit?tab=keamanan" @click="showMobileMenu = false" class="flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
+                  🔒 Keamanan
+                </NuxtLink>
+                <NuxtLink to="/profile/edit?tab=notifikasi" @click="showMobileMenu = false" class="flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
+                  ⚙️ Pengaturan
+                </NuxtLink>
                 <NuxtLink to="/chat" @click="showMobileMenu = false" class="relative flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
                   💬 Chat
                   <span v-if="navUnreadCount > 0"
@@ -1022,7 +1061,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                   class="relative flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
                 >
                   🔔 Notifikasi
-                  <span v-if="notifUnreadCount > 0"
+                  <span v-if="notifUnreadCount > 0 && userSettings.notif_product"
                     class="ml-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold text-white"
                     style="background:#ef4444;">
                     {{ notifUnreadCount > 99 ? '99+' : notifUnreadCount }}
@@ -1061,7 +1100,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 text-white text-xs font-bold"
               :style="isDark ? 'background:linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background:linear-gradient(to right,#162d6e,#1e40af)'"
             >
-              <img v-if="notif.senderAvatar" :src="notif.senderAvatar" class="w-full h-full object-cover" />
+              <img v-if="notif.senderAvatar" :src="notif.senderAvatar" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
               <span v-else>{{ getNotifInitial(notif.senderName) }}</span>
             </div>
             <!-- Content -->

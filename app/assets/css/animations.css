@@ -1,0 +1,126 @@
+/* ══════════════════════════════════════════════════════════════════
+   ANIMATIONS — Klack-inspired scroll-reveal & micro-interactions
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ── */
+@keyframes vt-fade-in-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes vt-slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes vt-slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes vt-scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Scroll-reveal base ── */
+.vt-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.vt-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Delay helpers (applied via data-delay or class) */
+.vt-reveal[data-delay="100"] { transition-delay: 100ms; }
+.vt-reveal[data-delay="200"] { transition-delay: 200ms; }
+.vt-reveal[data-delay="300"] { transition-delay: 300ms; }
+.vt-reveal[data-delay="400"] { transition-delay: 400ms; }
+.vt-reveal[data-delay="500"] { transition-delay: 500ms; }
+.vt-reveal[data-delay="600"] { transition-delay: 600ms; }
+.vt-reveal[data-delay="700"] { transition-delay: 700ms; }
+
+/* ── Page-entry hero animation ── */
+.vt-hero-enter {
+  animation: vt-fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.vt-hero-enter-d1 { animation-delay: 100ms; }
+.vt-hero-enter-d2 { animation-delay: 200ms; }
+.vt-hero-enter-d3 { animation-delay: 350ms; }
+.vt-hero-enter-d4 { animation-delay: 500ms; }
+.vt-hero-enter-d5 { animation-delay: 650ms; }
+
+/* ── Scale-in for cards on entry ── */
+.vt-card-enter {
+  animation: vt-scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Highlight underline (Klack style) ── */
+.vt-text-highlight {
+  background-image: linear-gradient(transparent 55%, rgba(56, 189, 248, 0.30) 55%);
+  background-size: 0% 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+}
+.vt-revealed .vt-text-highlight,
+.vt-hero-enter .vt-text-highlight {
+  background-size: 100% 100%;
+}
+
+/* ── Staggered grid children ── */
+.vt-stagger-grid > * {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.vt-stagger-grid.vt-revealed > *:nth-child(1)  { transition-delay: 0ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(2)  { transition-delay: 30ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(3)  { transition-delay: 60ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(4)  { transition-delay: 90ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(5)  { transition-delay: 120ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(6)  { transition-delay: 150ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(7)  { transition-delay: 180ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(8)  { transition-delay: 210ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(9)  { transition-delay: 240ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(10) { transition-delay: 270ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(11) { transition-delay: 300ms; }
+.vt-stagger-grid.vt-revealed > *:nth-child(12) { transition-delay: 330ms; }
+.vt-stagger-grid.vt-revealed > * {
+  opacity: 0;
+  transform: translateY(16px);
+}
+.vt-stagger-grid.vt-revealed > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Prefers reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .vt-reveal,
+  .vt-hero-enter,
+  .vt-card-enter,
+  .vt-stagger-grid > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ── Reduce animation overhead on small screens ── */
+@media (max-width: 768px) {
+  .vt-stagger-grid > * {
+    transition-duration: 0.25s;
+  }
+  .vt-stagger-grid.vt-revealed > *:nth-child(n+5) {
+    transition-delay: 0ms;
+  }
+}

@@ -16,7 +16,7 @@ watchEffect(() => {
 
 // ─── Tabs ───────────────────────────────────────────────────────────────────
 const route = useRoute()
-const TABS = ['profil', 'alamat', 'keamanan']
+const TABS = ['profil', 'alamat', 'keamanan', 'notifikasi']
 const activeTab = ref(TABS.includes(route.query.tab) ? route.query.tab : 'profil')
 watch(() => route.query.tab, (val) => {
   activeTab.value = TABS.includes(val) ? val : 'profil'
@@ -58,6 +58,7 @@ const FAKULTAS_DEPARTEMEN = {
 
 // ─── Profile state ───────────────────────────────────────────────────────────
 const name       = ref('')
+const username   = ref('')
 const faculty    = ref('')
 const department = ref('')
 const avatarUrl  = ref('')
@@ -65,6 +66,7 @@ const nrp        = ref('')
 const email      = ref('')
 const phone      = ref('')
 const gender     = ref('')
+const bio        = ref('')
 
 const profileSaving  = ref(false)
 const profileMsg     = ref('')
@@ -72,18 +74,43 @@ const profileMsgType = ref('') // 'ok' | 'err'
 
 const profileLoading = ref(false)
 
+const usernameError = ref('')
+const usernameChecking = ref(false)
+let usernameTimer = null
+const usernameRegex = /^[a-zA-Z0-9._]{3,30}$/
+const originalUsername = ref('')
+
+watch(username, (val) => {
+  usernameError.value = ''
+  if (usernameTimer) clearTimeout(usernameTimer)
+  if (!val) return
+  if (!usernameRegex.test(val)) {
+    usernameError.value = 'Hanya huruf, angka, titik (.) dan underscore (_). 3–30 karakter.'
+    return
+  }
+  if (val.toLowerCase() === originalUsername.value.toLowerCase()) return
+  usernameChecking.value = true
+  usernameTimer = setTimeout(async () => {
+    const { data } = await supabase.from('users').select('id').eq('username', val.toLowerCase()).maybeSingle()
+    usernameChecking.value = false
+    if (data) usernameError.value = 'Username sudah digunakan.'
+  }, 500)
+})
+
 async function fetchProfile(uid = user.value?.id) {
   if (!uid) return
   profileLoading.value = true
   const { data, error } = await supabase
     .from('users')
-    .select('name, faculty, department, avatar_url, nrp, email, gender')
+    .select('name, username, faculty, department, avatar_url, nrp, email, gender, bio')
     .eq('id', uid)
     .maybeSingle()
   profileLoading.value = false
   if (error) { console.error('[fetchProfile]', error.message); return }
   if (!data) return
   name.value        = data.name        ?? ''
+  username.value    = data.username     ?? ''
+  originalUsername.value = data.username ?? ''
   faculty.value     = data.faculty     ?? ''
   department.value  = data.department  ?? ''
   avatarUrl.value   = data.avatar_url  ?? ''
@@ -91,29 +118,52 @@ async function fetchProfile(uid = user.value?.id) {
   email.value       = data.email       ?? user.value?.email ?? ''
   phone.value       = data.phone       ?? ''
   gender.value     = data.gender     ?? ''
+  bio.value        = data.bio        ?? ''
 
-  // Sync ke shared Navbar state (avatar + nama)
+  // Sync ke shared Navbar state (avatar + nama + username)
   const sharedProfile = useState('userProfile')
-  sharedProfile.value = { ...(sharedProfile.value ?? {}), name: data.name ?? '', avatar_url: data.avatar_url ?? null }
+  sharedProfile.value = { ...(sharedProfile.value ?? {}), name: data.name ?? '', avatar_url: data.avatar_url ?? null, username: data.username ?? null }
 }
 
 
 async function saveProfile() {
   const uid = user.value?.id ?? _userId.value
   if (!uid) return
+  if (username.value && !usernameRegex.test(username.value)) {
+    profileMsg.value = 'Username tidak valid.'
+    profileMsgType.value = 'err'
+    return
+  }
+  if (usernameError.value) {
+    profileMsg.value = usernameError.value
+    profileMsgType.value = 'err'
+    return
+  }
   profileSaving.value = true
   profileMsg.value = ''
+  const updates = {
+    name: name.value.trim(),
+    gender: gender.value || null,
+    bio: bio.value.trim() || null,
+    username: username.value.trim().toLowerCase() || null,
+  }
   const { error } = await supabase
     .from('users')
-    .update({ name: name.value.trim(), gender: gender.value || null })
+    .update(updates)
     .eq('id', uid)
   profileSaving.value = false
   if (error) {
-    profileMsg.value = 'Gagal menyimpan: ' + error.message
+    profileMsg.value = error.message.includes('idx_users_username_lower')
+      ? 'Username sudah digunakan.'
+      : 'Gagal menyimpan: ' + error.message
     profileMsgType.value = 'err'
   } else {
+    originalUsername.value = username.value.trim().toLowerCase()
     profileMsg.value = 'Profil berhasil disimpan! ✅'
     profileMsgType.value = 'ok'
+    // Sync username to shared Navbar state
+    const sharedProfile = useState('userProfile')
+    sharedProfile.value = { ...(sharedProfile.value ?? {}), username: updates.username }
     setTimeout(() => { profileMsg.value = '' }, 3000)
   }
 }
@@ -220,46 +270,69 @@ async function confirmDeleteAvatar() {
   avatarUploading.value = false
 }
 
-// ─── Address state (single per user) ─────────────────────────────────────────
+// ─── Address state (dual: shipping + seller) ────────────────────────────────
 const addrSaving  = ref(false)
 const addrMsg     = ref('')
 const addrMsgType = ref('')
+const addrLoading = ref(false)
 
-const addrForm = reactive({
-  label:        '',
-  full_address: '',
-  city:         '',
-  notes:        '',
-  lat:          null,
-  lng:          null,
-})
+// Which address card is being viewed/edited
+const addrActiveType = ref('shipping') // 'shipping' | 'seller'
 
-const addrLoading  = ref(false)
-const addrEditMode = ref(false)
-const _addressId   = ref(null)
+// Shipping address
+const shippingForm = reactive({ label: '', full_address: '', city: '', notes: '', lat: null, lng: null })
+const _shippingId  = ref(null)
+const shippingEditMode = ref(false)
 
-async function fetchAddress(uid = user.value?.id) {
+// Seller address
+const sellerForm   = reactive({ label: '', full_address: '', city: '', notes: '', lat: null, lng: null })
+const _sellerId    = ref(null)
+const sellerEditMode = ref(false)
+
+// "Samakan" toggle
+const samakan = ref(false)
+
+// Helpers to get active form/id based on type
+function getAddrForm(type) { return type === 'seller' ? sellerForm : shippingForm }
+function getAddrId(type) { return type === 'seller' ? _sellerId.value : _shippingId.value }
+function getAddrEditMode(type) { return type === 'seller' ? sellerEditMode : shippingEditMode }
+
+function loadAddrRow(row, type) {
+  const form = getAddrForm(type)
+  const idRef = type === 'seller' ? _sellerId : _shippingId
+  const editRef = type === 'seller' ? sellerEditMode : shippingEditMode
+  if (!row) { editRef.value = true; return }
+  idRef.value = row.id
+  form.label        = row.label        ?? ''
+  form.full_address = row.full_address ?? ''
+  form.city         = row.city         ?? ''
+  form.notes        = row.notes        ?? ''
+  form.lat          = row.lat          ?? null
+  form.lng          = row.lng          ?? null
+  editRef.value = false
+}
+
+async function fetchAddresses(uid = user.value?.id) {
   if (!uid) return
   addrLoading.value = true
   const { data } = await supabase
     .from('addresses')
     .select('*')
     .eq('user_id', uid)
-    .maybeSingle()
   addrLoading.value = false
-  if (!data) { addrEditMode.value = true; return }
-  _addressId.value  = data.id
-  addrForm.label        = data.label        ?? ''
-  addrForm.full_address = data.full_address ?? ''
-  addrForm.city         = data.city         ?? ''
-  addrForm.notes        = data.notes        ?? ''
-  addrForm.lat          = data.lat          ?? null
-  addrForm.lng          = data.lng          ?? null
-  addrEditMode.value = false
+  const rows = data ?? []
+  loadAddrRow(rows.find(r => r.address_type === 'shipping'), 'shipping')
+  loadAddrRow(rows.find(r => r.address_type === 'seller'),  'seller')
+  // Check if seller was "samakan"
+  if (_sellerId.value && _shippingId.value) {
+    const s = shippingForm, e = sellerForm
+    samakan.value = s.label === e.label && s.full_address === e.full_address && s.city === e.city && s.lat === e.lat && s.lng === e.lng
+  }
 }
 
-async function saveAddress() {
-  if (!addrForm.full_address.trim()) {
+async function saveAddress(type = addrActiveType.value) {
+  const form = getAddrForm(type)
+  if (!form.full_address.trim()) {
     addrMsg.value = 'Alamat lengkap wajib diisi.'
     addrMsgType.value = 'err'
     return
@@ -276,17 +349,19 @@ async function saveAddress() {
   try {
     const payload = {
       user_id:      uid,
-      label:        addrForm.label.trim() || null,
-      full_address: addrForm.full_address.trim(),
-      city:         addrForm.city.trim() || null,
-      notes:        addrForm.notes.trim() || null,
-      lat:          addrForm.lat || null,
-      lng:          addrForm.lng || null,
+      address_type: type,
+      label:        form.label.trim() || null,
+      full_address: form.full_address.trim(),
+      city:         form.city.trim() || null,
+      notes:        form.notes.trim() || null,
+      lat:          form.lat || null,
+      lng:          form.lng || null,
     }
 
+    const existingId = getAddrId(type)
     let error
-    if (_addressId.value) {
-      ;({ error } = await supabase.from('addresses').update(payload).eq('id', _addressId.value))
+    if (existingId) {
+      ;({ error } = await supabase.from('addresses').update(payload).eq('id', existingId))
     } else {
       ;({ error } = await supabase.from('addresses').insert(payload))
     }
@@ -295,13 +370,14 @@ async function saveAddress() {
       addrMsg.value = 'Gagal menyimpan: ' + error.message
       addrMsgType.value = 'err'
     } else {
-      addrMsg.value = 'Alamat berhasil disimpan! ✅'
+      addrMsg.value = (type === 'seller' ? 'Alamat pengirim' : 'Alamat pengiriman') + ' berhasil disimpan! ✅'
       addrMsgType.value = 'ok'
-      await fetchAddress(uid)
-      // Sync Navbar address indicator
-      const sharedAddress = useState('userAddress')
-      sharedAddress.value = { label: addrForm.label, city: addrForm.city, full_address: addrForm.full_address }
-      addrEditMode.value = false
+      await fetchAddresses(uid)
+      // Sync Navbar address indicator (always shows shipping address)
+      if (type === 'shipping') {
+        const sharedAddress = useState('userAddress')
+        sharedAddress.value = { label: form.label, city: form.city, full_address: form.full_address }
+      }
       setTimeout(() => { addrMsg.value = '' }, 3000)
     }
   } catch (e) {
@@ -312,39 +388,69 @@ async function saveAddress() {
   }
 }
 
+// ─── "Samakan" logic ────────────────────────────────────────────────────────
+async function toggleSamakan() {
+  samakan.value = !samakan.value
+  if (samakan.value) {
+    // Copy shipping → seller
+    if (!shippingForm.full_address.trim()) {
+      addrMsg.value = 'Isi alamat pengiriman terlebih dahulu.'
+      addrMsgType.value = 'err'
+      samakan.value = false
+      return
+    }
+    Object.assign(sellerForm, {
+      label: shippingForm.label,
+      full_address: shippingForm.full_address,
+      city: shippingForm.city,
+      notes: shippingForm.notes,
+      lat: shippingForm.lat,
+      lng: shippingForm.lng,
+    })
+    sellerEditMode.value = false
+    await saveAddress('seller')
+  }
+}
+
 // ─── Delete address ─────────────────────────────────────────────────────────
 const showDeleteAddrConfirm = ref(false)
 const addrDeleting = ref(false)
+const deleteAddrType = ref('shipping')
 
-function deleteAddress() {
-  if (!_addressId.value) return
+function deleteAddress(type) {
+  const id = getAddrId(type)
+  if (!id) return
+  deleteAddrType.value = type
   showDeleteAddrConfirm.value = true
 }
 
 async function confirmDeleteAddress() {
   showDeleteAddrConfirm.value = false
-  if (!_addressId.value) return
+  const type = deleteAddrType.value
+  const id = getAddrId(type)
+  if (!id) return
   addrDeleting.value = true
-  const { error } = await supabase.from('addresses').delete().eq('id', _addressId.value)
+  const { error } = await supabase.from('addresses').delete().eq('id', id)
   addrDeleting.value = false
   if (error) {
     addrMsg.value = 'Gagal menghapus: ' + error.message
     addrMsgType.value = 'err'
     return
   }
-  _addressId.value = null
-  addrForm.label = ''
-  addrForm.full_address = ''
-  addrForm.city = ''
-  addrForm.notes = ''
-  addrForm.lat = null
-  addrForm.lng = null
-  addrEditMode.value = true
+  const form = getAddrForm(type)
+  const idRef = type === 'seller' ? _sellerId : _shippingId
+  const editRef = type === 'seller' ? sellerEditMode : shippingEditMode
+  idRef.value = null
+  form.label = ''; form.full_address = ''; form.city = ''; form.notes = ''; form.lat = null; form.lng = null
+  editRef.value = true
+  if (type === 'seller') samakan.value = false
   addrMsg.value = 'Alamat berhasil dihapus.'
   addrMsgType.value = 'ok'
   // Sync Navbar address indicator
-  const sharedAddress = useState('userAddress')
-  sharedAddress.value = null
+  if (type === 'shipping') {
+    const sharedAddress = useState('userAddress')
+    sharedAddress.value = null
+  }
   setTimeout(() => { addrMsg.value = '' }, 3000)
 }
 
@@ -373,17 +479,18 @@ async function fetchMyRating(uid) {
 // ─── GPS pin ─────────────────────────────────────────────────────────────────
 const gpsLoading = ref(false)
 
-function useGPS() {
+function useGPS(type = addrActiveType.value) {
   if (!navigator.geolocation) {
     addrMsg.value = 'Browser tidak mendukung GPS.'
     addrMsgType.value = 'err'
     return
   }
   gpsLoading.value = true
+  const form = getAddrForm(type)
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      addrForm.lat = parseFloat(pos.coords.latitude.toFixed(7))
-      addrForm.lng = parseFloat(pos.coords.longitude.toFixed(7))
+      form.lat = parseFloat(pos.coords.latitude.toFixed(7))
+      form.lng = parseFloat(pos.coords.longitude.toFixed(7))
       gpsLoading.value = false
     },
     () => {
@@ -394,9 +501,10 @@ function useGPS() {
   )
 }
 
-function openMapLink() {
-  const lat = addrForm.lat ?? -7.2813
-  const lng = addrForm.lng ?? 112.7971
+function openMapLink(type = addrActiveType.value) {
+  const form = getAddrForm(type)
+  const lat = form.lat ?? -7.2813
+  const lng = form.lng ?? 112.7971
   window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank', 'noopener')
 }
 
@@ -459,13 +567,23 @@ async function changePassword() {
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
+// ─── User Settings (chat & notification) ─────────────────────────────────────
+const { settings: userSettings, fetchSettings: fetchUserSettings, updateSetting } = useUserSettings()
+
+function toggleSetting(key) {
+  const uid = user.value?.id ?? _userId.value
+  if (!uid) return
+  updateSetting(uid, key, !userSettings.value[key])
+}
+
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (session?.user?.id) {
     _userId.value = session.user.id
     fetchProfile(session.user.id)
-    fetchAddress(session.user.id)
+    fetchAddresses(session.user.id)
     fetchMyRating(session.user.id)
+    fetchUserSettings(session.user.id)
   }
 })
 
@@ -473,8 +591,9 @@ watch(user, (u) => {
   if (u?.id) {
     _userId.value = u.id
     fetchProfile(u.id)
-    fetchAddress(u.id)
+    fetchAddresses(u.id)
     fetchMyRating(u.id)
+    fetchUserSettings(u.id)
   }
 }, { immediate: true })
 </script>
@@ -483,20 +602,25 @@ watch(user, (u) => {
   <div class="min-h-screen vt-page-bg">
 
     <!-- Page Header -->
-    <div class="vt-edit-header w-full pt-24 pb-10 px-4 md:px-10">
-      <div class="max-w-3xl mx-auto flex flex-col gap-2">
-        <nav class="flex items-center gap-1.5 text-xs text-white/50">
-          <NuxtLink to="/" class="hover:text-white/80 transition">Beranda</NuxtLink>
-          <span>/</span>
-          <span class="text-white/70">Pengaturan</span>
-        </nav>
-        <h1 class="font-heading text-3xl font-bold text-white leading-tight">⚙️ Pengaturan</h1>
-        <p class="text-white/65 text-sm">Kelola informasi akun dan alamat pengirimanmu.</p>
+    <div class="vt-hero-enter vt-hero-enter-d1 vt-edit-header relative w-full pt-24 pb-10 px-4 md:px-10 overflow-hidden">
+      <img src="/img/banner-3.png" alt="" width="1920" height="600" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
+      <div class="absolute inset-0 pointer-events-none vt-edit-header-overlay"></div>
+      <div class="relative max-w-3xl mx-auto flex items-center gap-4">
+        <div class="flex flex-col gap-2 flex-1">
+          <nav class="flex items-center gap-1.5 text-xs text-white/50">
+            <NuxtLink to="/" class="hover:text-white/80 transition">Beranda</NuxtLink>
+            <span>/</span>
+            <span class="text-white/70">Pengaturan</span>
+          </nav>
+          <h1 class="font-heading text-3xl font-bold text-white leading-tight">⚙️ Pengaturan</h1>
+          <p class="text-white/65 text-sm">Kelola informasi akun dan alamat pengirimanmu.</p>
+        </div>
+        <img src="/img/illustrations/personal-settings.svg" alt="" width="112" height="112" loading="lazy" class="hidden md:block w-28 h-auto opacity-70 shrink-0" aria-hidden="true" />
       </div>
     </div>
 
     <!-- Tab Bar -->
-    <div class="sticky top-[73px] z-30 vt-tab-bar border-b">
+    <div class="vt-hero-enter vt-hero-enter-d2 sticky top-[73px] z-30 vt-tab-bar border-b">
       <div class="max-w-3xl mx-auto px-4 md:px-0 flex gap-0">
         <button
           @click="activeTab = 'profil'"
@@ -518,6 +642,13 @@ watch(user, (u) => {
           :class="activeTab === 'keamanan' ? 'vt-tab-active' : 'vt-tab-inactive'"
         >
           🔒 Keamanan
+        </button>
+        <button
+          @click="activeTab = 'notifikasi'"
+          class="vt-tab-btn px-6 py-3.5 text-sm font-semibold transition border-b-2"
+          :class="activeTab === 'notifikasi' ? 'vt-tab-active' : 'vt-tab-inactive'"
+        >
+          🔔 Notifikasi
         </button>
         <button
           @click="requestLogout"
@@ -548,7 +679,7 @@ watch(user, (u) => {
           <div class="vt-card p-6 md:p-8 flex flex-col sm:flex-row items-center gap-6">
             <div class="relative group shrink-0">
               <div class="w-24 h-24 rounded-full overflow-hidden ring-4 ring-blue-100 dark:ring-blue-900/40">
-                <img v-if="avatarUrl" :src="avatarUrl" alt="Foto profil" class="w-full h-full object-cover" />
+                <img v-if="avatarUrl" :src="avatarUrl" alt="Foto profil" width="96" height="96" class="w-full h-full object-cover" />
                 <div v-else class="w-full h-full flex items-center justify-center text-3xl font-bold text-white"
                      :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(135deg, #162d6e, #1e3a8a, #1e40af)'">
                   {{ name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?' }}
@@ -579,7 +710,8 @@ watch(user, (u) => {
                 <span v-else-if="gender === 'Perempuan'" title="Perempuan">♀️</span>
               </p>
               <p class="text-xs text-gray-500 dark:text-slate-400 truncate">
-                {{ nrp || '-' }}
+                <span v-if="username" class="text-blue-600 dark:text-sky-400 font-medium">@{{ username }}</span>
+                <template v-else>{{ nrp || '-' }}</template>
                 <template v-if="faculty || department">
                   ({{ [fakultasAkronim(faculty), department].filter(Boolean).join(' - ') }})
                 </template>
@@ -626,6 +758,38 @@ watch(user, (u) => {
                 class="vt-input"
                 maxlength="100"
               />
+            </div>
+
+            <!-- Username -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Username</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 text-sm select-none">@</span>
+                <input
+                  v-model="username"
+                  type="text"
+                  placeholder="username_kamu"
+                  class="vt-input"
+                  style="padding-left: 1.75rem"
+                  maxlength="30"
+                />
+              </div>
+              <div v-if="usernameChecking" class="text-xs text-gray-400">Memeriksa...</div>
+              <div v-else-if="usernameError" class="text-xs text-red-500 dark:text-red-400">{{ usernameError }}</div>
+              <div v-else-if="username && !usernameError" class="text-xs text-gray-400 dark:text-slate-500">Huruf, angka, titik (.) dan underscore (_). 3–30 karakter.</div>
+            </div>
+
+            <!-- Bio -->
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Bio</label>
+              <textarea
+                v-model="bio"
+                placeholder="Tulis biomu di sini... (opsional)"
+                class="vt-input resize-none"
+                maxlength="160"
+                rows="3"
+              />
+              <span class="text-xs self-end" :class="isDark ? 'text-gray-500' : 'text-gray-400'">{{ bio.length }}/160</span>
             </div>
 
             <!-- Jenis Kelamin -->
@@ -722,125 +886,256 @@ watch(user, (u) => {
 
         <template v-else>
 
-          <!-- ── Card view (alamat sudah tersimpan) ── -->
-          <template v-if="_addressId && !addrEditMode">
-            <div class="vt-card p-6 md:p-8 flex flex-col gap-4">
-              <div class="flex items-center justify-between">
-                <h2 class="font-bold text-base vt-text-primary">📍 Alamat Pengiriman</h2>
-                <div class="flex items-center gap-3">
-                  <button @click="addrEditMode = true" class="text-xs font-medium text-blue-700 dark:text-sky-400 hover:underline">Edit</button>
-                  <button @click="deleteAddress" :disabled="addrDeleting" class="text-xs font-medium text-red-500 dark:text-red-400 hover:underline disabled:opacity-50">Hapus</button>
-                </div>
-              </div>
+          <!-- Feedback -->
+          <p v-if="addrMsg" class="text-sm font-medium px-4 py-2 rounded-lg mb-2" :class="addrMsgType === 'ok' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'">
+            {{ addrMsg }}
+          </p>
 
-              <!-- Card alamat -->
-              <button
-                @click="addrEditMode = true"
-                class="w-full text-left border-l-4 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 rounded-r-xl px-4 py-4 flex items-start justify-between gap-3 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition"
-              >
-                <div class="flex flex-col gap-1 min-w-0 flex-1">
-                  <span v-if="addrForm.label" class="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">{{ addrForm.label }}</span>
-                  <p class="font-bold text-sm text-gray-800 dark:text-slate-100 leading-snug flex items-center gap-1.5">
-                    {{ name || '—' }}
-                    <span v-if="gender === 'Laki-laki'" title="Laki-laki">♂️</span>
-                    <span v-else-if="gender === 'Perempuan'" title="Perempuan">♀️</span>
-                  </p>
-                  <p v-if="phone" class="text-sm text-gray-600 dark:text-slate-400">{{ phone }}</p>
-                  <p class="text-sm text-gray-700 dark:text-slate-300 leading-relaxed">
-                    {{ addrForm.full_address }}<template v-if="addrForm.notes"> ({{ addrForm.notes }})</template>
-                  </p>
-                  <div v-if="addrForm.lat && addrForm.lng" class="flex items-center gap-1 mt-1">
-                    <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
-                    </svg>
-                    <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Sudah Pinpoint</span>
-                  </div>
-                </div>
-                <svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
-                </svg>
-              </button>
-            </div>
-          </template>
-
-          <!-- ── Form edit/tambah ── -->
-          <template v-else>
-          <div class="vt-card p-6 md:p-8 flex flex-col gap-5">
-            <div class="flex items-center justify-between">
-              <h2 class="font-bold text-base vt-text-primary">📍 {{ _addressId ? 'Edit Alamat' : 'Tambah Alamat' }}</h2>
-              <button v-if="_addressId" @click="addrEditMode = false" class="text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 transition">← Kembali</button>
-            </div>
-
-            <!-- Feedback -->
-            <p v-if="addrMsg" class="text-sm font-medium px-4 py-2 rounded-lg" :class="addrMsgType === 'ok' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'">
-              {{ addrMsg }}
-            </p>
-
-            <!-- Label -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold vt-label">Label Alamat</label>
-              <input v-model="addrForm.label" type="text" placeholder="Contoh: Kosan Keputih, Rumah Sidoarjo" class="vt-input" maxlength="50" />
-            </div>
-
-            <!-- Alamat Lengkap -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold vt-label">Alamat Lengkap <span class="text-red-500">*</span></label>
-              <textarea v-model="addrForm.full_address" rows="3" placeholder="Jl. Raya ITS No. ..., Keputih, Sukolilo, Surabaya" class="vt-input resize-none" maxlength="300"></textarea>
-            </div>
-
-            <!-- Kota -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold vt-label">Kota / Kabupaten</label>
-              <input v-model="addrForm.city" type="text" placeholder="Surabaya" class="vt-input" maxlength="80" />
-            </div>
-
-            <!-- Catatan -->
-            <div class="flex flex-col gap-1.5">
-              <label class="text-xs font-semibold vt-label">Catatan Pengiriman</label>
-              <input v-model="addrForm.notes" type="text" placeholder="Contoh: Lantai 2, kamar paling kiri" class="vt-input" maxlength="150" />
-            </div>
-
-            <!-- Pin Lokasi GPS -->
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-semibold vt-label">📍 Pin Lokasi</label>
-              <div class="flex flex-wrap items-center gap-2">
-                <button type="button" @click="useGPS" :disabled="gpsLoading"
-                  class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-sm font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-60">
-                  <svg v-if="!gpsLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
-                  </svg>
-                  <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
-                  {{ gpsLoading ? 'Mengambil lokasi...' : 'Pakai GPS saat ini' }}
-                </button>
-                <button v-if="addrForm.lat && addrForm.lng" type="button" @click="openMapLink"
-                  class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-600 text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition">
-                  🗺️ Lihat di Maps
-                </button>
-              </div>
-              <div class="flex gap-2">
-                <div class="flex flex-col gap-1 flex-1">
-                  <label class="text-xs vt-text-muted">Latitude</label>
-                  <input v-model.number="addrForm.lat" type="number" step="0.0000001" placeholder="-7.2885618..." class="vt-input text-xs font-mono" />
-                </div>
-                <div class="flex flex-col gap-1 flex-1">
-                  <label class="text-xs vt-text-muted">Longitude</label>
-                  <input v-model.number="addrForm.lng" type="number" step="0.0000001" placeholder="112.7917407..." class="vt-input text-xs font-mono" />
-                </div>
-              </div>
-              <p class="text-xs vt-text-muted opacity-60">Isi otomatis dengan GPS atau masukkan manual. Contoh: Asrama Mahasiswa ITS Blok H → -7.2885618, 112.7917407.</p>
-            </div>
-
+          <!-- ── Sub-tabs: Pengiriman | Pengirim ──────────────── -->
+          <div class="flex gap-2 mb-4">
             <button
-              @click="saveAddress"
-              :disabled="addrSaving"
-              class="vt-btn-primary self-start px-6 py-2.5 rounded-full text-sm font-semibold text-white flex items-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+              @click="addrActiveType = 'shipping'"
+              class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition border"
+              :class="addrActiveType === 'shipping' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-sky-400 border-blue-200 dark:border-blue-700' : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'"
             >
-              <svg v-if="addrSaving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
-              {{ addrSaving ? 'Menyimpan...' : 'Simpan Alamat' }}
+              📦 Pengiriman
+              <svg v-if="_shippingId" class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            </button>
+            <button
+              @click="addrActiveType = 'seller'"
+              class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition border"
+              :class="addrActiveType === 'seller' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-sky-400 border-blue-200 dark:border-blue-700' : 'bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'"
+            >
+              🏠 Pengirim
+              <svg v-if="_sellerId" class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
             </button>
           </div>
+
+          <!-- ════ SHIPPING ADDRESS ════════════════════════════ -->
+          <template v-if="addrActiveType === 'shipping'">
+            <!-- Card view -->
+            <template v-if="_shippingId && !shippingEditMode">
+              <div class="vt-card p-6 md:p-8 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                  <h2 class="font-bold text-base vt-text-primary">📦 Alamat Pengiriman</h2>
+                  <div class="flex items-center gap-3">
+                    <button @click="shippingEditMode = true" class="text-xs font-medium text-blue-700 dark:text-sky-400 hover:underline">Edit</button>
+                    <button @click="deleteAddress('shipping')" :disabled="addrDeleting" class="text-xs font-medium text-red-500 dark:text-red-400 hover:underline disabled:opacity-50">Hapus</button>
+                  </div>
+                </div>
+                <button
+                  @click="shippingEditMode = true"
+                  class="w-full text-left border-l-4 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 rounded-r-xl px-4 py-4 flex items-start justify-between gap-3 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition"
+                >
+                  <div class="flex flex-col gap-1 min-w-0 flex-1">
+                    <span v-if="shippingForm.label" class="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">{{ shippingForm.label }}</span>
+                    <p class="font-bold text-sm text-gray-800 dark:text-slate-100 leading-snug flex items-center gap-1.5">
+                      {{ name || '—' }}
+                      <span v-if="gender === 'Laki-laki'" title="Laki-laki">♂️</span>
+                      <span v-else-if="gender === 'Perempuan'" title="Perempuan">♀️</span>
+                    </p>
+                    <p v-if="phone" class="text-sm text-gray-600 dark:text-slate-400">{{ phone }}</p>
+                    <p class="text-sm text-gray-700 dark:text-slate-300 leading-relaxed">
+                      {{ shippingForm.full_address }}<template v-if="shippingForm.notes"> ({{ shippingForm.notes }})</template>
+                    </p>
+                    <div v-if="shippingForm.lat && shippingForm.lng" class="flex items-center gap-1 mt-1">
+                      <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+                      </svg>
+                      <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Sudah Pinpoint</span>
+                    </div>
+                  </div>
+                  <svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                  </svg>
+                </button>
+              </div>
+            </template>
+            <!-- Form -->
+            <template v-else>
+              <div class="vt-card p-6 md:p-8 flex flex-col gap-5">
+                <div class="flex items-center justify-between">
+                  <h2 class="font-bold text-base vt-text-primary">📦 {{ _shippingId ? 'Edit Alamat Pengiriman' : 'Tambah Alamat Pengiriman' }}</h2>
+                  <button v-if="_shippingId" @click="shippingEditMode = false" class="text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 transition">← Kembali</button>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold vt-label">Label Alamat</label>
+                  <input v-model="shippingForm.label" type="text" placeholder="Contoh: Kosan Keputih, Rumah Sidoarjo" class="vt-input" maxlength="50" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold vt-label">Alamat Lengkap <span class="text-red-500">*</span></label>
+                  <textarea v-model="shippingForm.full_address" rows="3" placeholder="Jl. Raya ITS No. ..., Keputih, Sukolilo, Surabaya" class="vt-input resize-none" maxlength="300"></textarea>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold vt-label">Kota / Kabupaten</label>
+                  <input v-model="shippingForm.city" type="text" placeholder="Surabaya" class="vt-input" maxlength="80" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold vt-label">Catatan Pengiriman</label>
+                  <input v-model="shippingForm.notes" type="text" placeholder="Contoh: Lantai 2, kamar paling kiri" class="vt-input" maxlength="150" />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs font-semibold vt-label">📍 Pin Lokasi</label>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" @click="useGPS('shipping')" :disabled="gpsLoading"
+                      class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-sm font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-60">
+                      <svg v-if="!gpsLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+                      </svg>
+                      <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                      {{ gpsLoading ? 'Mengambil lokasi...' : 'Pakai GPS saat ini' }}
+                    </button>
+                    <button v-if="shippingForm.lat && shippingForm.lng" type="button" @click="openMapLink('shipping')"
+                      class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-600 text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition">
+                      🗺️ Lihat di Maps
+                    </button>
+                  </div>
+                  <div class="flex gap-2">
+                    <div class="flex flex-col gap-1 flex-1">
+                      <label class="text-xs vt-text-muted">Latitude</label>
+                      <input v-model.number="shippingForm.lat" type="number" step="0.0000001" placeholder="-7.2885618..." class="vt-input text-xs font-mono" />
+                    </div>
+                    <div class="flex flex-col gap-1 flex-1">
+                      <label class="text-xs vt-text-muted">Longitude</label>
+                      <input v-model.number="shippingForm.lng" type="number" step="0.0000001" placeholder="112.7917407..." class="vt-input text-xs font-mono" />
+                    </div>
+                  </div>
+                  <p class="text-xs vt-text-muted opacity-60">Isi otomatis dengan GPS atau masukkan manual. Contoh: Asrama Mahasiswa ITS Blok H → -7.2885618, 112.7917407.</p>
+                </div>
+                <button
+                  @click="saveAddress('shipping')"
+                  :disabled="addrSaving"
+                  class="vt-btn-primary self-start px-6 py-2.5 rounded-full text-sm font-semibold text-white flex items-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                >
+                  <svg v-if="addrSaving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                  {{ addrSaving ? 'Menyimpan...' : 'Simpan Alamat' }}
+                </button>
+              </div>
+            </template>
+          </template>
+
+          <!-- ════ SELLER ADDRESS ══════════════════════════════ -->
+          <template v-if="addrActiveType === 'seller'">
+
+            <!-- Samakan toggle -->
+            <div class="vt-card p-4 mb-4 flex items-center gap-3">
+              <button
+                @click="toggleSamakan"
+                :disabled="addrSaving"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 disabled:opacity-50"
+                :class="samakan ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'"
+              >
+                <span class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform" :class="samakan ? 'translate-x-6' : 'translate-x-1'"></span>
+              </button>
+              <span class="text-sm vt-text-primary font-medium">Samakan dengan Alamat Pengiriman</span>
+            </div>
+
+            <!-- Card view -->
+            <template v-if="_sellerId && !sellerEditMode">
+              <div class="vt-card p-6 md:p-8 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                  <h2 class="font-bold text-base vt-text-primary">🏠 Alamat Pengirim</h2>
+                  <div class="flex items-center gap-3">
+                    <button @click="sellerEditMode = true; samakan = false" class="text-xs font-medium text-blue-700 dark:text-sky-400 hover:underline">Edit</button>
+                    <button @click="deleteAddress('seller')" :disabled="addrDeleting" class="text-xs font-medium text-red-500 dark:text-red-400 hover:underline disabled:opacity-50">Hapus</button>
+                  </div>
+                </div>
+                <button
+                  @click="sellerEditMode = true; samakan = false"
+                  class="w-full text-left border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-r-xl px-4 py-4 flex items-start justify-between gap-3 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition"
+                >
+                  <div class="flex flex-col gap-1 min-w-0 flex-1">
+                    <span v-if="sellerForm.label" class="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">{{ sellerForm.label }}</span>
+                    <p class="font-bold text-sm text-gray-800 dark:text-slate-100 leading-snug flex items-center gap-1.5">
+                      {{ name || '—' }}
+                      <span v-if="gender === 'Laki-laki'" title="Laki-laki">♂️</span>
+                      <span v-else-if="gender === 'Perempuan'" title="Perempuan">♀️</span>
+                    </p>
+                    <p v-if="phone" class="text-sm text-gray-600 dark:text-slate-400">{{ phone }}</p>
+                    <p class="text-sm text-gray-700 dark:text-slate-300 leading-relaxed">
+                      {{ sellerForm.full_address }}<template v-if="sellerForm.notes"> ({{ sellerForm.notes }})</template>
+                    </p>
+                    <div v-if="sellerForm.lat && sellerForm.lng" class="flex items-center gap-1 mt-1">
+                      <svg class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+                      </svg>
+                      <span class="text-xs font-medium text-blue-600 dark:text-blue-400">Sudah Pinpoint</span>
+                    </div>
+                    <div v-if="samakan" class="flex items-center gap-1 mt-1">
+                      <span class="text-xs text-gray-400 dark:text-slate-500 italic">Sama dengan Alamat Pengiriman</span>
+                    </div>
+                  </div>
+                  <svg class="w-5 h-5 text-blue-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                  </svg>
+                </button>
+              </div>
+            </template>
+            <!-- Form -->
+            <template v-else-if="!samakan">
+              <div class="vt-card p-6 md:p-8 flex flex-col gap-5">
+                <div class="flex items-center justify-between">
+                  <h2 class="font-bold text-base vt-text-primary">🏠 {{ _sellerId ? 'Edit Alamat Pengirim' : 'Tambah Alamat Pengirim' }}</h2>
+                  <button v-if="_sellerId" @click="sellerEditMode = false" class="text-xs text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 transition">← Kembali</button>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold vt-label">Label Alamat</label>
+                  <input v-model="sellerForm.label" type="text" placeholder="Contoh: Asrama ITS, Kost Gebang" class="vt-input" maxlength="50" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold vt-label">Alamat Lengkap <span class="text-red-500">*</span></label>
+                  <textarea v-model="sellerForm.full_address" rows="3" placeholder="Jl. Raya ITS No. ..., Keputih, Sukolilo, Surabaya" class="vt-input resize-none" maxlength="300"></textarea>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold vt-label">Kota / Kabupaten</label>
+                  <input v-model="sellerForm.city" type="text" placeholder="Surabaya" class="vt-input" maxlength="80" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-xs font-semibold vt-label">Catatan</label>
+                  <input v-model="sellerForm.notes" type="text" placeholder="Contoh: Blok H lantai 3" class="vt-input" maxlength="150" />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs font-semibold vt-label">📍 Pin Lokasi</label>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" @click="useGPS('seller')" :disabled="gpsLoading"
+                      class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-sm font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-60">
+                      <svg v-if="!gpsLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+                      </svg>
+                      <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                      {{ gpsLoading ? 'Mengambil lokasi...' : 'Pakai GPS saat ini' }}
+                    </button>
+                    <button v-if="sellerForm.lat && sellerForm.lng" type="button" @click="openMapLink('seller')"
+                      class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-600 text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition">
+                      🗺️ Lihat di Maps
+                    </button>
+                  </div>
+                  <div class="flex gap-2">
+                    <div class="flex flex-col gap-1 flex-1">
+                      <label class="text-xs vt-text-muted">Latitude</label>
+                      <input v-model.number="sellerForm.lat" type="number" step="0.0000001" placeholder="-7.2885618..." class="vt-input text-xs font-mono" />
+                    </div>
+                    <div class="flex flex-col gap-1 flex-1">
+                      <label class="text-xs vt-text-muted">Longitude</label>
+                      <input v-model.number="sellerForm.lng" type="number" step="0.0000001" placeholder="112.7917407..." class="vt-input text-xs font-mono" />
+                    </div>
+                  </div>
+                  <p class="text-xs vt-text-muted opacity-60">Isi otomatis dengan GPS atau masukkan manual. Contoh: Asrama Mahasiswa ITS Blok H → -7.2885618, 112.7917407.</p>
+                </div>
+                <button
+                  @click="saveAddress('seller')"
+                  :disabled="addrSaving"
+                  class="vt-btn-primary self-start px-6 py-2.5 rounded-full text-sm font-semibold text-white flex items-center gap-2 transition hover:opacity-90 disabled:opacity-60"
+                >
+                  <svg v-if="addrSaving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                  {{ addrSaving ? 'Menyimpan...' : 'Simpan Alamat' }}
+                </button>
+              </div>
+            </template>
           </template>
         </template>
 
@@ -934,10 +1229,99 @@ watch(user, (u) => {
         </div>
       </template>
 
+      <!-- ══ TAB: NOTIFIKASI ═══════════════════════════════════════════════ -->
+      <template v-else-if="activeTab === 'notifikasi'">
+        <!-- Chat Settings -->
+        <div class="vt-card p-6 md:p-8 flex flex-col gap-6">
+          <div>
+            <h2 class="font-bold text-base vt-text-primary flex items-center gap-2">💬 Pengaturan Chat</h2>
+            <p class="text-sm vt-text-muted mt-1">Atur preferensi chat dan privasi pesanmu.</p>
+          </div>
+
+          <!-- Chat Popup -->
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium vt-text-primary">Popup Notifikasi Chat</p>
+              <p class="text-xs vt-text-muted mt-0.5">Tampilkan popup saat ada pesan baru di pojok kanan bawah.</p>
+            </div>
+            <button
+              @click="toggleSetting('chat_popup')"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+              :style="userSettings.chat_popup ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
+              :class="!userSettings.chat_popup ? 'bg-gray-300 dark:bg-slate-600' : ''"
+              role="switch" :aria-checked="userSettings.chat_popup"
+            >
+              <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.chat_popup ? 'translate-x-5' : 'translate-x-0'" />
+            </button>
+          </div>
+
+          <div class="border-t border-gray-100 dark:border-slate-700/50"></div>
+
+          <!-- Read Receipts -->
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium vt-text-primary">Tanda Baca (Read Receipts)</p>
+              <p class="text-xs vt-text-muted mt-0.5">Kirim dan tampilkan centang biru saat pesan sudah dibaca. Jika dinonaktifkan, kamu juga tidak bisa melihat tanda baca dari orang lain.</p>
+            </div>
+            <button
+              @click="toggleSetting('read_receipts')"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+              :style="userSettings.read_receipts ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
+              :class="!userSettings.read_receipts ? 'bg-gray-300 dark:bg-slate-600' : ''"
+              role="switch" :aria-checked="userSettings.read_receipts"
+            >
+              <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.read_receipts ? 'translate-x-5' : 'translate-x-0'" />
+            </button>
+          </div>
+
+          <div class="border-t border-gray-100 dark:border-slate-700/50"></div>
+
+          <!-- Online Status -->
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium vt-text-primary">Status Online</p>
+              <p class="text-xs vt-text-muted mt-0.5">Tampilkan status online dan terakhir dilihat ke pengguna lain. Jika dinonaktifkan, kamu juga tidak bisa melihat status online orang lain.</p>
+            </div>
+            <button
+              @click="toggleSetting('show_online')"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+              :style="userSettings.show_online ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
+              :class="!userSettings.show_online ? 'bg-gray-300 dark:bg-slate-600' : ''"
+              role="switch" :aria-checked="userSettings.show_online"
+            >
+              <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.show_online ? 'translate-x-5' : 'translate-x-0'" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Notification Settings -->
+        <div class="vt-card p-6 md:p-8 flex flex-col gap-6">
+          <div>
+            <h2 class="font-bold text-base vt-text-primary flex items-center gap-2">🔔 Pengaturan Notifikasi</h2>
+            <p class="text-sm vt-text-muted mt-1">Atur notifikasi yang ingin kamu terima.</p>
+          </div>
+
+          <!-- Product Notifications -->
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium vt-text-primary">Notifikasi Produk</p>
+              <p class="text-xs vt-text-muted mt-0.5">Terima notifikasi tentang produk baru, restock, dan stok habis di panel lonceng.</p>
+            </div>
+            <button
+              @click="toggleSetting('notif_product')"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+              :style="userSettings.notif_product ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
+              :class="!userSettings.notif_product ? 'bg-gray-300 dark:bg-slate-600' : ''"
+              role="switch" :aria-checked="userSettings.notif_product"
+            >
+              <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.notif_product ? 'translate-x-5' : 'translate-x-0'" />
+            </button>
+          </div>
+        </div>
+      </template>
+
     </div>
   </div>
-
-  <!-- ─── Delete Address Confirm Modal ────────────────────────────────── -->
   <Teleport to="body">
     <Transition name="vt-crop-fade">
       <div v-if="showDeleteAddrConfirm"
@@ -1164,10 +1548,13 @@ watch(user, (u) => {
   background: #0f172a;
 }
 .vt-edit-header {
-  background: linear-gradient(160deg, #0c4a6e 0%, #0369a1 50%, #0ea5e9 100%);
+  background: transparent;
 }
-.dark .vt-edit-header {
-  background: linear-gradient(160deg, #0a1220 0%, #0d1829 100%);
+.vt-edit-header-overlay {
+  background: linear-gradient(160deg, rgba(12,74,110,0.80) 0%, rgba(3,105,161,0.70) 50%, rgba(14,165,233,0.60) 100%);
+}
+.dark .vt-edit-header-overlay {
+  background: linear-gradient(160deg, rgba(10,18,32,0.85) 0%, rgba(13,24,41,0.80) 100%);
 }
 .vt-tab-bar {
   background: rgba(255,255,255,0.9);

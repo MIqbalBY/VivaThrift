@@ -25,6 +25,8 @@ const { data: product } = await useAsyncData(`edit-product-${param}`, async () =
   return data
 })
 
+useHead({ title: computed(() => product.value?.title ? `Edit ${product.value.title} — VivaThrift` : 'Edit Produk — VivaThrift') })
+
 if (!product.value) {
   await navigateTo('/')
 }
@@ -367,7 +369,12 @@ async function saveEdits() {
   errorMsg.value = ''
   if (!form.title.trim()) return (errorMsg.value = 'Judul barang wajib diisi.')
   if (!form.price || Number(form.price) <= 0) return (errorMsg.value = 'Harga harus lebih dari 0.')
+  if (!form.stock || Number(form.stock) < 1) return (errorMsg.value = 'Stok harus minimal 1.')
   if (!form.condition) return (errorMsg.value = 'Kondisi barang wajib dipilih.')
+  if (!form.category_id) return (errorMsg.value = 'Kategori wajib dipilih.')
+  if (!form.description.trim()) return (errorMsg.value = 'Deskripsi wajib diisi.')
+  const hasPhoto = mediaList.value.some(m => m.type === 'image')
+  if (!hasPhoto) return (errorMsg.value = 'Tambahkan minimal 1 foto produk.')
 
   isSubmitting.value = true
   try {
@@ -497,10 +504,12 @@ async function deleteProduct() {
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </NuxtLink>
-      <h1 class="vt-detail-title font-heading text-3xl font-bold" style="color: #1e3a8a;">Edit Produk</h1>
+      <h1 class="vt-detail-title font-heading text-3xl font-bold" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">Edit Produk</h1>
     </div>
 
-    <div class="vt-glass rounded-2xl p-6 sm:p-8" style="background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);">
+    <div class="vt-glass rounded-2xl p-6 sm:p-8" :style="isDark
+      ? 'background: rgba(15,23,42,0.80); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 24px rgba(0,0,0,0.3);'
+      : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);'">
 
       <!-- Sold out banner -->
       <div v-if="product?.status === 'sold'" class="mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm" :class="isDark ? 'border-red-500/40' : 'border-red-200'" :style="isDark ? 'background: rgba(220,38,38,0.15);' : 'background: linear-gradient(to right, #fef2f2, #fee2e2);'">
@@ -547,7 +556,7 @@ async function deleteProduct() {
 
         <!-- Stok -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">📦 Stok</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">📦 Stok <span class="text-red-500">*</span></label>
           <input
             v-model.number="form.stock"
             type="number"
@@ -564,7 +573,6 @@ async function deleteProduct() {
           <select
             v-model="form.condition"
             class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-            style="background: rgba(255,255,255,0.70); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
             :disabled="isSubmitting"
           >
             <option value="" disabled>Pilih kondisi barang</option>
@@ -574,21 +582,20 @@ async function deleteProduct() {
 
         <!-- Kategori -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">🏷️ Kategori</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">🏷️ Kategori <span class="text-red-500">*</span></label>
           <select
             v-model="form.category_id"
             class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-            style="background: rgba(255,255,255,0.70); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
             :disabled="isSubmitting"
           >
-            <option value="">Pilih kategori (opsional)</option>
+            <option value="">Pilih kategori</option>
             <option v-for="cat in (categories ?? [])" :key="cat.id" :value="cat.id">{{ kategoriLabel(cat.name) }}</option>
           </select>
         </div>
 
         <!-- Deskripsi -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1">Deskripsi</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Deskripsi <span class="text-red-500">*</span></label>
           <div class="flex items-center gap-1 mb-1">
             <button type="button" @click="applyFormat('**')" title="Bold" class="px-2 py-1 rounded border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 transition"><b>B</b></button>
             <button type="button" @click="applyFormat('*')" title="Italic" class="px-2 py-1 rounded border border-gray-300 text-xs text-gray-700 hover:bg-gray-100 transition"><i>I</i></button>
@@ -607,7 +614,7 @@ async function deleteProduct() {
         <!-- Upload Media -->
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1">
-            Foto &amp; Video
+            Foto &amp; Video <span class="text-red-500">*</span>
             <span class="text-gray-400 font-normal ml-1">
               ({{ photoCount }}/{{ PHOTO_MAX }} foto · {{ videoCount }}/{{ VIDEO_MAX }} video)
             </span>
@@ -628,12 +635,18 @@ async function deleteProduct() {
                 <img
                   v-if="media.type === 'image'"
                   :src="media.preview"
+                  width="200"
+                  height="200"
+                  loading="lazy"
                   class="w-full h-full object-cover"
                   alt=""
                 />
                 <img
                   v-else-if="media.thumbnail"
                   :src="media.thumbnail"
+                  width="200"
+                  height="200"
+                  loading="lazy"
                   class="w-full h-full object-cover"
                   alt=""
                 />
@@ -727,7 +740,7 @@ async function deleteProduct() {
           <NuxtLink
             :to="`/products/${param}`"
             class="vt-btn-outline px-6 py-2.5 rounded-full border-2 font-semibold hover:bg-blue-50 transition text-sm"
-            style="border-color: #1e3a8a; color: #1e3a8a;"
+            :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc;' : 'border-color: #1e3a8a; color: #1e3a8a;'"
           >
             Batal
           </NuxtLink>

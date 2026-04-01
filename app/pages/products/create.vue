@@ -3,6 +3,7 @@ import { Cropper } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
 
 definePageMeta({ middleware: 'auth' })
+useSeoMeta({ title: 'Jual Barang — VivaThrift' })
 
 const { isDark } = useDarkMode()
 const supabase = useSupabaseClient()
@@ -325,6 +326,7 @@ async function submitProduct() {
   errorMsg.value = ''
   if (!form.title.trim()) return (errorMsg.value = 'Judul barang wajib diisi.')
   if (!form.price || Number(form.price) <= 0) return (errorMsg.value = 'Harga harus lebih dari 0.')
+  if (!form.stock || Number(form.stock) < 1) return (errorMsg.value = 'Stok harus minimal 1.')
   if (!form.condition) return (errorMsg.value = 'Kondisi barang wajib dipilih.')
   if (!form.category_id) return (errorMsg.value = 'Kategori wajib dipilih.')
   if (!form.description.trim()) return (errorMsg.value = 'Deskripsi wajib diisi.')
@@ -407,16 +409,19 @@ async function submitProduct() {
 
 <template>
   <div class="w-full px-4 sm:px-10 py-12 max-w-2xl mx-auto">
-    <div class="flex items-center gap-3 mb-8">
+    <div class="vt-hero-enter vt-hero-enter-d1 flex items-center gap-3 mb-8">
       <NuxtLink to="/" class="vt-back-btn text-gray-400 hover:text-blue-700 transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </NuxtLink>
-      <h1 class="vt-detail-title font-heading text-3xl font-bold" style="color: #1e3a8a;">Jual Barang</h1>
+      <h1 class="vt-detail-title font-heading text-3xl font-bold" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">Jual Barang</h1>
+      <img src="/img/illustrations/shopping-app.svg" alt="" width="112" height="112" loading="lazy" class="hidden md:block w-28 h-auto opacity-70 ml-auto" aria-hidden="true" />
     </div>
 
-    <div class="vt-glass rounded-2xl p-8" style="background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);">
+    <div class="vt-hero-enter vt-hero-enter-d2 vt-glass rounded-2xl p-8" :style="isDark
+      ? 'background: rgba(15,23,42,0.80); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 24px rgba(0,0,0,0.3);'
+      : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);'">
     <form @submit.prevent="submitProduct" class="space-y-6">
 
       <!-- Judul Barang -->
@@ -456,7 +461,7 @@ async function submitProduct() {
 
       <!-- Stok -->
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">📦 Stok</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">📦 Stok <span class="text-red-500">*</span></label>
         <input
           v-model="form.stock"
           type="number"
@@ -474,7 +479,6 @@ async function submitProduct() {
         <select
           v-model="form.condition"
           class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-          style="background: rgba(255,255,255,0.70); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
           :disabled="isSubmitting"
         >
           <option value="" disabled>Pilih kondisi barang</option>
@@ -488,7 +492,6 @@ async function submitProduct() {
         <select
           v-model="form.category_id"
           class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-          style="background: rgba(255,255,255,0.70); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
           :disabled="isSubmitting"
         >
           <option value="">Pilih kategori</option>
@@ -640,7 +643,7 @@ async function submitProduct() {
         <NuxtLink
           to="/"
           class="vt-btn-outline px-6 py-2.5 rounded-full border-2 font-semibold hover:bg-blue-50 transition text-sm"
-          style="border-color: #1e3a8a; color: #1e3a8a;"
+          :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc;' : 'border-color: #1e3a8a; color: #1e3a8a;'"
         >
           Batal
         </NuxtLink>

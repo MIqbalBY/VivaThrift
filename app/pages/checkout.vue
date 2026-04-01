@@ -59,6 +59,12 @@ if (!checkoutData.value) await navigateTo('/')
 
 const offer = computed(() => checkoutData.value?.offer ?? null)
 
+useHead({ title: computed(() => {
+  const productTitle = offer.value?.product?.title
+  if (productTitle) return `Checkout ${productTitle} — VivaThrift`
+  return 'Checkout — VivaThrift'
+}) })
+
 // If an order already exists, jump straight to success view
 if (checkoutData.value?.alreadyOrdered) {
   orderDone.value = true
@@ -172,7 +178,7 @@ async function placeOrder() {
 <template>
   <div class="w-full max-w-lg mx-auto px-4 py-10">
 
-    <button @click="$router.back()" class="mb-6 inline-flex items-center gap-2 text-sm transition" :class="isDark ? 'text-gray-400 hover:text-sky-300' : 'text-gray-500 hover:text-blue-800'">
+    <button @click="$router.back()" class="vt-hero-enter vt-hero-enter-d1 mb-6 inline-flex items-center gap-2 text-sm transition" :class="isDark ? 'text-gray-400 hover:text-sky-300' : 'text-gray-500 hover:text-blue-800'">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
       </svg>
@@ -180,8 +186,8 @@ async function placeOrder() {
     </button>
 
     <!-- ── Success State ── -->
-    <div v-if="orderDone" class="text-center py-16">
-      <p class="text-6xl mb-4">🎉</p>
+    <div v-if="orderDone" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">
+      <img src="/img/illustrations/order-confirmed.svg" alt="Pesanan berhasil" width="192" height="192" loading="lazy" class="w-48 h-auto mx-auto mb-4 opacity-90" />
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Pesanan Berhasil!</h2>
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Silakan hubungi penjual untuk mengatur pengiriman / COD.</p>
       <NuxtLink
@@ -196,8 +202,8 @@ async function placeOrder() {
     </div>
 
     <!-- ── Stock Depleted State ── -->
-    <div v-else-if="stockDepleted" class="text-center py-16">
-      <p class="text-6xl mb-4">😔</p>
+    <div v-else-if="stockDepleted" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">
+      <img src="/img/illustrations/void.svg" alt="Stok habis" width="176" height="176" loading="lazy" class="w-44 h-auto mx-auto mb-4 opacity-80" />
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Stok Habis</h2>
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Maaf, stok produk ini sudah habis karena tawaran lain telah dikonfirmasi lebih dulu.</p>
       <NuxtLink
@@ -211,7 +217,7 @@ async function placeOrder() {
 
     <!-- ── Checkout Form ── -->
     <template v-else>
-      <h1 class="font-heading text-2xl font-bold mb-6" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">⚡ Checkout Tawaran</h1>
+      <h1 class="vt-hero-enter vt-hero-enter-d2 font-heading text-2xl font-bold mb-6" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">⚡ Checkout Tawaran</h1>
 
       <div
         class="vt-glass rounded-2xl p-5 mb-5"
@@ -222,7 +228,7 @@ async function placeOrder() {
         <!-- Product row -->
         <div class="flex gap-4 items-center mb-5">
           <div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-            <img v-if="productCover" :src="productCover" class="w-full h-full object-cover" :alt="offer?.product?.title" />
+            <img v-if="productCover" :src="productCover" width="80" height="80" loading="lazy" class="w-full h-full object-cover" :alt="offer?.product?.title" />
             <div v-else class="w-full h-full flex items-center justify-center text-2xl">📷</div>
           </div>
           <div class="flex-1 min-w-0">

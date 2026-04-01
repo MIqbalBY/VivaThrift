@@ -1,5 +1,6 @@
 <script setup>
 definePageMeta({ layout: false })
+useSeoMeta({ title: 'Atur Ulang Password — VivaThrift' })
 
 const supabase = useSupabaseClient()
 
@@ -15,6 +16,9 @@ const isChecking = ref(true)
 
 // Verify that user has a valid recovery session
 onMounted(async () => {
+  // Clean up recovery flag
+  localStorage.removeItem('__vt_pending_recovery')
+
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
@@ -73,7 +77,7 @@ async function handleResetPassword() {
     class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden font-sans"
   >
     <!-- Background dengan overlay opacity -->
-    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/img/Background.png');"></div>
+    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/img/banner-2.png');"></div>
     <div class="absolute inset-0 bg-black/40"></div>
 
     <!-- Tombol back di atas card -->
@@ -95,10 +99,10 @@ async function handleResetPassword() {
       <!-- Brand header -->
       <div class="flex flex-col items-center gap-2 mb-6">
         <div class="flex items-center gap-3">
-          <img src="/img/Logo VivaThrift.png" alt="VivaThrift" class="h-10" />
+          <img src="/img/logo-vivathrift.png" alt="VivaThrift" width="40" height="40" class="h-10" />
           <div class="w-px h-8 bg-white/25"></div>
           <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" title="Institut Teknologi Sepuluh Nopember">
-            <img src="/img/Logo ITS.png" alt="ITS" class="h-9 opacity-90" />
+            <img src="/img/logo-its.png" alt="ITS" width="36" height="36" class="h-9 opacity-90" />
           </a>
         </div>
         <span
@@ -106,6 +110,9 @@ async function handleResetPassword() {
           style="background: linear-gradient(to right, #38bdf8, #7dd3fc, #bae6fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
         >VivaThrift</span>
       </div>
+
+      <!-- Illustration -->
+      <img src="/img/illustrations/secure-login.svg" alt="" width="112" height="112" loading="lazy" class="w-28 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
 
       <!-- Loading State -->
       <div v-if="isChecking" class="flex flex-col items-center gap-3 py-8">
@@ -236,10 +243,10 @@ async function handleResetPassword() {
             <div class="flex gap-1">
               <div class="h-1 flex-1 rounded-full transition-colors" :class="password.length >= 6 ? 'bg-green-400' : 'bg-white/20'"></div>
               <div class="h-1 flex-1 rounded-full transition-colors" :class="password.length >= 8 ? 'bg-green-400' : 'bg-white/20'"></div>
-              <div class="h-1 flex-1 rounded-full transition-colors" :class="/(?=.*[A-Z])(?=.*[0-9])/.test(password) ? 'bg-green-400' : 'bg-white/20'"></div>
+              <div class="h-1 flex-1 rounded-full transition-colors" :class="password.length >= 8 && /(?=.*[A-Z])(?=.*[0-9])/.test(password) ? 'bg-green-400' : 'bg-white/20'"></div>
             </div>
             <p class="text-xs" :class="password.length >= 6 ? 'text-green-400/80' : 'text-white/40'">
-              {{ password.length < 6 ? `${password.length}/6 karakter minimum` : password.length < 8 ? 'Cukup kuat' : /(?=.*[A-Z])(?=.*[0-9])/.test(password) ? 'Sangat kuat 💪' : 'Kuat' }}
+              {{ password.length < 6 ? `${password.length}/6 karakter minimum` : password.length < 8 ? 'Cukup kuat' : password.length >= 8 && /(?=.*[A-Z])(?=.*[0-9])/.test(password) ? 'Sangat kuat 💪' : 'Kuat' }}
             </p>
           </div>
 

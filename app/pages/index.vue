@@ -1,4 +1,8 @@
 <script setup>
+useSeoMeta({ title: 'VivaThrift - Situs Jual Beli Barang Preloved di ITS!' })
+
+const { reveal } = useScrollReveal()
+
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 const route = useRoute()
@@ -37,7 +41,7 @@ const hasActiveFilter = computed(() =>
 const { data: categoriesData } = await useAsyncData('categories-list', async () => {
   const { data } = await supabase.from('categories').select('name').order('name')
   return data?.map(c => c.name) ?? []
-})
+}, { lazy: true })
 const CATEGORIES = computed(() => {
   const list = categoriesData.value ?? []
   const sorted = list.filter(c => c !== 'Lainnya')
@@ -173,7 +177,7 @@ const { data: products } = await useAsyncData(
       return { ...p, _sellerRating: avgRating, _ratingCount: arr.length }
     })
   },
-  { watch: [activeKategori, activeSearch, activeKondisi, activeSort, activeNego, activeCod] }
+  { lazy: true, watch: [activeKategori, activeSearch, activeKondisi, activeSort, activeNego, activeCod] }
 )
 
 // -- Show more -----------------------------------------------------
@@ -211,9 +215,16 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
   <div>
     <!-- Hero Section -->
     <section class="vt-hero-bg relative w-full bg-blue-50 overflow-hidden min-h-[500px] flex items-center">
-      <img
-        src="/img/Banner.png"
+      <NuxtImg
+        src="/img/banner-1.png"
         alt="Banner VivaThrift"
+        width="1920"
+        height="600"
+        preload
+        loading="eager"
+        sizes="100vw"
+        format="webp"
+        quality="75"
         class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
       />
 
@@ -225,13 +236,13 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         <div class="flex-1 max-w-xl">
           <!-- ITS badge -->
           <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 mb-4 w-fit">
-            <img src="/img/Logo ITS.png" alt="ITS" class="h-7 opacity-75" />
+            <img src="/img/logo-its.png" alt="ITS" width="28" height="28" class="h-7 opacity-75" />
             <span class="vt-its-badge-text text-xs font-semibold tracking-wider uppercase">Institut Teknologi Sepuluh Nopember</span>
           </a>
-          <h1 class="vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" style="color: #1e3a8a;">
+          <h1 class="vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">
             Temukan <span class="vt-highlight">Barang Preloved</span> Berkualitas di Sekitar ITS!
           </h1>
-          <p class="vt-hero-subtext text-lg mb-8 max-w-lg" style="color: rgba(30,58,138,0.75);">
+          <p class="vt-hero-subtext text-lg mb-8 max-w-lg" :style="isDark ? 'color: rgba(148,163,184,0.9)' : 'color: rgba(30,58,138,0.75)'">
             Marketplace tepercaya khusus mahasiswa ITS. Jual beli buku mata kuliah, gadget, pakaian, hingga perlengkapan kos dengan mudah dan aman!
           </p>
           <div class="flex gap-3 relative">
@@ -245,7 +256,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
             <button
               @click="handleJual"
               class="vt-btn-outline px-8 py-3 rounded-full border-2 font-bold bg-white/90 backdrop-blur-sm hover:bg-blue-50 transition hover:-translate-y-0.5"
-            style="border-color: #1e3a8a; color: #1e3a8a;"
+            :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc; background: rgba(15,23,42,0.60);' : 'border-color: #1e3a8a; color: #1e3a8a;'"
             >
               Jual Barang
             </button>
@@ -277,7 +288,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
     <section id="katalog" class="w-full px-4 sm:px-6 md:px-10 py-12">
 
       <!-- Heading -->
-      <div id="heading-katalog" class="flex items-center gap-3 mb-5 flex-wrap" style="scroll-margin-top: 80px;">
+      <div id="heading-katalog" :ref="reveal" class="flex items-center gap-3 mb-5 flex-wrap" style="scroll-margin-top: 80px;">
         <h2 class="vt-katalog-heading text-2xl font-bold text-[#1e3a8a] dark:text-white">
           <template v-if="activeSearch">
             Hasil pencarian &ldquo;{{ activeSearch }}&rdquo;<template v-if="activeKategori.length"> &mdash; {{ activeKategori.join(', ') }}</template>
@@ -301,7 +312,6 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
             :value="activeSort"
             @change="setSort($event.target.value)"
             class="vt-sort-select text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-900/20 cursor-pointer"
-            style="background: rgba(255,255,255,0.70); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"
           >
             <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
@@ -309,7 +319,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
       </div>
 
       <!-- Filter Panel -->
-      <div class="vt-filter-panel rounded-xl p-4 mb-8 space-y-3" :style="isDark ? 'background: rgba(15,23,42,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 4px 16px rgba(0,0,0,0.3);' : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 16px rgba(30,58,138,0.08);'">
+      <div :ref="reveal" data-delay="100" class="vt-filter-panel rounded-xl p-4 mb-8 space-y-3" :style="isDark ? 'background: rgba(15,23,42,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 4px 16px rgba(0,0,0,0.3);' : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 16px rgba(30,58,138,0.08);'">
 
         <!-- Kategori -->
         <div class="space-y-1.5">
@@ -419,7 +429,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
       </div>
 
       <!-- Product Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
+      <div :ref="reveal" class="vt-stagger-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
         <ProductCard
           v-for="product in visibleProducts"
           :key="product.id"
@@ -429,9 +439,9 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         />
 
         <div v-if="!products || products.length === 0" class="col-span-full flex flex-col items-center justify-center py-20 gap-3">
-          <span class="text-5xl">🍃</span>
-          <p class="text-gray-500 font-semibold text-lg">Belum ada produk tersedia</p>
-          <p class="text-gray-400 text-sm">Jadilah yang pertama menjual barang di sini!</p>
+          <NuxtImg src="/img/illustrations/empty-cart.svg" alt="Belum ada produk" width="208" height="208" loading="lazy" class="w-52 h-auto opacity-80" />
+          <p class="text-gray-500 dark:text-gray-400 font-semibold text-lg mt-2">Belum ada produk tersedia</p>
+          <p class="text-gray-400 dark:text-gray-500 text-sm">Jadilah yang pertama menjual barang di sini!</p>
         </div>
       </div>
 
@@ -440,7 +450,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         <button
           @click="showAll = true"
           class="vt-btn-show-more px-8 py-2.5 rounded-full border-2 font-semibold text-sm transition hover:bg-blue-50"
-          style="border-color: #1e3a8a; color: #1e3a8a;"
+          :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc;' : 'border-color: #1e3a8a; color: #1e3a8a;'"
         >
           Tampilkan lebih banyak ({{ (products?.length ?? 0) - maxVisible }} produk lagi)
         </button>

@@ -1,12 +1,34 @@
 <script setup>
 const { init } = useDarkMode()
 const { setupGlobalPresence, cleanup: cleanupPresence } = usePresence()
+const { settings: userSettings } = useUserSettings()
 const supabase = useSupabaseClient()
+let presenceUid = null
+
+// Lazy-load Footer since it's below the fold
+const LazyFooter = defineAsyncComponent(() => import('~/components/Footer.vue'))
 
 onMounted(async () => {
   init()
   const { data: { session } } = await supabase.auth.getSession()
-  if (session?.user?.id) setupGlobalPresence(session.user.id)
+  if (session?.user?.id && userSettings.value.show_online) {
+    presenceUid = session.user.id
+    // Defer presence setup to avoid blocking first paint
+    setTimeout(() => setupGlobalPresence(session.user.id), 200)
+  }
+})
+
+watch(() => userSettings.value.show_online, async (val) => {
+  if (!val) {
+    cleanupPresence()
+    presenceUid = null
+  } else if (!presenceUid) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user?.id) {
+      presenceUid = session.user.id
+      setupGlobalPresence(session.user.id)
+    }
+  }
 })
 
 onBeforeUnmount(() => cleanupPresence())
@@ -18,7 +40,7 @@ onBeforeUnmount(() => cleanupPresence())
     <main class="flex-1">
       <slot />
     </main>
-    <Footer />
+    <LazyFooter />
   </div>
 </template>
 

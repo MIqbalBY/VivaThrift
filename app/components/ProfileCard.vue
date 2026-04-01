@@ -40,7 +40,7 @@ async function loadProfile() {
 
   const [{ data: u }, { data: reviews }, { count: fc }, { count: fgc }] = await Promise.all([
     supabase.from('users')
-      .select('id, name, nrp, faculty, department, avatar_url, gender')
+      .select('id, name, nrp, faculty, department, avatar_url, gender, username')
       .eq('id', props.userId)
       .single(),
     supabase.from('reviews')
@@ -149,7 +149,7 @@ onUnmounted(() => {
               ? 'border-color: rgba(14,165,233,0.4); background: linear-gradient(135deg, #0ea5e9, #38bdf8);'
               : 'border-color: rgba(30,58,138,0.15); background: linear-gradient(135deg, #1e3a8a, #2563eb);'"
           >
-            <img v-if="userProfile.avatar_url" :src="userProfile.avatar_url" class="w-full h-full object-cover" />
+            <img v-if="userProfile.avatar_url" :src="userProfile.avatar_url" width="96" height="96" loading="lazy" class="w-full h-full object-cover" />
             <span v-else class="text-white text-2xl font-bold select-none">{{ userInitials }}</span>
           </div>
 
@@ -159,6 +159,9 @@ onUnmounted(() => {
               {{ userProfile.name }}
               <span v-if="userProfile.gender === 'Laki-laki'" title="Laki-laki" class="text-base">♂️</span>
               <span v-else-if="userProfile.gender === 'Perempuan'" title="Perempuan" class="text-base">♀️</span>
+            </p>
+            <p v-if="userProfile.username" class="text-xs mt-0.5" :class="isDark ? 'text-sky-400' : 'text-blue-600'">
+              @{{ userProfile.username }}
             </p>
             <p class="text-xs mt-0.5" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
               {{ userProfile.nrp ?? '-' }}
@@ -218,7 +221,7 @@ onUnmounted(() => {
 
             <!-- Lihat Profile -->
             <NuxtLink
-              :to="`/profile/${userProfile.id}`"
+              :to="userProfile.username ? `/profile/@${userProfile.username}` : `/profile/${userProfile.id}`"
               @click="emit('close')"
               class="w-full py-2.5 rounded-xl text-sm font-bold text-center transition"
               :style="isDark

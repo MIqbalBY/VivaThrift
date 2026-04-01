@@ -4,6 +4,8 @@ useSeoMeta({
   description: 'Kisah, visi, dan tim di balik VivaThrift — marketplace preloved eksklusif mahasiswa ITS.',
 })
 
+const { reveal } = useScrollReveal()
+
 const stats = [
   { value: '100%', label: 'Eksklusif mahasiswa ITS', icon: '🔒' },
   { value: '2', label: 'Fakultas bergabung', icon: '🏛️' },
@@ -76,7 +78,7 @@ const values = [
       <section class="relative flex flex-col justify-center min-h-[520px] pt-28 overflow-hidden">
         <!-- ITS Logo badge -->
         <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="absolute top-8 right-10 z-10 hidden md:flex items-center gap-3">
-          <img src="/img/Logo ITS.png" alt="ITS" class="h-14" />
+          <img src="/img/logo-its.png" alt="ITS" width="56" height="56" class="h-14" />
           <span class="text-white/80 text-xs font-semibold tracking-widest uppercase leading-tight">Institut Teknologi<br>Sepuluh Nopember</span>
         </a>
         <div class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 w-full flex flex-col gap-7 py-16">
@@ -88,21 +90,21 @@ const values = [
           </nav>
 
           <!-- Eyebrow -->
-          <span class="vt-hero-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase w-fit">
+          <span class="vt-hero-enter vt-hero-enter-d1 vt-hero-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase w-fit">
             ✨ Tentang VivaThrift
           </span>
 
           <!-- H1 -->
-          <h1 class="font-heading text-5xl sm:text-6xl md:text-7xl font-bold leading-[1.05] tracking-tight text-white max-w-3xl">
+          <h1 class="vt-hero-enter vt-hero-enter-d2 font-heading text-5xl sm:text-6xl md:text-7xl font-bold leading-[1.05] tracking-tight text-white max-w-3xl">
             Dari <span class="vt-highlight">Mahasiswa ITS</span>,<br>Untuk <span class="vt-highlight">Mahasiswa ITS</span>.
           </h1>
 
           <!-- Subtitle -->
-          <p class="text-lg leading-relaxed text-white/70 max-w-xl">
+          <p class="vt-hero-enter vt-hero-enter-d3 text-lg leading-relaxed text-white/70 max-w-xl">
             Titik temu barang preloved dan kebutuhan ngampus paling aman se-Surabaya Timur.
           </p>
           <!-- Tag chips -->
-          <div class="flex flex-wrap gap-2">
+          <div class="vt-hero-enter vt-hero-enter-d4 flex flex-wrap gap-2">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">🛍️ Preloved Berkualitas</span>
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">♻️ Ekonomi Sirkular</span>
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">🔐 Khusus Mahasiswa ITS</span>
@@ -112,7 +114,7 @@ const values = [
       </section>
 
       <!-- STATS BAND -->
-      <section class="relative">
+      <section class="relative" :ref="reveal">
         <div class="max-w-7xl mx-auto px-6 md:px-10">
           <div class="grid grid-cols-2 md:grid-cols-4">
             <div
@@ -135,7 +137,7 @@ const values = [
     <!-- ══════════════════════════════════════
          3. CERITA KAMI
          ══════════════════════════════════════ -->
-    <section class="vt-story w-full py-24 px-6 md:px-10">
+    <section class="vt-story w-full py-24 px-6 md:px-10" :ref="reveal">
       <div class="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-start">
         <!-- Left: label + H2 (sticky on desktop) -->
         <div class="flex flex-col gap-5 md:sticky md:top-28">
@@ -143,6 +145,7 @@ const values = [
           <h2 class="font-heading text-4xl md:text-5xl font-bold leading-tight vt-story-heading">
             Mengapa<br><span class="vt-brand-text font-himpun">VivaThrift</span><br>Ada?
           </h2>
+          <img src="/img/illustrations/team-spirit.svg" alt="" width="192" height="192" loading="lazy" class="w-48 h-auto opacity-70 mt-4 hidden md:block" aria-hidden="true" />
         </div>
 
         <!-- Right: paragraphs -->
@@ -169,7 +172,7 @@ const values = [
     <!-- ══════════════════════════════════════
          4. KENAPA VIVATHRIFT
          ══════════════════════════════════════ -->
-    <section class="vt-values w-full py-24 px-6 md:px-10">
+    <section class="vt-values w-full py-24 px-6 md:px-10" :ref="reveal">
       <div class="max-w-7xl mx-auto">
 
         <!-- Header -->
@@ -237,7 +240,7 @@ const values = [
             <!-- Portrait avatar area — 1:1 square -->
             <div class="relative overflow-hidden aspect-square"
                  :style="`background: linear-gradient(160deg, ${member.color} 0%, #060d1a 100%);`">
-              <img v-if="member.photo" :src="member.photo" :alt="member.name" class="absolute inset-0 w-full h-full object-cover object-top" />
+              <img v-if="member.photo" :src="member.photo" :alt="member.name" width="300" height="300" loading="lazy" class="absolute inset-0 w-full h-full object-cover object-top" />
               <span v-else class="absolute inset-0 flex items-center justify-center font-heading text-8xl font-bold select-none"
                     style="color: rgba(255,255,255,0.20);">{{ member.initials }}</span>
               <div class="absolute bottom-0 left-0 w-full h-0.5" :style="`background: ${member.color}; opacity: 0.8;`"></div>
@@ -273,9 +276,6 @@ const values = [
          6. CTA BAND
          ══════════════════════════════════════ -->
     <section class="vt-cta relative overflow-hidden py-28 px-6 md:px-16">
-      <!-- Sky glow -->
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[280px] pointer-events-none blur-3xl rounded-full"
-           style="background: #38bdf8; opacity: 0.06;"></div>
       <!-- Floating deco -->
       <span class="absolute top-10 left-10 text-5xl opacity-10 rotate-12 hidden md:block select-none pointer-events-none" aria-hidden="true">📦</span>
       <span class="absolute top-14 right-16 text-4xl opacity-10 -rotate-6 hidden md:block select-none pointer-events-none" aria-hidden="true">🛍️</span>
@@ -582,4 +582,5 @@ const values = [
   background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);
   box-shadow: 0 4px 20px rgba(56, 189, 248, 0.30);
 }
+
 </style>

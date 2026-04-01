@@ -6,6 +6,7 @@ const supabase = useSupabaseClient()
 const currentUser = useSupabaseUser()
 const { isDark } = useDarkMode()
 const { isOnline } = usePresence()
+const { settings: userSettings } = useUserSettings()
 
 const chatId = route.params.id
 
@@ -26,6 +27,12 @@ const { data: chat } = await useAsyncData(`chat-${chatId}`, async () => {
     .single()
   return data
 })
+
+useHead({ title: computed(() => {
+  const productTitle = chat.value?.product?.title
+  if (productTitle) return `Chat ${productTitle} — VivaThrift`
+  return 'Chat — VivaThrift'
+}) })
 
 // Resolve user ID reliably (useSupabaseUser() can be null before auth state settles)
 const { data: { session } } = await supabase.auth.getSession()
@@ -281,8 +288,10 @@ function markMessagesAsRead(latestServerTs = null) {
       .update({ is_read: true })
       .in('id', unreadIds)
       .then(() => {
-        // Broadcast so the sender sees blue checkmarks instantly
-        channel?.send({ type: 'broadcast', event: 'messages-read', payload: { msgIds: unreadIds, readBy: myId.value } })
+        // Broadcast so the sender sees blue checkmarks instantly (only if read_receipts enabled)
+        if (userSettings.value.read_receipts) {
+          channel?.send({ type: 'broadcast', event: 'messages-read', payload: { msgIds: unreadIds, readBy: myId.value } })
+        }
         // Signal Navbar to re-fetch AFTER DB has committed
         navRefreshTrigger.value++
       })
@@ -854,7 +863,7 @@ function avatarInitial(name) {
 
       <!-- Product thumbnail -->
       <NuxtLink :to="productSlug ? `/products/${productSlug}` : '#'" class="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 dark:bg-white/10 shrink-0">
-        <img v-if="productCover" :src="productCover" :alt="chat?.product?.title" class="w-full h-full object-cover"/>
+        <img v-if="productCover" :src="productCover" :alt="chat?.product?.title" width="48" height="48" loading="lazy" class="w-full h-full object-cover"/>
         <div v-else class="w-full h-full flex items-center justify-center text-lg">📷</div>
       </NuxtLink>
 
@@ -872,7 +881,7 @@ function avatarInitial(name) {
             @click="profileCardUserId = otherParty.id"
             class="shrink-0 w-7 h-7 rounded-full overflow-hidden bg-gray-200 dark:bg-white/10 hover:ring-2 ring-sky-400 transition"
           >
-            <img v-if="otherParty.avatar_url" :src="otherParty.avatar_url" :alt="otherParty.name" class="w-full h-full object-cover" />
+            <img v-if="otherParty.avatar_url" :src="otherParty.avatar_url" :alt="otherParty.name" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
             <span v-else class="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-300">{{ avatarInitial(otherParty.name) }}</span>
           </button>
           <div class="min-w-0">
@@ -1163,7 +1172,7 @@ function avatarInitial(name) {
         <p class="text-[10px] text-gray-400 mt-0.5 px-1 flex items-center gap-1" :class="msg.sender_id === myId ? 'justify-end' : ''">
           <span>{{ formatTime(msg.created_at) }}</span>
           <!-- Check marks (only on own messages) -->
-          <template v-if="msg.sender_id === myId">
+          <template v-if="msg.sender_id === myId && userSettings.read_receipts">
             <!-- Double blue check: read -->
             <svg v-if="msg.is_read" class="w-4 h-4 text-sky-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M1.5 12.5l5 5L17 7" />
@@ -1176,6 +1185,12 @@ function avatarInitial(name) {
             </svg>
             <!-- Single gray check: sent (other party offline and never seen since) -->
             <svg v-else class="w-4 h-4 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 12.5l5 5L20 7" />
+            </svg>
+          </template>
+          <!-- Read receipts disabled: always show single gray check -->
+          <template v-else-if="msg.sender_id === myId">
+            <svg class="w-4 h-4 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 12.5l5 5L20 7" />
             </svg>
           </template>

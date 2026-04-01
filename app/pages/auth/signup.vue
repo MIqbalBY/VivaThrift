@@ -1,9 +1,13 @@
 <script setup>
 definePageMeta({ layout: false })
+useSeoMeta({ title: 'Daftar — VivaThrift' })
 
 const supabase = useSupabaseClient()
+const { isDark, init: initDark, toggle: toggleDark } = useDarkMode()
+onMounted(() => initDark())
 
 const name = ref('')
+const username = ref('')
 const nrp = ref('')
 const faculty = ref('')
 const department = ref('')
@@ -15,6 +19,7 @@ const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const isLoading = ref(false)
 const errorMsg = ref('')
+const step = ref(1)
 
 const FAKULTAS_DEPARTEMEN = {
   'Fakultas Desain Kreatif dan Bisnis Digital (FDKBD)': [
@@ -85,10 +90,55 @@ const departemenOptions = computed(() => {
 
 watch(faculty, () => { department.value = '' })
 
+const usernameError = ref('')
+const usernameChecking = ref(false)
+let usernameTimer = null
+const usernameRegex = /^[a-zA-Z0-9._]{3,30}$/
+
+watch(username, (val) => {
+  usernameError.value = ''
+  if (usernameTimer) clearTimeout(usernameTimer)
+  if (!val) return
+  if (!usernameRegex.test(val)) {
+    usernameError.value = 'Hanya huruf, angka, titik (.) dan underscore (_). 3–30 karakter.'
+    return
+  }
+  usernameChecking.value = true
+  usernameTimer = setTimeout(async () => {
+    const { data } = await supabase.from('users').select('id').eq('username', val.toLowerCase()).maybeSingle()
+    usernameChecking.value = false
+    if (data) usernameError.value = 'Username sudah digunakan.'
+  }, 500)
+})
+
+function validateStep1() {
+  errorMsg.value = ''
+  if (!name.value.trim() || !username.value.trim() || !nrp.value.trim() || !faculty.value || !department.value || !gender.value) {
+    errorMsg.value = 'Semua field wajib diisi.'
+    return false
+  }
+  if (!usernameRegex.test(username.value)) {
+    errorMsg.value = 'Username tidak valid.'
+    return false
+  }
+  if (usernameError.value) {
+    errorMsg.value = usernameError.value
+    return false
+  }
+  return true
+}
+
+function goStep2() {
+  if (validateStep1()) {
+    errorMsg.value = ''
+    step.value = 2
+  }
+}
+
 async function handleSignup() {
   errorMsg.value = ''
 
-  if (!name.value.trim() || !nrp.value.trim() || !faculty.value || !department.value || !gender.value || !email.value.trim() || !password.value || !confirmPassword.value) {
+  if (!email.value.trim() || !password.value || !confirmPassword.value) {
     errorMsg.value = 'Semua field wajib diisi.'
     return
   }
@@ -118,6 +168,7 @@ async function handleSignup() {
         id: data.user.id,
         email: email.value.trim(),
         name: name.value.trim(),
+        username: username.value.trim().toLowerCase(),
         nrp: nrp.value.trim(),
         faculty: faculty.value,
         department: department.value,
@@ -147,15 +198,30 @@ async function handleSignup() {
   <div
     class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden font-sans"
   >
-    <!-- Background -->
-    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/img/Background.png');"></div>
-    <div class="absolute inset-0 bg-black/40"></div>
+    <!-- Background banner + overlay -->
+    <img src="/img/banner-2.png" alt="" width="1920" height="600" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
+    <div class="absolute inset-0 pointer-events-none" :style="isDark ? 'background: rgba(10,22,40,0.75)' : 'background: rgba(15,23,42,0.55)'"></div>
+
+    <!-- Dark mode toggle -->
+    <button
+      @click="toggleDark"
+      :aria-label="isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'"
+      class="absolute top-5 right-5 z-20 w-9 h-9 rounded-full flex items-center justify-center transition backdrop-blur-sm"
+      :style="isDark ? 'background: rgba(255,255,255,0.12)' : 'background: rgba(255,255,255,0.20)'"
+    >
+      <svg v-if="isDark" class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-9H20M4 12H3m15.07-6.07-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z"/>
+      </svg>
+      <svg v-else class="w-4 h-4 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+      </svg>
+    </button>
 
     <!-- Tombol back -->
-    <div class="relative z-10 w-full max-w-sm mx-4 mb-3">
+    <div class="vt-hero-enter vt-hero-enter-d1 relative z-10 w-full max-w-sm mx-4 mb-3">
       <NuxtLink
         to="/auth/signin"
-        class="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors group"
+        class="inline-flex items-center gap-1.5 text-sm text-white/90 hover:text-white transition-colors group"
       >
         <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
@@ -165,27 +231,55 @@ async function handleSignup() {
     </div>
 
     <!-- Card Signup -->
-    <div class="relative z-10 w-full max-w-sm mx-4 rounded-2xl px-10 py-10" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 8px 32px rgba(0,0,0,0.25);">
+    <div class="vt-hero-enter vt-hero-enter-d2 relative z-10 w-full max-w-sm mx-4 rounded-2xl px-10 py-10" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 8px 32px rgba(0,0,0,0.25);">
 
       <!-- Brand header -->
       <div class="flex flex-col items-center gap-2 mb-6">
         <div class="flex items-center gap-3">
-          <img src="/img/Logo VivaThrift.png" alt="VivaThrift" class="h-10" />
+          <img src="/img/logo-vivathrift.png" alt="VivaThrift" width="40" height="40" class="h-10" />
           <div class="w-px h-8 bg-white/25"></div>
           <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" title="Institut Teknologi Sepuluh Nopember">
-            <img src="/img/Logo ITS.png" alt="ITS" class="h-9 opacity-90" />
+            <img src="/img/logo-its.png" alt="ITS" width="36" height="36" class="h-9 opacity-90" />
           </a>
         </div>
         <span
           class="font-himpun text-[2.1rem] leading-none"
-          style="background: linear-gradient(to right, #38bdf8, #7dd3fc, #bae6fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
+          :style="isDark
+            ? 'background: linear-gradient(to right, #38bdf8, #7dd3fc, #bae6fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'
+            : 'background: linear-gradient(to right, #1e3a8a, #2563eb, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;'"
         >VivaThrift</span>
       </div>
 
-      <h1 class="font-heading text-[1.85rem] font-bold text-white mb-6 leading-tight">Daftar</h1>
+      <!-- Illustration -->
+      <img src="/img/illustrations/sign-up.svg" alt="" width="128" height="128" loading="lazy" class="w-32 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
+
+      <h1 class="font-heading text-[1.85rem] font-bold text-white mb-1 leading-tight">Daftar</h1>
+      <!-- Step indicator -->
+      <div class="flex items-center gap-2 mb-6">
+        <div class="flex items-center gap-1.5">
+          <span
+            class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
+            :class="step === 1 ? (isDark ? 'text-white' : 'bg-white text-blue-900') : 'bg-white/30 text-white'"
+            :style="step === 1 && isDark ? 'background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);' : ''"
+          >1</span>
+          <span class="text-xs text-white/70">Data Diri</span>
+        </div>
+        <div class="flex-1 h-px" :class="step >= 2 ? 'bg-white/70' : 'bg-white/20'"></div>
+        <div class="flex items-center gap-1.5">
+          <span
+            class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
+            :class="step === 2 ? (isDark ? 'text-white' : 'bg-white text-blue-900') : 'bg-white/30 text-white'"
+            :style="step === 2 && isDark ? 'background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);' : ''"
+          >2</span>
+          <span class="text-xs text-white/70">Akun</span>
+        </div>
+      </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSignup" class="space-y-5">
+      <form @submit.prevent="step === 1 ? goStep2() : handleSignup()" class="space-y-5">
+
+        <!-- ══ STEP 1: Data Diri ══ -->
+        <template v-if="step === 1">
 
         <!-- Nama Lengkap -->
         <div class="border-b border-white/30 focus-within:border-white/70 transition-colors pb-1">
@@ -197,6 +291,25 @@ async function handleSignup() {
             class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
             :disabled="isLoading"
           />
+        </div>
+
+        <!-- NRP -->
+        <div class="border-b border-white/30 focus-within:border-white/70 transition-colors pb-1">
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm select-none">@</span>
+            <input
+              v-model="username"
+              type="text"
+              placeholder="Username (misal: john.doe)"
+              autocomplete="off"
+              class="w-full pr-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+              style="padding-left: 1.75rem"
+              :disabled="isLoading"
+              maxlength="30"
+            />
+          </div>
+          <div v-if="usernameChecking" class="text-xs text-white/40 mt-0.5 px-3">Memeriksa...</div>
+          <div v-else-if="usernameError" class="text-xs text-red-300 mt-0.5 px-3">{{ usernameError }}</div>
         </div>
 
         <!-- NRP -->
@@ -269,6 +382,32 @@ async function handleSignup() {
           </div>
         </div>
 
+        <!-- Error (step 1) -->
+        <p v-if="errorMsg" class="text-red-300 text-sm">{{ errorMsg }}</p>
+
+        <!-- Lanjut button -->
+        <div class="flex justify-end pt-1">
+          <button
+            type="submit"
+            class="px-8 py-2.5 rounded-full text-white font-semibold text-sm transition hover:opacity-90 hover:shadow-lg flex items-center gap-2 shadow-md"
+            :style="isDark ? 'background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);'"
+          >
+            Lanjut
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+          </button>
+        </div>
+
+        </template>
+
+        <!-- ══ STEP 2: Akun ══ -->
+        <template v-if="step === 2">
+
+        <!-- Back to step 1 -->
+        <button type="button" @click="step = 1; errorMsg = ''" class="inline-flex items-center gap-1 text-sm text-white/60 hover:text-white transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+          Kembali
+        </button>
+
         <!-- Email -->
         <div class="border-b border-white/30 focus-within:border-white/70 transition-colors pb-1">
           <input
@@ -331,7 +470,8 @@ async function handleSignup() {
           <button
             type="submit"
             :disabled="isLoading"
-            class="px-8 py-2.5 rounded-full text-white font-semibold text-sm transition hover:opacity-90 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 shadow-md" style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);"
+            class="px-8 py-2.5 rounded-full text-white font-semibold text-sm transition hover:opacity-90 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 shadow-md"
+            :style="isDark ? 'background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);'"
           >
             <svg v-if="isLoading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -341,14 +481,22 @@ async function handleSignup() {
           </button>
         </div>
 
+        </template>
+
       </form>
     </div>
 
     <!-- Link ke Login -->
-    <p class="relative z-10 mt-4 text-sm text-white/60">
+    <p class="relative z-10 mt-4 text-sm text-white/80">
       Sudah punya akun?
       <NuxtLink to="/auth/signin" class="text-white font-semibold hover:underline">Masuk</NuxtLink>
     </p>
 
   </div>
 </template>
+
+<style scoped>
+input::placeholder {
+  color: rgba(255, 255, 255, 0.70);
+}
+</style>
