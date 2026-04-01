@@ -603,7 +603,7 @@ watch(user, (u) => {
 
     <!-- Page Header -->
     <div class="vt-hero-enter vt-hero-enter-d1 vt-edit-header relative w-full pt-24 pb-10 px-4 md:px-10 overflow-hidden">
-      <img src="/img/banner-3.png" alt="" width="1920" height="600" class="absolute inset-0 w-full h-full object-cover object-top pointer-events-none select-none" aria-hidden="true" />
+      <img src="/img/banner-3.png" alt="" width="1920" height="600" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" style="object-position: center 20%;" aria-hidden="true" />
       <div class="absolute inset-0 pointer-events-none vt-edit-header-overlay"></div>
       <div class="relative max-w-3xl mx-auto flex items-center gap-4">
         <div class="flex flex-col gap-2 flex-1">
