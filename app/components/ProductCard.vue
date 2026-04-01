@@ -84,7 +84,7 @@ const emit = defineEmits<{
           @click.prevent.stop="product.users?.id && emit('seller-click', product.users.id)"
         >
           <div class="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'">
-            <img v-if="product.users?.avatar_url" :src="product.users.avatar_url" class="w-full h-full object-cover" />
+            <img v-if="product.users?.avatar_url" :src="product.users.avatar_url" width="32" height="32" loading="lazy" class="w-full h-full object-cover" />
             <span v-else class="text-white text-xs font-bold select-none">
               {{ (product.users?.name ?? '').split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || '?' }}
             </span>

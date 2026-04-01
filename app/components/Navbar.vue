@@ -175,14 +175,19 @@ onMounted(async () => {
     if (!userAddress.value) fetchNavAddress(session.user.id)
     // Defer non-critical realtime subscriptions to avoid blocking first paint
     const uid = session.user.id
-    setTimeout(() => {
+    const deferWork = () => {
       fetchNavUnread(uid)
       setupNavChannel(uid)
       startNavPoll(uid)
       fetchNotifications(uid)
       setupNotifChannel(uid)
       fetchUserSettings(uid)
-    }, 100)
+    }
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(deferWork, { timeout: 400 })
+    } else {
+      setTimeout(deferWork, 400)
+    }
   } else {
     profilePending.value = false
   }
@@ -397,7 +402,7 @@ function getSuggestionImage(product) {
   return primary.media_url
 }
 
-const { data: dbCategories } = await useAsyncData('navbar-categories', async () => {
+const { data: dbCategories } = useAsyncData('navbar-categories', async () => {
   const { data } = await supabase.from('categories').select('name').order('name')
   const names = data?.map(c => c.name) ?? []
   const sorted = names.filter(n => n !== 'Lainnya')
@@ -523,7 +528,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2 select-none shrink-0" @click.prevent="goHome">
-          <img src="/img/logo-vivathrift.png" alt="VivaThrift Logo" width="36" height="36" class="h-9 -translate-y-0.5" fetchpriority="high" />
+          <NuxtImg src="/img/logo-vivathrift.png" alt="VivaThrift Logo" width="36" height="36" class="h-9 -translate-y-0.5" preload />
           <span
             class="vt-logo-text font-himpun text-3xl leading-none"
             style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"

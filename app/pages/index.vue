@@ -38,7 +38,7 @@ const hasActiveFilter = computed(() =>
 )
 
 // -- Dynamic categories from DB -----------------------------------
-const { data: categoriesData } = await useAsyncData('categories-list', async () => {
+const { data: categoriesData } = useAsyncData('categories-list', async () => {
   const { data } = await supabase.from('categories').select('name').order('name')
   return data?.map(c => c.name) ?? []
 }, { lazy: true })
@@ -124,7 +124,7 @@ const SORT_MAP = {
   harga_desc: { col: 'price',      asc: false },
 }
 
-const { data: products } = await useAsyncData(
+const { data: products } = useAsyncData(
   () => `products-${activeKategori.value.join(',')}-${activeSearch.value ?? ''}-${activeKondisi.value.join(',')}-${activeSort.value}-${activeNego.value ?? ''}-${activeCod.value ?? ''}`,
   async () => {
     const hasCatFilter = activeKategori.value.length > 0
