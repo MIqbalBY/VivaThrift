@@ -20,6 +20,9 @@ importers:
       '@vercel/speed-insights':
         specifier: ^2.0.0
         version: 2.0.0(nuxt@4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.31)(cac@6.7.14)(db0@0.3.4)(ioredis@5.10.1)(magicast@0.5.2)(rollup-plugin-visualizer@7.0.1(rollup@4.60.1))(rollup@4.60.1)(terser@5.46.1)(typescript@6.0.2)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(yaml@2.8.3))(yaml@2.8.3))(vue-router@5.0.4(@vue/compiler-sfc@3.5.31)(vue@3.5.31(typescript@6.0.2)))(vue@3.5.31(typescript@6.0.2))
+      lucide-vue-next:
+        specifier: ^1.0.0
+        version: 1.0.0(vue@3.5.31(typescript@6.0.2))
       nuxt:
         specifier: ^4.4.2
         version: 4.4.2(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@parcel/watcher@2.5.6)(@types/node@25.5.0)(@vue/compiler-sfc@3.5.31)(cac@6.7.14)(db0@0.3.4)(ioredis@5.10.1)(magicast@0.5.2)(rollup-plugin-visualizer@7.0.1(rollup@4.60.1))(rollup@4.60.1)(terser@5.46.1)(typescript@6.0.2)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(terser@5.46.1)(yaml@2.8.3))(yaml@2.8.3)
@@ -2549,6 +2552,11 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  lucide-vue-next@1.0.0:
+    resolution: {integrity: sha512-V6SPvx1IHTj/UY+FrIYWV5faISsPSb8BnWSFDxAtezWKvWc9ZZ40PDrdu1/Qb5vg4lHWr1hs1BAMGVGm6V1Xdg==}
+    peerDependencies:
+      vue: '>=3.0.1'
 
   magic-regexp@0.10.0:
     resolution: {integrity: sha512-Uly1Bu4lO1hwHUW0CQeSWuRtzCMNO00CmXtS8N6fyvB3B979GOEEeAkiTUDsmbYLAbvpUS/Kt5c4ibosAzVyVg==}
@@ -6386,6 +6394,10 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lucide-vue-next@1.0.0(vue@3.5.31(typescript@6.0.2)):
+    dependencies:
+      vue: 3.5.31(typescript@6.0.2)
 
   magic-regexp@0.10.0:
     dependencies:
