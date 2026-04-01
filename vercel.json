@@ -1,0 +1,11 @@
+{
+  "images": {
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "jwnisdkjgqnoergsoorf.supabase.co",
+        "pathname": "/storage/v1/object/public/**"
+      }
+    ]
+  }
+}

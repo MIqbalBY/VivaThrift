@@ -173,12 +173,16 @@ onMounted(async () => {
     if (!userProfile.value) await fetchProfile(session.user.id)
     else profilePending.value = false
     if (!userAddress.value) fetchNavAddress(session.user.id)
-    fetchNavUnread(session.user.id)
-    setupNavChannel(session.user.id)
-    startNavPoll(session.user.id)
-    fetchNotifications(session.user.id)
-    setupNotifChannel(session.user.id)
-    fetchUserSettings(session.user.id)
+    // Defer non-critical realtime subscriptions to avoid blocking first paint
+    const uid = session.user.id
+    setTimeout(() => {
+      fetchNavUnread(uid)
+      setupNavChannel(uid)
+      startNavPoll(uid)
+      fetchNotifications(uid)
+      setupNotifChannel(uid)
+      fetchUserSettings(uid)
+    }, 100)
   } else {
     profilePending.value = false
   }
@@ -399,7 +403,7 @@ const { data: dbCategories } = await useAsyncData('navbar-categories', async () 
   const sorted = names.filter(n => n !== 'Lainnya')
   if (names.includes('Lainnya')) sorted.push('Lainnya')
   return sorted
-})
+}, { lazy: true })
 
 const KATEGORI_META = {
   'Aksesori & Gadget':       '📱',
@@ -519,7 +523,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2 select-none shrink-0" @click.prevent="goHome">
-          <img src="/img/logo-vivathrift.png" alt="VivaThrift Logo" width="36" height="36" class="h-9 -translate-y-0.5" />
+          <img src="/img/logo-vivathrift.png" alt="VivaThrift Logo" width="36" height="36" class="h-9 -translate-y-0.5" fetchpriority="high" />
           <span
             class="vt-logo-text font-himpun text-3xl leading-none"
             style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"

@@ -478,12 +478,15 @@ onUnmounted(() => {
               video-class="w-full aspect-square object-contain"
               preload="metadata"
             />
-            <img
+            <NuxtImg
               v-else
               :src="activeMedia.url"
               :alt="product.title"
               width="600"
               height="600"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              format="webp"
+              quality="80"
               class="w-full aspect-square object-cover cursor-zoom-in"
               @click="lightboxOpen = true"
             />

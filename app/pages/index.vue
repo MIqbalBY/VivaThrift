@@ -41,7 +41,7 @@ const hasActiveFilter = computed(() =>
 const { data: categoriesData } = await useAsyncData('categories-list', async () => {
   const { data } = await supabase.from('categories').select('name').order('name')
   return data?.map(c => c.name) ?? []
-})
+}, { lazy: true })
 const CATEGORIES = computed(() => {
   const list = categoriesData.value ?? []
   const sorted = list.filter(c => c !== 'Lainnya')
@@ -177,7 +177,7 @@ const { data: products } = await useAsyncData(
       return { ...p, _sellerRating: avgRating, _ratingCount: arr.length }
     })
   },
-  { watch: [activeKategori, activeSearch, activeKondisi, activeSort, activeNego, activeCod] }
+  { lazy: true, watch: [activeKategori, activeSearch, activeKondisi, activeSort, activeNego, activeCod] }
 )
 
 // -- Show more -----------------------------------------------------
@@ -215,12 +215,16 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
   <div>
     <!-- Hero Section -->
     <section class="vt-hero-bg relative w-full bg-blue-50 overflow-hidden min-h-[500px] flex items-center">
-      <img
+      <NuxtImg
         src="/img/banner-1.png"
         alt="Banner VivaThrift"
         width="1920"
         height="600"
-        fetchpriority="high"
+        preload
+        loading="eager"
+        sizes="100vw"
+        format="webp"
+        quality="75"
         class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
       />
 
@@ -231,17 +235,17 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
       <div class="relative w-full px-4 sm:px-6 md:px-10 flex flex-col md:flex-row items-center gap-8 z-10">
         <div class="flex-1 max-w-xl">
           <!-- ITS badge -->
-          <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="vt-hero-enter vt-hero-enter-d1 flex items-center gap-2 mb-4 w-fit">
+          <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 mb-4 w-fit">
             <img src="/img/logo-its.png" alt="ITS" width="28" height="28" class="h-7 opacity-75" />
             <span class="vt-its-badge-text text-xs font-semibold tracking-wider uppercase">Institut Teknologi Sepuluh Nopember</span>
           </a>
-          <h1 class="vt-hero-enter vt-hero-enter-d2 vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">
+          <h1 class="vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">
             Temukan <span class="vt-highlight">Barang Preloved</span> Berkualitas di Sekitar ITS!
           </h1>
-          <p class="vt-hero-enter vt-hero-enter-d3 vt-hero-subtext text-lg mb-8 max-w-lg" :style="isDark ? 'color: rgba(148,163,184,0.9)' : 'color: rgba(30,58,138,0.75)'">
+          <p class="vt-hero-subtext text-lg mb-8 max-w-lg" :style="isDark ? 'color: rgba(148,163,184,0.9)' : 'color: rgba(30,58,138,0.75)'">
             Marketplace tepercaya khusus mahasiswa ITS. Jual beli buku mata kuliah, gadget, pakaian, hingga perlengkapan kos dengan mudah dan aman!
           </p>
-          <div class="vt-hero-enter vt-hero-enter-d4 flex gap-3 relative">
+          <div class="flex gap-3 relative">
             <button
               @click="scrollToKatalog"
               class="vt-btn-primary px-8 py-3 rounded-full text-white font-bold shadow-md transition hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5"
@@ -435,7 +439,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         />
 
         <div v-if="!products || products.length === 0" class="col-span-full flex flex-col items-center justify-center py-20 gap-3">
-          <img src="/img/illustrations/empty-cart.svg" alt="Belum ada produk" width="208" height="208" loading="lazy" class="w-52 h-auto opacity-80" />
+          <NuxtImg src="/img/illustrations/empty-cart.svg" alt="Belum ada produk" width="208" height="208" loading="lazy" class="w-52 h-auto opacity-80" />
           <p class="text-gray-500 dark:text-gray-400 font-semibold text-lg mt-2">Belum ada produk tersedia</p>
           <p class="text-gray-400 dark:text-gray-500 text-sm">Jadilah yang pertama menjual barang di sini!</p>
         </div>

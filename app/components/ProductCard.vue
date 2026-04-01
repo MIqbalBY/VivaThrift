@@ -25,13 +25,16 @@ const emit = defineEmits<{
   >
     <!-- Image -->
     <div class="relative overflow-hidden rounded-t-xl">
-      <img
+      <NuxtImg
         v-if="getPrimaryImage(product)"
         :src="getPrimaryImage(product)!"
         :alt="product.title"
         width="300"
         height="300"
         loading="lazy"
+        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+        format="webp"
+        quality="75"
         class="aspect-square w-full object-cover rounded-t-xl transition-transform duration-500"
         :class="isSold ? 'opacity-60' : 'group-hover:scale-105'"
       />

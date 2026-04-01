@@ -35,8 +35,16 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'VivaThrift - Situs Jual Beli Barang Preloved di ITS!',
+      script: [
+        {
+          innerHTML: '(function(){try{var d=localStorage.getItem("vt-dark");var p=d!==null?d==="1":window.matchMedia("(prefers-color-scheme:dark)").matches;if(p)document.documentElement.classList.add("dark")}catch(e){}})()',
+          type: 'text/javascript',
+        },
+      ],
       link: [
         { rel: 'icon', type: 'image/png', href: '/img/logo-vivathrift.png' },
+        { rel: 'preconnect', href: 'https://jwnisdkjgqnoergsoorf.supabase.co' },
+        { rel: 'dns-prefetch', href: 'https://jwnisdkjgqnoergsoorf.supabase.co' },
       ]
     }
   },
