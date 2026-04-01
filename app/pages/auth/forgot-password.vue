@@ -51,9 +51,9 @@ async function handleResetRequest() {
   <div
     class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden font-sans"
   >
-    <!-- Background dengan overlay opacity -->
-    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/img/Banner 2.png');"></div>
-    <div class="absolute inset-0 bg-black/40"></div>
+    <!-- Background banner + overlay -->
+    <img src="/img/Banner 2.png" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
+    <div class="absolute inset-0 pointer-events-none" :style="isDark ? 'background: rgba(10,22,40,0.75)' : 'background: rgba(15,23,42,0.55)'"></div>
 
     <!-- Tombol back di atas card -->
     <div class="relative z-10 w-full max-w-sm mx-4 mb-3">
