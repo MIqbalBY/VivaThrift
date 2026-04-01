@@ -257,12 +257,20 @@ async function handleSignup() {
       <!-- Step indicator -->
       <div class="flex items-center gap-2 mb-6">
         <div class="flex items-center gap-1.5">
-          <span class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center" :class="step === 1 ? 'bg-white text-blue-900' : 'bg-white/30 text-white'">1</span>
+          <span
+            class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
+            :class="step === 1 ? (isDark ? 'text-white' : 'bg-white text-blue-900') : 'bg-white/30 text-white'"
+            :style="step === 1 && isDark ? 'background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);' : ''"
+          >1</span>
           <span class="text-xs text-white/70">Data Diri</span>
         </div>
         <div class="flex-1 h-px" :class="step >= 2 ? 'bg-white/70' : 'bg-white/20'"></div>
         <div class="flex items-center gap-1.5">
-          <span class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center" :class="step === 2 ? 'bg-white text-blue-900' : 'bg-white/30 text-white'">2</span>
+          <span
+            class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
+            :class="step === 2 ? (isDark ? 'text-white' : 'bg-white text-blue-900') : 'bg-white/30 text-white'"
+            :style="step === 2 && isDark ? 'background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);' : ''"
+          >2</span>
           <span class="text-xs text-white/70">Akun</span>
         </div>
       </div>

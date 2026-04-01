@@ -4,7 +4,7 @@ useSeoMeta({ title: 'Lupa Password — VivaThrift' })
 
 const supabase = useSupabaseClient()
 const route = useRoute()
-const { isDark, init: initDark } = useDarkMode()
+const { isDark, init: initDark, toggle: toggleDark } = useDarkMode()
 onMounted(() => initDark())
 
 const email = ref('')
@@ -54,6 +54,21 @@ async function handleResetRequest() {
     <!-- Background banner + overlay -->
     <img src="/img/Banner 2.png" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
     <div class="absolute inset-0 pointer-events-none" :style="isDark ? 'background: rgba(10,22,40,0.75)' : 'background: rgba(15,23,42,0.55)'"></div>
+
+    <!-- Dark mode toggle -->
+    <button
+      @click="toggleDark"
+      :aria-label="isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'"
+      class="absolute top-5 right-5 z-20 w-9 h-9 rounded-full flex items-center justify-center transition backdrop-blur-sm"
+      :style="isDark ? 'background: rgba(255,255,255,0.12)' : 'background: rgba(255,255,255,0.20)'"
+    >
+      <svg v-if="isDark" class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-9H20M4 12H3m15.07-6.07-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z"/>
+      </svg>
+      <svg v-else class="w-4 h-4 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+      </svg>
+    </button>
 
     <!-- Tombol back di atas card -->
     <div class="relative z-10 w-full max-w-sm mx-4 mb-3">
