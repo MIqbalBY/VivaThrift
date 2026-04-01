@@ -27,7 +27,15 @@ async function handleLogin() {
     if (error) throw error
     await navigateTo('/')
   } catch (err) {
-    errorMsg.value = err.message ?? 'Login gagal. Periksa email dan password kamu.'
+    const msg = err.message?.toLowerCase() ?? ''
+    if (msg.includes('invalid login') || msg.includes('invalid_credentials'))
+      errorMsg.value = 'Email atau password salah.'
+    else if (msg.includes('email not confirmed'))
+      errorMsg.value = 'Email belum dikonfirmasi. Cek inbox kamu.'
+    else if (msg.includes('too many requests') || msg.includes('rate limit'))
+      errorMsg.value = 'Terlalu banyak percobaan. Coba lagi nanti.'
+    else
+      errorMsg.value = 'Login gagal. Periksa email dan password kamu.'
   } finally {
     isLoading.value = false
   }

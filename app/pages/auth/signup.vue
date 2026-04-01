@@ -128,7 +128,15 @@ async function handleSignup() {
 
     await navigateTo('/auth/signin?signup=success')
   } catch (err) {
-    errorMsg.value = err.message ?? 'Pendaftaran gagal. Coba lagi.'
+    const msg = err.message?.toLowerCase() ?? ''
+    if (msg.includes('already registered') || msg.includes('already been registered'))
+      errorMsg.value = 'Email sudah terdaftar. Silakan login.'
+    else if (msg.includes('rate limit') || msg.includes('too many requests'))
+      errorMsg.value = 'Terlalu banyak percobaan. Coba lagi nanti.'
+    else if (msg.includes('weak password') || msg.includes('password'))
+      errorMsg.value = 'Password terlalu lemah. Gunakan minimal 6 karakter.'
+    else
+      errorMsg.value = 'Pendaftaran gagal. Coba lagi nanti.'
   } finally {
     isLoading.value = false
   }

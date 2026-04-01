@@ -53,11 +53,15 @@ async function handleResetPassword() {
     if (error) throw error
     successMsg.value = true
   } catch (err) {
-    if (err.message?.includes('same_password')) {
+    const msg = err.message?.toLowerCase() ?? ''
+    if (msg.includes('same_password') || msg.includes('same as'))
       errorMsg.value = 'Password baru tidak boleh sama dengan password lama.'
-    } else {
-      errorMsg.value = err.message ?? 'Gagal mengubah password. Coba lagi nanti.'
-    }
+    else if (msg.includes('weak password'))
+      errorMsg.value = 'Password terlalu lemah. Gunakan minimal 6 karakter.'
+    else if (msg.includes('session') || msg.includes('not authenticated'))
+      errorMsg.value = 'Sesi sudah berakhir. Silakan minta link reset password lagi.'
+    else
+      errorMsg.value = 'Gagal mengubah password. Coba lagi nanti.'
   } finally {
     isLoading.value = false
   }
