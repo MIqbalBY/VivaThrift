@@ -416,7 +416,7 @@ async function submitProduct() {
         </svg>
       </NuxtLink>
       <h1 class="vt-detail-title font-heading text-3xl font-bold" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">Jual Barang</h1>
-      <img src="/img/illustrations/shopping-app.svg" alt="" class="hidden md:block w-28 h-auto opacity-70 ml-auto" aria-hidden="true" />
+      <img src="/img/illustrations/shopping-app.svg" alt="" width="112" height="112" loading="lazy" class="hidden md:block w-28 h-auto opacity-70 ml-auto" aria-hidden="true" />
     </div>
 
     <div class="vt-hero-enter vt-hero-enter-d2 vt-glass rounded-2xl p-8" :style="isDark

@@ -218,6 +218,9 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
       <img
         src="/img/banner-1.png"
         alt="Banner VivaThrift"
+        width="1920"
+        height="600"
+        fetchpriority="high"
         class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0"
       />
 
@@ -229,7 +232,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         <div class="flex-1 max-w-xl">
           <!-- ITS badge -->
           <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="vt-hero-enter vt-hero-enter-d1 flex items-center gap-2 mb-4 w-fit">
-            <img src="/img/logo-its.png" alt="ITS" class="h-7 opacity-75" />
+            <img src="/img/logo-its.png" alt="ITS" width="28" height="28" class="h-7 opacity-75" />
             <span class="vt-its-badge-text text-xs font-semibold tracking-wider uppercase">Institut Teknologi Sepuluh Nopember</span>
           </a>
           <h1 class="vt-hero-enter vt-hero-enter-d2 vt-hero-heading font-heading text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 tracking-tight" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">
@@ -432,7 +435,7 @@ watch([activeKategori, activeSearch, activeKondisi, activeSort, activeNego, acti
         />
 
         <div v-if="!products || products.length === 0" class="col-span-full flex flex-col items-center justify-center py-20 gap-3">
-          <img src="/img/illustrations/empty-cart.svg" alt="Belum ada produk" class="w-52 h-auto opacity-80" />
+          <img src="/img/illustrations/empty-cart.svg" alt="Belum ada produk" width="208" height="208" loading="lazy" class="w-52 h-auto opacity-80" />
           <p class="text-gray-500 dark:text-gray-400 font-semibold text-lg mt-2">Belum ada produk tersedia</p>
           <p class="text-gray-400 dark:text-gray-500 text-sm">Jadilah yang pertama menjual barang di sini!</p>
         </div>

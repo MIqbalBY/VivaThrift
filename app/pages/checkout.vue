@@ -187,7 +187,7 @@ async function placeOrder() {
 
     <!-- ── Success State ── -->
     <div v-if="orderDone" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">
-      <img src="/img/illustrations/order-confirmed.svg" alt="Pesanan berhasil" class="w-48 h-auto mx-auto mb-4 opacity-90" />
+      <img src="/img/illustrations/order-confirmed.svg" alt="Pesanan berhasil" width="192" height="192" loading="lazy" class="w-48 h-auto mx-auto mb-4 opacity-90" />
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Pesanan Berhasil!</h2>
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Silakan hubungi penjual untuk mengatur pengiriman / COD.</p>
       <NuxtLink
@@ -203,7 +203,7 @@ async function placeOrder() {
 
     <!-- ── Stock Depleted State ── -->
     <div v-else-if="stockDepleted" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">
-      <img src="/img/illustrations/void.svg" alt="Stok habis" class="w-44 h-auto mx-auto mb-4 opacity-80" />
+      <img src="/img/illustrations/void.svg" alt="Stok habis" width="176" height="176" loading="lazy" class="w-44 h-auto mx-auto mb-4 opacity-80" />
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Stok Habis</h2>
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Maaf, stok produk ini sudah habis karena tawaran lain telah dikonfirmasi lebih dulu.</p>
       <NuxtLink
@@ -228,7 +228,7 @@ async function placeOrder() {
         <!-- Product row -->
         <div class="flex gap-4 items-center mb-5">
           <div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-            <img v-if="productCover" :src="productCover" class="w-full h-full object-cover" :alt="offer?.product?.title" />
+            <img v-if="productCover" :src="productCover" width="80" height="80" loading="lazy" class="w-full h-full object-cover" :alt="offer?.product?.title" />
             <div v-else class="w-full h-full flex items-center justify-center text-2xl">📷</div>
           </div>
           <div class="flex-1 min-w-0">

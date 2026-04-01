@@ -519,7 +519,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2 select-none shrink-0" @click.prevent="goHome">
-          <img src="/img/logo-vivathrift.png" alt="VivaThrift Logo" class="h-9 -translate-y-0.5" />
+          <img src="/img/logo-vivathrift.png" alt="VivaThrift Logo" width="36" height="36" class="h-9 -translate-y-0.5" />
           <span
             class="vt-logo-text font-himpun text-3xl leading-none"
             style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
@@ -641,7 +641,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                     class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                   >
                     <div class="w-9 h-9 rounded shrink-0 overflow-hidden bg-gray-100">
-                      <img v-if="getSuggestionImage(product)" :src="getSuggestionImage(product)" class="w-full h-full object-cover" />
+                      <img v-if="getSuggestionImage(product)" :src="getSuggestionImage(product)" width="40" height="40" loading="lazy" class="w-full h-full object-cover" />
                       <div v-else class="w-full h-full bg-gray-200"></div>
                     </div>
                     <div class="flex-1 min-w-0 text-left">
@@ -775,7 +775,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
                 >
                   <!-- Product image or icon -->
                   <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" :class="isDark ? 'bg-slate-700' : 'bg-gray-100'">
-                    <img v-if="getNotifProductImage(n)" :src="getNotifProductImage(n)" class="w-full h-full object-cover" />
+                    <img v-if="getNotifProductImage(n)" :src="getNotifProductImage(n)" width="40" height="40" loading="lazy" class="w-full h-full object-cover" />
                     <span v-else class="text-lg">{{ getNotifIcon(n.type) }}</span>
                   </div>
                   <!-- Content -->
@@ -841,7 +841,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               class="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-bold transition" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'"
               aria-label="Profil"
             >
-              <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" class="w-full h-full object-cover" />
+              <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" width="36" height="36" class="w-full h-full object-cover" />
               <span v-else-if="profilePending" class="w-4 h-4 rounded-full border-2 border-white/50 border-t-white animate-spin"></span>
               <span v-else>{{ userInitials }}</span>
             </button>
@@ -1014,7 +1014,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               <div class="flex items-center justify-between px-1">
                 <div class="flex items-center gap-2">
                   <div class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-bold shrink-0" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'">
-                    <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" class="w-full h-full object-cover" />
+                    <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" width="48" height="48" class="w-full h-full object-cover" />
                     <span v-else-if="profilePending" class="w-3.5 h-3.5 rounded-full border-2 border-white/50 border-t-white animate-spin"></span>
                     <span v-else>{{ userInitials }}</span>
                   </div>
@@ -1096,7 +1096,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
               class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 text-white text-xs font-bold"
               :style="isDark ? 'background:linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background:linear-gradient(to right,#162d6e,#1e40af)'"
             >
-              <img v-if="notif.senderAvatar" :src="notif.senderAvatar" class="w-full h-full object-cover" />
+              <img v-if="notif.senderAvatar" :src="notif.senderAvatar" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
               <span v-else>{{ getNotifInitial(notif.senderName) }}</span>
             </div>
             <!-- Content -->

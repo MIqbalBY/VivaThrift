@@ -78,7 +78,7 @@ const values = [
       <section class="relative flex flex-col justify-center min-h-[520px] pt-28 overflow-hidden">
         <!-- ITS Logo badge -->
         <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="absolute top-8 right-10 z-10 hidden md:flex items-center gap-3">
-          <img src="/img/logo-its.png" alt="ITS" class="h-14" />
+          <img src="/img/logo-its.png" alt="ITS" width="56" height="56" class="h-14" />
           <span class="text-white/80 text-xs font-semibold tracking-widest uppercase leading-tight">Institut Teknologi<br>Sepuluh Nopember</span>
         </a>
         <div class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 w-full flex flex-col gap-7 py-16">
@@ -145,7 +145,7 @@ const values = [
           <h2 class="font-heading text-4xl md:text-5xl font-bold leading-tight vt-story-heading">
             Mengapa<br><span class="vt-brand-text font-himpun">VivaThrift</span><br>Ada?
           </h2>
-          <img src="/img/illustrations/team-spirit.svg" alt="" class="w-48 h-auto opacity-70 mt-4 hidden md:block" aria-hidden="true" />
+          <img src="/img/illustrations/team-spirit.svg" alt="" width="192" height="192" loading="lazy" class="w-48 h-auto opacity-70 mt-4 hidden md:block" aria-hidden="true" />
         </div>
 
         <!-- Right: paragraphs -->
@@ -240,7 +240,7 @@ const values = [
             <!-- Portrait avatar area — 1:1 square -->
             <div class="relative overflow-hidden aspect-square"
                  :style="`background: linear-gradient(160deg, ${member.color} 0%, #060d1a 100%);`">
-              <img v-if="member.photo" :src="member.photo" :alt="member.name" class="absolute inset-0 w-full h-full object-cover object-top" />
+              <img v-if="member.photo" :src="member.photo" :alt="member.name" width="300" height="300" loading="lazy" class="absolute inset-0 w-full h-full object-cover object-top" />
               <span v-else class="absolute inset-0 flex items-center justify-center font-heading text-8xl font-bold select-none"
                     style="color: rgba(255,255,255,0.20);">{{ member.initials }}</span>
               <div class="absolute bottom-0 left-0 w-full h-0.5" :style="`background: ${member.color}; opacity: 0.8;`"></div>

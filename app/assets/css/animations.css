@@ -114,3 +114,13 @@
     transition: none !important;
   }
 }
+
+/* ── Reduce animation overhead on small screens ── */
+@media (max-width: 768px) {
+  .vt-stagger-grid > * {
+    transition-duration: 0.25s;
+  }
+  .vt-stagger-grid.vt-revealed > *:nth-child(n+5) {
+    transition-delay: 0ms;
+  }
+}

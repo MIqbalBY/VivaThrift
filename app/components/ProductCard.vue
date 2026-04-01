@@ -29,6 +29,9 @@ const emit = defineEmits<{
         v-if="getPrimaryImage(product)"
         :src="getPrimaryImage(product)!"
         :alt="product.title"
+        width="300"
+        height="300"
+        loading="lazy"
         class="aspect-square w-full object-cover rounded-t-xl transition-transform duration-500"
         :class="isSold ? 'opacity-60' : 'group-hover:scale-105'"
       />

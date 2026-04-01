@@ -148,7 +148,7 @@ onMounted(async () => {
 
     <!-- Not found -->
     <div v-if="!profile" class="flex flex-col items-center text-center py-24 text-gray-400">
-      <img src="/img/illustrations/not-found.svg" alt="Profil tidak ditemukan" class="w-48 h-auto opacity-80 mb-4" />
+      <img src="/img/illustrations/not-found.svg" alt="Profil tidak ditemukan" width="192" height="192" loading="lazy" class="w-48 h-auto opacity-80 mb-4" />
       Profil tidak ditemukan.
     </div>
 
@@ -164,7 +164,7 @@ onMounted(async () => {
               ? 'border-color: rgba(14,165,233,0.5); background: linear-gradient(135deg,#0ea5e9,#38bdf8);'
               : 'border-color: rgba(30,58,138,0.18); background: linear-gradient(135deg,#1e3a8a,#2563eb);'"
           >
-            <img v-if="profile.avatar_url" :src="profile.avatar_url" class="w-full h-full object-cover" />
+            <img v-if="profile.avatar_url" :src="profile.avatar_url" width="120" height="120" class="w-full h-full object-cover" />
             <span v-else class="text-white text-xl sm:text-3xl font-bold select-none">{{ profileInitials }}</span>
           </div>
         </div>
@@ -357,7 +357,7 @@ onMounted(async () => {
 
       <!-- Empty state -->
       <div v-if="!shownProducts.length" class="flex flex-col items-center text-center py-16" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
-        <img src="/img/illustrations/empty.svg" alt="Belum ada barang" class="w-44 h-auto opacity-75 mb-3" />
+        <img src="/img/illustrations/empty.svg" alt="Belum ada barang" width="176" height="176" loading="lazy" class="w-44 h-auto opacity-75 mb-3" />
         {{ productTab === 'dijual' ? 'Belum ada barang yang dijual.' : 'Belum ada barang yang terjual/habis.' }}
       </div>
 

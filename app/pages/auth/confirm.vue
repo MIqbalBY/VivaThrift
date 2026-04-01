@@ -53,10 +53,10 @@ onMounted(async () => {
       <!-- Brand header -->
       <div class="flex flex-col items-center gap-2 mb-6">
         <div class="flex items-center gap-3">
-          <img src="/img/logo-vivathrift.png" alt="VivaThrift" class="h-10" />
+          <img src="/img/logo-vivathrift.png" alt="VivaThrift" width="40" height="40" class="h-10" />
           <div class="w-px h-8 bg-white/25"></div>
           <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" title="Institut Teknologi Sepuluh Nopember">
-            <img src="/img/logo-its.png" alt="ITS" class="h-9 opacity-90" />
+            <img src="/img/logo-its.png" alt="ITS" width="36" height="36" class="h-9 opacity-90" />
           </a>
         </div>
         <span
@@ -66,7 +66,7 @@ onMounted(async () => {
       </div>
 
       <!-- Illustration -->
-      <img src="/img/illustrations/mail-sent.svg" alt="" class="w-28 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
+      <img src="/img/illustrations/mail-sent.svg" alt="" width="112" height="112" loading="lazy" class="w-28 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
 
       <!-- Loading -->
       <div v-if="isProcessing" class="flex flex-col items-center gap-3 py-6">

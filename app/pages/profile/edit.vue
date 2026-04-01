@@ -603,7 +603,7 @@ watch(user, (u) => {
 
     <!-- Page Header -->
     <div class="vt-hero-enter vt-hero-enter-d1 vt-edit-header relative w-full pt-24 pb-10 px-4 md:px-10 overflow-hidden">
-      <img src="/img/banner-3.png" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
+      <img src="/img/banner-3.png" alt="" width="1920" height="600" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
       <div class="absolute inset-0 pointer-events-none vt-edit-header-overlay"></div>
       <div class="relative max-w-3xl mx-auto flex items-center gap-4">
         <div class="flex flex-col gap-2 flex-1">
@@ -615,7 +615,7 @@ watch(user, (u) => {
           <h1 class="font-heading text-3xl font-bold text-white leading-tight">⚙️ Pengaturan</h1>
           <p class="text-white/65 text-sm">Kelola informasi akun dan alamat pengirimanmu.</p>
         </div>
-        <img src="/img/illustrations/personal-settings.svg" alt="" class="hidden md:block w-28 h-auto opacity-70 shrink-0" aria-hidden="true" />
+        <img src="/img/illustrations/personal-settings.svg" alt="" width="112" height="112" loading="lazy" class="hidden md:block w-28 h-auto opacity-70 shrink-0" aria-hidden="true" />
       </div>
     </div>
 
@@ -679,7 +679,7 @@ watch(user, (u) => {
           <div class="vt-card p-6 md:p-8 flex flex-col sm:flex-row items-center gap-6">
             <div class="relative group shrink-0">
               <div class="w-24 h-24 rounded-full overflow-hidden ring-4 ring-blue-100 dark:ring-blue-900/40">
-                <img v-if="avatarUrl" :src="avatarUrl" alt="Foto profil" class="w-full h-full object-cover" />
+                <img v-if="avatarUrl" :src="avatarUrl" alt="Foto profil" width="96" height="96" class="w-full h-full object-cover" />
                 <div v-else class="w-full h-full flex items-center justify-center text-3xl font-bold text-white"
                      :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(135deg, #162d6e, #1e3a8a, #1e40af)'">
                   {{ name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?' }}

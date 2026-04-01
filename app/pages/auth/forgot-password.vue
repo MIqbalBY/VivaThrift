@@ -52,7 +52,7 @@ async function handleResetRequest() {
     class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden font-sans"
   >
     <!-- Background banner + overlay -->
-    <img src="/img/banner-2.png" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
+    <img src="/img/banner-2.png" alt="" width="1920" height="600" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
     <div class="absolute inset-0 pointer-events-none" :style="isDark ? 'background: rgba(10,22,40,0.75)' : 'background: rgba(15,23,42,0.55)'"></div>
 
     <!-- Dark mode toggle -->
@@ -89,10 +89,10 @@ async function handleResetRequest() {
       <!-- Brand header -->
       <div class="flex flex-col items-center gap-2 mb-6">
         <div class="flex items-center gap-3">
-          <img src="/img/logo-vivathrift.png" alt="VivaThrift" class="h-10" />
+          <img src="/img/logo-vivathrift.png" alt="VivaThrift" width="40" height="40" class="h-10" />
           <div class="w-px h-8 bg-white/25"></div>
           <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" title="Institut Teknologi Sepuluh Nopember">
-            <img src="/img/logo-its.png" alt="ITS" class="h-9 opacity-90" />
+            <img src="/img/logo-its.png" alt="ITS" width="36" height="36" class="h-9 opacity-90" />
           </a>
         </div>
         <span
@@ -104,7 +104,7 @@ async function handleResetRequest() {
       </div>
 
       <!-- Illustration -->
-      <img src="/img/illustrations/secure-login.svg" alt="" class="w-28 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
+      <img src="/img/illustrations/secure-login.svg" alt="" width="112" height="112" loading="lazy" class="w-28 h-auto mx-auto mb-4 opacity-80" aria-hidden="true" />
 
       <!-- Heading -->
       <h1 class="font-heading text-[1.85rem] font-bold text-white mb-2 leading-tight">Lupa Password</h1>

@@ -461,7 +461,7 @@ onUnmounted(() => {
 
     <!-- Not found -->
     <div v-if="!product || product.status === 'deleted'" class="flex flex-col items-center text-center text-gray-400 py-24">
-      <img src="/img/illustrations/page-not-found.svg" alt="Produk tidak ditemukan" class="w-52 h-auto opacity-80 mb-4" />
+      <img src="/img/illustrations/page-not-found.svg" alt="Produk tidak ditemukan" width="208" height="208" loading="lazy" class="w-52 h-auto opacity-80 mb-4" />
       <p class="font-semibold text-lg dark:text-gray-400">Produk tidak ditemukan.</p>
     </div>
 
@@ -482,6 +482,8 @@ onUnmounted(() => {
               v-else
               :src="activeMedia.url"
               :alt="product.title"
+              width="600"
+              height="600"
               class="w-full aspect-square object-cover cursor-zoom-in"
               @click="lightboxOpen = true"
             />
@@ -522,9 +524,9 @@ onUnmounted(() => {
             class="w-16 h-16 rounded-xl overflow-hidden border-2 transition relative"
             :class="activeIndex === i ? 'vt-thumb-active border-[#1e3a8a] shadow' : 'border-transparent opacity-60 hover:opacity-100'"
           >
-            <img v-if="m.isVideo && m.thumbnailUrl" :src="m.thumbnailUrl" class="w-full h-full object-cover" />
+            <img v-if="m.isVideo && m.thumbnailUrl" :src="m.thumbnailUrl" width="64" height="64" loading="lazy" class="w-full h-full object-cover" />
             <video v-else-if="m.isVideo" :src="m.url" class="w-full h-full object-cover" preload="metadata" muted />
-            <img v-else :src="m.url" class="w-full h-full object-cover" />
+            <img v-else :src="m.url" width="64" height="64" loading="lazy" class="w-full h-full object-cover" />
             <div v-if="m.isVideo" class="absolute inset-0 flex items-center justify-center bg-black/20">
               <svg class="w-5 h-5 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             </div>
@@ -651,7 +653,7 @@ onUnmounted(() => {
           @click="profileCardUserId = product.users.id"
         >
           <div class="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'">
-            <img v-if="product.users.avatar_url" :src="product.users.avatar_url" class="w-full h-full object-cover" />
+            <img v-if="product.users.avatar_url" :src="product.users.avatar_url" width="48" height="48" loading="lazy" class="w-full h-full object-cover" />
             <span v-else class="text-white text-xs font-bold select-none">{{ sellerInitials }}</span>
           </div>
           <div class="flex-1 min-w-0">
@@ -806,7 +808,7 @@ onUnmounted(() => {
                 : 'background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.5);'"
             >
               <div class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center overflow-hidden" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'">
-                <img v-if="c.buyer?.avatar_url" :src="c.buyer.avatar_url" class="w-full h-full object-cover" />
+                <img v-if="c.buyer?.avatar_url" :src="c.buyer.avatar_url" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
                 <span v-else class="text-white text-xs font-bold">{{ (c.buyer?.name ?? '?').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase() }}</span>
               </div>
               <div class="flex-1 min-w-0">
@@ -955,6 +957,7 @@ onUnmounted(() => {
             v-else
             :src="activeMedia.url"
             :alt="product?.title"
+            loading="lazy"
             class="max-w-[85vw] max-h-[75vh] object-contain rounded-lg select-none"
           />
         </template>

@@ -187,7 +187,7 @@ function avatarInitials(name) {
     </div>
 
     <div v-else-if="!chats?.length" class="flex flex-col items-center text-center text-gray-400 py-20">
-      <img src="/img/illustrations/messaging.svg" alt="Belum ada percakapan" class="w-48 h-auto opacity-80 mb-4" />
+      <img src="/img/illustrations/messaging.svg" alt="Belum ada percakapan" width="192" height="192" loading="lazy" class="w-48 h-auto opacity-80 mb-4" />
       <p class="text-base font-medium dark:text-gray-400">Belum ada percakapan.</p>
       <NuxtLink to="/" class="text-blue-700 dark:text-sky-400 text-sm underline mt-2 inline-block">Temukan barang yang ingin dibeli</NuxtLink>
     </div>
@@ -211,7 +211,7 @@ function avatarInitials(name) {
             ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8);'
             : 'background: linear-gradient(135deg,#1e3a8a,#2563eb);'"
         >
-          <img v-if="getOtherParty(chat)?.avatar_url" :src="getOtherParty(chat).avatar_url" class="w-full h-full object-cover" />
+          <img v-if="getOtherParty(chat)?.avatar_url" :src="getOtherParty(chat).avatar_url" width="40" height="40" loading="lazy" class="w-full h-full object-cover" />
           <span v-else>{{ avatarInitials(getOtherParty(chat)?.name) }}</span>
         </div>
 

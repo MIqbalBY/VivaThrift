@@ -635,12 +635,18 @@ async function deleteProduct() {
                 <img
                   v-if="media.type === 'image'"
                   :src="media.preview"
+                  width="200"
+                  height="200"
+                  loading="lazy"
                   class="w-full h-full object-cover"
                   alt=""
                 />
                 <img
                   v-else-if="media.thumbnail"
                   :src="media.thumbnail"
+                  width="200"
+                  height="200"
+                  loading="lazy"
                   class="w-full h-full object-cover"
                   alt=""
                 />
