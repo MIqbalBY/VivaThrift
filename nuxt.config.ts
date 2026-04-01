@@ -22,7 +22,6 @@ export default defineNuxtConfig({
     redirect: false
   },
   image: {
-    provider: 'vercel',
     quality: 80,
     formats: ['webp', 'avif'],
   },

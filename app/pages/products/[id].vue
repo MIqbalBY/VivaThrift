@@ -486,7 +486,7 @@ onUnmounted(() => {
               height="600"
               sizes="(max-width: 768px) 100vw, 50vw"
               format="webp"
-              quality="80"
+              quality="85"
               class="w-full aspect-square object-cover cursor-zoom-in"
               @click="lightboxOpen = true"
             />

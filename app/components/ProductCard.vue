@@ -34,7 +34,7 @@ const emit = defineEmits<{
         loading="lazy"
         sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
         format="webp"
-        quality="75"
+        quality="85"
         class="aspect-square w-full object-cover rounded-t-xl transition-transform duration-500"
         :class="isSold ? 'opacity-60' : 'group-hover:scale-105'"
       />
