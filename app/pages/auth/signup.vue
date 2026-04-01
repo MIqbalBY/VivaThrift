@@ -198,9 +198,8 @@ async function handleSignup() {
   <div
     class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden font-sans"
   >
-    <!-- Background banner + overlay -->
-    <img src="/img/Banner 2.png" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none" aria-hidden="true" />
-    <div class="absolute inset-0 pointer-events-none" :style="isDark ? 'background: rgba(10,22,40,0.75)' : 'background: rgba(0,0,0,0.40)'"></div>
+    <!-- Background gradient -->
+    <div class="absolute inset-0" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0c4a6e 100%);"></div>
 
     <!-- Dark mode toggle -->
     <button

@@ -50,7 +50,7 @@ async function handleResetRequest() {
     class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden font-sans"
   >
     <!-- Background dengan overlay opacity -->
-    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/img/Background.png');"></div>
+    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/img/Banner 2.png');"></div>
     <div class="absolute inset-0 bg-black/40"></div>
 
     <!-- Tombol back di atas card -->
