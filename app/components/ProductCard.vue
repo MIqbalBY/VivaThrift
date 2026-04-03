@@ -18,7 +18,7 @@ const emit = defineEmits<{
 <template>
   <NuxtLink
     :to="`/products/${product.slug ?? product.id}`"
-    class="vt-product-card group rounded-xl border border-white/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col cursor-pointer"
+    class="vt-product-card group rounded-xl border border-white/50 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col cursor-pointer"
     :style="isDark
       ? 'background: rgba(15,23,42,0.80); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.08);'
       : 'background: rgba(255,255,255,0.70); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);'"
@@ -32,7 +32,7 @@ const emit = defineEmits<{
         width="300"
         height="300"
         loading="lazy"
-        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+        densities="1x 2x"
         format="webp"
         quality="85"
         class="aspect-square w-full object-cover rounded-t-xl transition-transform duration-500"
@@ -52,14 +52,14 @@ const emit = defineEmits<{
 
       <!-- Floating badges top-left -->
       <div class="absolute top-2 left-2 flex flex-col items-start gap-1">
-        <span v-if="product.condition" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm', isDark ? 'bg-blue-900/80 text-blue-200 border border-blue-700' : 'bg-blue-50 text-blue-800 border border-blue-100']">{{ conditionLabel(product.condition) }}</span>
-        <span v-if="product.is_negotiable" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm', isDark ? 'bg-green-900/80 text-green-200 border border-green-700' : 'bg-green-50 text-green-700 border border-green-100']">🤝 Nego</span>
-        <span v-if="product.is_cod" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm', isDark ? 'bg-green-900/80 text-green-200 border border-green-700' : 'bg-green-50 text-green-700 border border-green-100']">🚲 COD</span>
+        <span v-if="product.condition" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-xs', isDark ? 'bg-blue-900/80 text-blue-200 border border-blue-700' : 'bg-blue-50 text-blue-800 border border-blue-100']">{{ conditionLabel(product.condition) }}</span>
+        <span v-if="product.is_negotiable" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-xs', isDark ? 'bg-green-900/80 text-green-200 border border-green-700' : 'bg-green-50 text-green-700 border border-green-100']">🤝 Nego</span>
+        <span v-if="product.is_cod" :class="['text-xs font-semibold px-2 py-0.5 rounded-full shadow-xs', isDark ? 'bg-green-900/80 text-green-200 border border-green-700' : 'bg-green-50 text-green-700 border border-green-100']">🚲 COD</span>
       </div>
 
       <!-- Category badge bottom-right -->
       <div v-if="product.categories?.name" class="absolute bottom-2 right-2">
-        <span :class="['text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm border', isDark ? 'bg-blue-900/80 text-blue-200 border-blue-700' : 'bg-white/80 text-gray-700 border-gray-200']">
+        <span :class="['text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm shadow-xs border', isDark ? 'bg-blue-900/80 text-blue-200 border-blue-700' : 'bg-white/80 text-gray-700 border-gray-200']">
           {{ categoryLabel(product.categories.name) }}
         </span>
       </div>

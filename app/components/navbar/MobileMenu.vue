@@ -37,7 +37,7 @@ const emit = defineEmits<{
           v-model="searchQuery"
           type="text"
           placeholder="Cari di VivaThrift"
-          class="flex-1 px-4 py-2.5 text-sm text-gray-800 bg-transparent focus:outline-none placeholder-gray-400"
+          class="flex-1 px-4 py-2.5 text-sm text-gray-800 bg-transparent focus:outline-hidden placeholder-gray-400"
           autocomplete="off"
         />
         <button type="submit" class="vt-mobile-search-btn px-4 py-2.5 text-white transition hover:opacity-90">

@@ -71,7 +71,7 @@ function triggerFileInput() {
             </div>
           </div>
           <!-- Cover badge -->
-          <div v-if="media.isCover" class="absolute top-1 left-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none bg-gradient-to-r from-[#162d6e] via-blue-800 to-blue-700 dark:from-sky-500 dark:via-sky-400 dark:to-cyan-400">COVER</div>
+          <div v-if="media.isCover" class="absolute top-1 left-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm pointer-events-none bg-gradient-to-r from-[#162d6e] via-blue-800 to-blue-700 dark:from-sky-500 dark:via-sky-400 dark:to-cyan-400">COVER</div>
         </div>
 
         <!-- Hover actions -->
@@ -81,7 +81,7 @@ function triggerFileInput() {
             type="button"
             title="Jadikan cover"
             @click.stop="emit('set-cover', index)"
-            class="bg-white rounded-full p-1 shadow hover:bg-yellow-50"
+            class="bg-white rounded-full p-1 shadow-sm hover:bg-yellow-50"
           >
             <svg class="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           </button>
@@ -90,7 +90,7 @@ function triggerFileInput() {
             type="button"
             title="Pilih thumbnail"
             @click.stop="emit('open-thumb-picker', index)"
-            class="bg-white dark:bg-gray-700 rounded-full p-1 shadow hover:bg-blue-50 dark:hover:bg-gray-600"
+            class="bg-white dark:bg-gray-700 rounded-full p-1 shadow-sm hover:bg-blue-50 dark:hover:bg-gray-600"
           >
             <svg class="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
           </button>
@@ -98,7 +98,7 @@ function triggerFileInput() {
             type="button"
             title="Hapus"
             @click.stop="emit('remove', index)"
-            class="bg-white rounded-full p-1 shadow hover:bg-red-50"
+            class="bg-white rounded-full p-1 shadow-sm hover:bg-red-50"
           >
             <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>

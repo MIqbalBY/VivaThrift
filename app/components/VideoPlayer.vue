@@ -231,7 +231,7 @@ onMounted(() => {
       class="absolute inset-0 flex items-center justify-center cursor-pointer"
       @click="togglePlay"
     >
-      <div class="w-14 h-14 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+      <div class="w-14 h-14 rounded-full bg-black/50 backdrop-blur-xs flex items-center justify-center">
         <svg class="w-7 h-7 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8 5v14l11-7z" />
         </svg>
@@ -255,7 +255,7 @@ onMounted(() => {
           :style="{ width: progressPct + '%' }"
         />
         <div
-          class="absolute top-1/2 w-3 h-3 bg-white rounded-full shadow opacity-0 group-hover/prog:opacity-100 transition-opacity pointer-events-none"
+          class="absolute top-1/2 w-3 h-3 bg-white rounded-full shadow-sm opacity-0 group-hover/prog:opacity-100 transition-opacity pointer-events-none"
           :style="{ left: progressPct + '%', transform: 'translate(-50%, -50%)' }"
         />
       </div>
@@ -290,7 +290,7 @@ onMounted(() => {
             leave-active-class="transition duration-100"
             leave-to-class="opacity-0 scale-95"
           >
-            <div v-if="showSpeedMenu" class="absolute bottom-full mb-2 right-1/2 translate-x-1/2 bg-gray-900/95 backdrop-blur rounded-lg py-1 shadow-lg min-w-[4rem]">
+            <div v-if="showSpeedMenu" class="absolute bottom-full mb-2 right-1/2 translate-x-1/2 bg-gray-900/95 backdrop-blur-sm rounded-lg py-1 shadow-lg min-w-[4rem]">
               <button
                 v-for="s in speedOptions" :key="s"
                 @click="setSpeed(s)"

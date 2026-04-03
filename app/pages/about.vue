@@ -105,10 +105,10 @@ const values = [
           </p>
           <!-- Tag chips -->
           <div class="vt-hero-enter vt-hero-enter-d4 flex flex-wrap gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">🛍️ Preloved Berkualitas</span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">♻️ Ekonomi Sirkular</span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">🔐 Khusus Mahasiswa ITS</span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur border border-white/15 text-white/75">💸 Harga Mahasiswa</span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">🛍️ Preloved Berkualitas</span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">♻️ Ekonomi Sirkular</span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">🔐 Khusus Mahasiswa ITS</span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">💸 Harga Mahasiswa</span>
           </div>
         </div>
       </section>

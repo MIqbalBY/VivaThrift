@@ -199,7 +199,7 @@ async function handleResetPassword() {
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="Minimal 6 karakter"
                 autocomplete="new-password"
-                class="w-full px-3 py-1.5 pr-9 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+                class="w-full px-3 py-1.5 pr-9 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
                 :disabled="isLoading"
               />
               <button type="button" @click="showPassword = !showPassword" tabindex="-1" class="absolute right-1 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors p-1">
@@ -223,7 +223,7 @@ async function handleResetPassword() {
                 :type="showConfirmPassword ? 'text' : 'password'"
                 placeholder="Ketik ulang password baru"
                 autocomplete="new-password"
-                class="w-full px-3 py-1.5 pr-9 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+                class="w-full px-3 py-1.5 pr-9 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
                 :disabled="isLoading"
               />
               <button type="button" @click="showConfirmPassword = !showConfirmPassword" tabindex="-1" class="absolute right-1 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors p-1">

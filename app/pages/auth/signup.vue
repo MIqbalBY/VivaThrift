@@ -146,7 +146,7 @@ async function handleSignup() {
     <button
       @click="toggleDark"
       :aria-label="isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'"
-      class="absolute top-5 right-5 z-20 w-9 h-9 rounded-full flex items-center justify-center transition backdrop-blur-sm"
+      class="absolute top-5 right-5 z-20 w-9 h-9 rounded-full flex items-center justify-center transition backdrop-blur-xs"
       :style="isDark ? 'background: rgba(255,255,255,0.12)' : 'background: rgba(255,255,255,0.20)'"
     >
       <svg v-if="isDark" class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -228,7 +228,7 @@ async function handleSignup() {
             type="text"
             placeholder="Nama Lengkap"
             autocomplete="name"
-            class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+            class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
             :disabled="isLoading"
           />
         </div>
@@ -242,7 +242,7 @@ async function handleSignup() {
               type="text"
               placeholder="Username (misal: john.doe)"
               autocomplete="off"
-              class="w-full pr-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+              class="w-full pr-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
               style="padding-left: 1.75rem"
               :disabled="isLoading"
               maxlength="30"
@@ -259,7 +259,7 @@ async function handleSignup() {
             type="text"
             placeholder="NRP (Nomor Registrasi Pokok)"
             autocomplete="off"
-            class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+            class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
             :disabled="isLoading"
           />
         </div>
@@ -269,7 +269,7 @@ async function handleSignup() {
           <div class="relative">
             <select
               v-model="faculty"
-              class="w-full pl-3 py-1.5 pr-7 text-sm bg-transparent focus:outline-none appearance-none cursor-pointer"
+              class="w-full pl-3 py-1.5 pr-7 text-sm bg-transparent focus:outline-hidden appearance-none cursor-pointer"
               :class="faculty ? 'text-white' : 'text-white/50'"
               :disabled="isLoading"
             >
@@ -287,7 +287,7 @@ async function handleSignup() {
           <div class="relative">
             <select
               v-model="department"
-              class="w-full pl-3 py-1.5 pr-7 text-sm bg-transparent focus:outline-none appearance-none transition-colors"
+              class="w-full pl-3 py-1.5 pr-7 text-sm bg-transparent focus:outline-hidden appearance-none transition-colors"
               :class="[
                 department ? 'text-white' : 'text-white/50',
                 (!faculty || isLoading) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
@@ -308,7 +308,7 @@ async function handleSignup() {
           <div class="relative">
             <select
               v-model="gender"
-              class="w-full pl-3 py-1.5 pr-7 text-sm bg-transparent focus:outline-none appearance-none cursor-pointer"
+              class="w-full pl-3 py-1.5 pr-7 text-sm bg-transparent focus:outline-hidden appearance-none cursor-pointer"
               :class="gender ? 'text-white' : 'text-white/50'"
               :disabled="isLoading"
             >
@@ -355,7 +355,7 @@ async function handleSignup() {
             type="email"
             placeholder="Email ITS (@student.its.ac.id)"
             autocomplete="email"
-            class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+            class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
             :disabled="isLoading"
           />
         </div>
@@ -367,7 +367,7 @@ async function handleSignup() {
             :type="showPassword ? 'text' : 'password'"
             placeholder="Password (min. 6 karakter)"
             autocomplete="new-password"
-            class="w-full px-3 py-1.5 pr-9 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+            class="w-full px-3 py-1.5 pr-9 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
             :disabled="isLoading"
           />
           <button type="button" @click="showPassword = !showPassword" tabindex="-1" class="absolute right-1 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors p-1">
@@ -388,7 +388,7 @@ async function handleSignup() {
             :type="showConfirmPassword ? 'text' : 'password'"
             placeholder="Konfirmasi Password"
             autocomplete="new-password"
-            class="w-full px-3 py-1.5 pr-9 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+            class="w-full px-3 py-1.5 pr-9 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
             :disabled="isLoading"
           />
           <button type="button" @click="showConfirmPassword = !showConfirmPassword" tabindex="-1" class="absolute right-1 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors p-1">

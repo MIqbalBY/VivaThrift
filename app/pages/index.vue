@@ -246,7 +246,7 @@ watch([activeCategory, activeSearch, activeCondition, activeSort, activeNegotiab
             </button>
             <button
               @click="handleSell"
-              class="vt-btn-outline px-8 py-3 rounded-full border-2 font-bold bg-white/90 backdrop-blur-sm hover:bg-blue-50 transition hover:-translate-y-0.5"
+              class="vt-btn-outline px-8 py-3 rounded-full border-2 font-bold bg-white/90 backdrop-blur-xs hover:bg-blue-50 transition hover:-translate-y-0.5"
             :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc; background: rgba(15,23,42,0.60);' : 'border-color: #1e3a8a; color: #1e3a8a;'"
             >
               Jual Barang
@@ -302,7 +302,7 @@ watch([activeCategory, activeSearch, activeCondition, activeSort, activeNegotiab
           <select
             :value="activeSort"
             @change="setSort($event.target.value)"
-            class="vt-sort-select text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-900/20 cursor-pointer"
+            class="vt-sort-select text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:border-blue-400 focus:outline-hidden focus:ring-2 focus:ring-blue-900/20 cursor-pointer"
           >
             <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>

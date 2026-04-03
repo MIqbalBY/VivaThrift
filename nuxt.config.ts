@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   site: {
@@ -5,6 +7,7 @@ export default defineNuxtConfig({
     name: 'VivaThrift',
   },
   css: [
+    '~/assets/css/tailwind.css',
     '~/assets/css/fonts.css',
     '~/assets/css/variables.css',
     '~/assets/css/dark-overrides.css',
@@ -15,7 +18,6 @@ export default defineNuxtConfig({
   devServer: { port: 3004 },
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
   modules: [
-    '@nuxtjs/tailwindcss',
     '@nuxtjs/supabase',
     '@nuxt/image',
     '@nuxt/fonts',
@@ -24,12 +26,16 @@ export default defineNuxtConfig({
     '@nuxtjs/sitemap',
     '@nuxtjs/robots',
   ],
+  vite: {
+    plugins: [tailwindcss()],
+  },
   supabase: {
     redirect: false
   },
   image: {
     quality: 80,
     format: ['webp', 'avif'],
+    domains: ['jwnisdkjgqnoergsoorf.supabase.co'],
   },
   fonts: {
     families: [
@@ -54,11 +60,15 @@ export default defineNuxtConfig({
     }
   },
   routeRules: {
-    '/': { isr: 3600 },
-    '/products/**': { isr: 1800 },
-    '/profile/**': { isr: 1200 },
     '/about': { prerender: true },
     '/img/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
+  },
+  $production: {
+    routeRules: {
+      '/': { isr: 3600 },
+      '/products/**': { isr: 1800 },
+      '/profile/**': { isr: 1200 },
+    },
   },
   nitro: {
     compressPublicAssets: true,
@@ -72,8 +82,5 @@ export default defineNuxtConfig({
   },
   robots: {
     disallow: ['/auth/', '/chat/', '/checkout', '/profile/edit', '/products/create', '/products/edit/'],
-  },
-  experimental: {
-    payloadExtraction: true,
   },
 })

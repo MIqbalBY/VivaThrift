@@ -23,12 +23,12 @@ const emit = defineEmits(['toggle-setting'])
       </div>
       <button
         @click="emit('toggle-setting', 'chat_popup')"
-        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-hidden"
         :style="userSettings.chat_popup ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
         :class="!userSettings.chat_popup ? 'bg-gray-300 dark:bg-slate-600' : ''"
         role="switch" :aria-checked="userSettings.chat_popup"
       >
-        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.chat_popup ? 'translate-x-5' : 'translate-x-0'" />
+        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out" :class="userSettings.chat_popup ? 'translate-x-5' : 'translate-x-0'" />
       </button>
     </div>
 
@@ -42,12 +42,12 @@ const emit = defineEmits(['toggle-setting'])
       </div>
       <button
         @click="emit('toggle-setting', 'read_receipts')"
-        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-hidden"
         :style="userSettings.read_receipts ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
         :class="!userSettings.read_receipts ? 'bg-gray-300 dark:bg-slate-600' : ''"
         role="switch" :aria-checked="userSettings.read_receipts"
       >
-        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.read_receipts ? 'translate-x-5' : 'translate-x-0'" />
+        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out" :class="userSettings.read_receipts ? 'translate-x-5' : 'translate-x-0'" />
       </button>
     </div>
 
@@ -61,12 +61,12 @@ const emit = defineEmits(['toggle-setting'])
       </div>
       <button
         @click="emit('toggle-setting', 'show_online')"
-        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-hidden"
         :style="userSettings.show_online ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
         :class="!userSettings.show_online ? 'bg-gray-300 dark:bg-slate-600' : ''"
         role="switch" :aria-checked="userSettings.show_online"
       >
-        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.show_online ? 'translate-x-5' : 'translate-x-0'" />
+        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out" :class="userSettings.show_online ? 'translate-x-5' : 'translate-x-0'" />
       </button>
     </div>
   </div>
@@ -86,12 +86,12 @@ const emit = defineEmits(['toggle-setting'])
       </div>
       <button
         @click="emit('toggle-setting', 'notif_product')"
-        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none"
+        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-hidden"
         :style="userSettings.notif_product ? (isDark ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background: linear-gradient(135deg,#1e3a8a,#2563eb)') : ''"
         :class="!userSettings.notif_product ? 'bg-gray-300 dark:bg-slate-600' : ''"
         role="switch" :aria-checked="userSettings.notif_product"
       >
-        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="userSettings.notif_product ? 'translate-x-5' : 'translate-x-0'" />
+        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out" :class="userSettings.notif_product ? 'translate-x-5' : 'translate-x-0'" />
       </button>
     </div>
   </div>

@@ -33,7 +33,7 @@ function applyFormat(marker) {
       v-model="form.title"
       type="text"
       placeholder="Contoh: Buku Kalkulus 1 edisi 2024"
-      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-900 focus:border-transparent"
       :disabled="disabled"
     />
   </div>
@@ -46,7 +46,7 @@ function applyFormat(marker) {
       type="number"
       min="0"
       placeholder="Contoh: 75000"
-      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-900 focus:border-transparent"
       :disabled="disabled"
     />
     <div class="flex flex-col gap-1.5 mt-2">
@@ -69,7 +69,7 @@ function applyFormat(marker) {
       type="number"
       min="0"
       placeholder="Jumlah unit tersedia"
-      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-900 focus:border-transparent"
       :disabled="disabled"
     />
     <slot name="stock-help" />
@@ -80,7 +80,7 @@ function applyFormat(marker) {
     <label class="block text-sm font-semibold text-gray-700 mb-1">🔍 Kondisi <span class="text-red-500">*</span></label>
     <select
       v-model="form.condition"
-      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-900 focus:border-transparent"
       :disabled="disabled"
     >
       <option value="" disabled>Pilih kondisi barang</option>
@@ -93,7 +93,7 @@ function applyFormat(marker) {
     <label class="block text-sm font-semibold text-gray-700 mb-1">🏷️ Kategori <span class="text-red-500">*</span></label>
     <select
       v-model="form.category_id"
-      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-900 focus:border-transparent"
       :disabled="disabled"
     >
       <option value="">Pilih kategori</option>
@@ -105,16 +105,16 @@ function applyFormat(marker) {
   <div>
     <label class="block text-sm font-semibold text-gray-700 mb-1">Deskripsi <span class="text-red-500">*</span></label>
     <div class="flex items-center gap-1 mb-1">
-      <button type="button" @click="applyFormat('**')" title="Bold" class="px-2 py-1 rounded border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 transition"><b>B</b></button>
-      <button type="button" @click="applyFormat('*')" title="Italic" class="px-2 py-1 rounded border border-gray-300 text-xs text-gray-700 hover:bg-gray-100 transition"><i>I</i></button>
-      <span class="text-[10px] text-gray-400 ml-1">**bold** &nbsp;*italic* &nbsp;·&nbsp; awali baris dengan <code class="bg-gray-100 px-1 rounded">-</code> untuk bullet</span>
+      <button type="button" @click="applyFormat('**')" title="Bold" class="px-2 py-1 rounded-sm border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 transition"><b>B</b></button>
+      <button type="button" @click="applyFormat('*')" title="Italic" class="px-2 py-1 rounded-sm border border-gray-300 text-xs text-gray-700 hover:bg-gray-100 transition"><i>I</i></button>
+      <span class="text-[10px] text-gray-400 ml-1">**bold** &nbsp;*italic* &nbsp;·&nbsp; awali baris dengan <code class="bg-gray-100 px-1 rounded-sm">-</code> untuk bullet</span>
     </div>
     <textarea
       ref="descTextarea"
       v-model="form.description"
       :rows="descriptionRows"
       placeholder="Jelaskan kondisi, kelengkapan, alasan jual, dsb."
-      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent resize-none"
+      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-900 focus:border-transparent resize-none"
       :disabled="disabled"
     ></textarea>
   </div>

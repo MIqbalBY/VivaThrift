@@ -50,7 +50,7 @@ const emit = defineEmits([
         @keydown="emit('input-keydown', $event)"
         rows="1"
         placeholder="Ketik pesan..."
-        class="flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm outline-none border transition text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border-gray-200 dark:border-white/10 focus:border-blue-400 dark:focus:border-blue-500"
+        class="flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm outline-hidden border transition text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border-gray-200 dark:border-white/10 focus:border-blue-400 dark:focus:border-blue-500"
         :style="isDark ? 'max-height: 120px; background: rgba(255,255,255,0.07);' : 'max-height: 120px; background: rgba(255,255,255,0.8);'"
       />
 

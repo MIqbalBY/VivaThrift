@@ -89,25 +89,25 @@ async function save() {
           <!-- Judul -->
           <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold text-gray-600">Judul Produk</label>
-            <input v-model="editForm.title" type="text" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" placeholder="Judul produk" />
+            <input v-model="editForm.title" type="text" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-300 bg-white" placeholder="Judul produk" />
           </div>
 
           <!-- Harga -->
           <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold text-gray-600">Harga (Rp)</label>
-            <input v-model="editForm.price" type="number" min="0" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" placeholder="0" />
+            <input v-model="editForm.price" type="number" min="0" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-300 bg-white" placeholder="0" />
           </div>
 
           <!-- Stok -->
           <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold text-gray-600">Stok</label>
-            <input v-model="editForm.stock" type="number" min="0" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white" placeholder="Jumlah unit tersedia" />
+            <input v-model="editForm.stock" type="number" min="0" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-300 bg-white" placeholder="Jumlah unit tersedia" />
           </div>
 
           <!-- Kondisi -->
           <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold text-gray-600">Kondisi</label>
-            <select v-model="editForm.condition" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white">
+            <select v-model="editForm.condition" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-300 bg-white">
               <option v-for="c in CONDITIONS" :key="c.value" :value="c.value">{{ c.label }}</option>
             </select>
           </div>
@@ -115,11 +115,11 @@ async function save() {
           <!-- Opsi -->
           <div class="flex gap-6">
             <label class="flex items-center gap-2 cursor-pointer select-none">
-              <input v-model="editForm.is_negotiable" type="checkbox" class="w-4 h-4 rounded accent-blue-800" />
+              <input v-model="editForm.is_negotiable" type="checkbox" class="w-4 h-4 rounded-sm accent-blue-800" />
               <span class="text-sm text-gray-700">🤝 Bisa Nego</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer select-none">
-              <input v-model="editForm.is_cod" type="checkbox" class="w-4 h-4 rounded accent-blue-800" />
+              <input v-model="editForm.is_cod" type="checkbox" class="w-4 h-4 rounded-sm accent-blue-800" />
               <span class="text-sm text-gray-700">🚲 COD</span>
             </label>
           </div>
@@ -127,7 +127,7 @@ async function save() {
           <!-- Deskripsi -->
           <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold text-gray-600">Deskripsi</label>
-            <textarea v-model="editForm.description" rows="10" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white resize-none" placeholder="Tulis deskripsi produk..."></textarea>
+            <textarea v-model="editForm.description" rows="10" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-300 bg-white resize-none" placeholder="Tulis deskripsi produk..."></textarea>
           </div>
 
           <!-- Error -->

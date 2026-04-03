@@ -39,7 +39,7 @@ const emit = defineEmits([
             type="number"
             min="1"
             placeholder="Masukkan harga"
-            class="w-full rounded-xl px-4 py-2.5 text-sm outline-none transition"
+            class="w-full rounded-xl px-4 py-2.5 text-sm outline-hidden transition"
             :class="isDark
               ? 'bg-white/10 border border-white/10 text-white placeholder-gray-500 focus:border-blue-400'
               : 'border border-gray-200 text-gray-900 focus:border-blue-400'"

@@ -27,7 +27,7 @@ const emit = defineEmits(['update:searchQuery', 'go-result', 'toggle-search'])
           @input="emit('update:searchQuery', $event.target.value)"
           type="text"
           placeholder="Cari pesan..."
-          class="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
+          class="flex-1 bg-transparent outline-hidden text-sm placeholder-gray-400"
           :class="isDark ? 'text-white' : 'text-gray-800'"
           @keydown.enter.prevent="emit('go-result', 'next')"
           @keydown.escape="emit('toggle-search')"
@@ -37,10 +37,10 @@ const emit = defineEmits(['update:searchQuery', 'go-result', 'toggle-search'])
         </button>
       </div>
       <span v-if="searchQuery.trim()" class="text-xs font-medium shrink-0" :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ searchTotal ? `${searchCurrentIdx + 1}/${searchTotal}` : '0/0' }}</span>
-      <button @click="emit('go-result', 'prev')" :disabled="!searchTotal" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 transition disabled:opacity-30" title="Sebelumnya">
+      <button @click="emit('go-result', 'prev')" :disabled="!searchTotal" class="p-1 rounded-sm hover:bg-gray-100 dark:hover:bg-white/10 transition disabled:opacity-30" title="Sebelumnya">
         <svg class="w-4 h-4" :class="isDark ? 'text-gray-300' : 'text-gray-600'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
       </button>
-      <button @click="emit('go-result', 'next')" :disabled="!searchTotal" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 transition disabled:opacity-30" title="Berikutnya">
+      <button @click="emit('go-result', 'next')" :disabled="!searchTotal" class="p-1 rounded-sm hover:bg-gray-100 dark:hover:bg-white/10 transition disabled:opacity-30" title="Berikutnya">
         <svg class="w-4 h-4" :class="isDark ? 'text-gray-300' : 'text-gray-600'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
       </button>
     </div>

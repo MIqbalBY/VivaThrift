@@ -232,11 +232,11 @@ function highlightText(text, query) {
               @keydown.enter.prevent="emit('save-edit')"
               @keydown.esc="emit('cancel-edit')"
               rows="2"
-              class="w-full rounded-lg px-2.5 py-1.5 outline-none resize-none text-sm bg-white/20 border border-white/30 placeholder-white/50 text-white"
+              class="w-full rounded-lg px-2.5 py-1.5 outline-hidden resize-none text-sm bg-white/20 border border-white/30 placeholder-white/50 text-white"
             />
             <div class="flex gap-1 mt-1 justify-end">
-              <button @click="emit('cancel-edit')" class="text-[11px] px-2 py-0.5 rounded opacity-60 hover:opacity-100 transition">Batal</button>
-              <button @click="emit('save-edit')" class="text-[11px] px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 border border-white/20 transition font-medium">Simpan</button>
+              <button @click="emit('cancel-edit')" class="text-[11px] px-2 py-0.5 rounded-sm opacity-60 hover:opacity-100 transition">Batal</button>
+              <button @click="emit('save-edit')" class="text-[11px] px-2 py-0.5 rounded-sm bg-white/20 hover:bg-white/30 border border-white/20 transition font-medium">Simpan</button>
             </div>
           </template>
           <!-- Normal content -->

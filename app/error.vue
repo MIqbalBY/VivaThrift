@@ -98,7 +98,7 @@ const particles = Array.from({ length: 6 }, (_, i) => ({
             alt="Halaman tidak ditemukan"
             width="240"
             height="240"
-            class="w-52 sm:w-60 h-auto mx-auto drop-shadow-sm"
+            class="w-52 sm:w-60 h-auto mx-auto drop-shadow-xs"
           />
           <img
             v-else
@@ -106,7 +106,7 @@ const particles = Array.from({ length: 6 }, (_, i) => ({
             alt="Terjadi kesalahan"
             width="240"
             height="240"
-            class="w-48 sm:w-56 h-auto mx-auto drop-shadow-sm"
+            class="w-48 sm:w-56 h-auto mx-auto drop-shadow-xs"
           />
         </div>
 

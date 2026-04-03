@@ -27,7 +27,7 @@ function handleOutsideClick(e: MouseEvent) {
         v-model="searchQuery"
         type="text"
         placeholder="Cari di VivaThrift"
-        class="vt-search-input flex-1 px-4 py-2.5 text-sm text-gray-800 bg-transparent focus:outline-none placeholder-gray-400"
+        class="vt-search-input flex-1 px-4 py-2.5 text-sm text-gray-800 bg-transparent focus:outline-hidden placeholder-gray-400"
         @focus="showSearchDropdown = true"
         @keydown.escape="showSearchDropdown = false"
         autocomplete="off"
@@ -87,7 +87,7 @@ function handleOutsideClick(e: MouseEvent) {
               @click="selectSuggestion(product)"
               class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
             >
-              <div class="w-9 h-9 rounded shrink-0 overflow-hidden bg-gray-100">
+              <div class="w-9 h-9 rounded-sm shrink-0 overflow-hidden bg-gray-100">
                 <img v-if="getSuggestionImage(product)" :src="getSuggestionImage(product)" width="40" height="40" loading="lazy" class="w-full h-full object-cover" />
                 <div v-else class="w-full h-full bg-gray-200"></div>
               </div>

@@ -59,7 +59,7 @@ async function handleResetRequest() {
     <button
       @click="toggleDark"
       :aria-label="isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'"
-      class="absolute top-5 right-5 z-20 w-9 h-9 rounded-full flex items-center justify-center transition backdrop-blur-sm"
+      class="absolute top-5 right-5 z-20 w-9 h-9 rounded-full flex items-center justify-center transition backdrop-blur-xs"
       :style="isDark ? 'background: rgba(255,255,255,0.12)' : 'background: rgba(255,255,255,0.20)'"
     >
       <svg v-if="isDark" class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -161,7 +161,7 @@ async function handleResetRequest() {
             type="email"
             placeholder="Email ITS (@student.its.ac.id)"
             autocomplete="email"
-            class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-none"
+            class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
             :disabled="isLoading"
           />
         </div>

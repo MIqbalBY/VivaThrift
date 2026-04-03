@@ -175,7 +175,7 @@ const emit = defineEmits([
           class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 disabled:opacity-50"
           :class="syncAddress ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'"
         >
-          <span class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform" :class="syncAddress ? 'translate-x-6' : 'translate-x-1'"></span>
+          <span class="inline-block h-4 w-4 rounded-full bg-white shadow-sm transform transition-transform" :class="syncAddress ? 'translate-x-6' : 'translate-x-1'"></span>
         </button>
         <span class="text-sm vt-text-primary font-medium">Samakan dengan Alamat Pengiriman</span>
       </div>
