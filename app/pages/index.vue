@@ -123,7 +123,7 @@ const { data: products } = useAsyncData(
   () => `products-${activeCategory.value.join(',')}-${activeSearch.value ?? ''}-${activeCondition.value.join(',')}-${activeSort.value}-${activeNegotiable.value ?? ''}-${activeCod.value ?? ''}`,
   async () => {
     const hasCatFilter = activeCategory.value.length > 0
-    const selectStr = `id, slug, title, price, condition, is_negotiable, is_cod, created_at, updated_at,
+    const selectStr = `id, slug, title, price, condition, is_negotiable, is_cod, seller_id, created_at, updated_at,
       product_media ( media_url, media_type, thumbnail_url, is_primary ),
       users ( id, name, nrp, faculty, department, avatar_url, gender ),
       ${hasCatFilter ? 'categories!inner(name)' : 'categories(name)'}`
@@ -188,9 +188,11 @@ function updateGridCols() {
   else if (w >= 640)  gridCols.value = 2
   else gridCols.value = 1
 }
+const { fetchWishlist } = useWishlist()
 onMounted(() => {
   updateGridCols()
   window.addEventListener('resize', updateGridCols)
+  if (user.value) fetchWishlist()
 })
 onUnmounted(() => window.removeEventListener('resize', updateGridCols))
 

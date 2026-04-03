@@ -193,7 +193,7 @@ watch(user, (u) => {
 
       <!-- ══ TAB: PROFIL ═══════════════════════════════════════════════════ -->
       <template v-if="activeTab === 'profile'">
-        <TabProfile
+        <ProfileTabProfile
           :name="name" :username="username" :faculty="faculty" :department="department"
           :avatarUrl="avatarUrl" :nrp="nrp" :email="email" :phone="phone"
           :gender="gender" :bio="bio"
@@ -214,7 +214,7 @@ watch(user, (u) => {
 
       <!-- ══ TAB: ALAMAT ═══════════════════════════════════════════════════ -->
       <template v-else-if="activeTab === 'address'">
-        <TabAddress
+        <ProfileTabAddress
           :addrLoading="addrLoading" :addrSaving="addrSaving"
           :addrMsg="addrMsg" :addrMsgType="addrMsgType"
           :addrDeleting="addrDeleting" :gpsLoading="gpsLoading"
@@ -238,7 +238,7 @@ watch(user, (u) => {
 
       <!-- ══ TAB: KEAMANAN ═════════════════════════════════════════════════ -->
       <template v-else-if="activeTab === 'security'">
-        <TabSecurity
+        <ProfileTabSecurity
           :pwOld="pwOld" :pwNew="pwNew" :pwConfirm="pwConfirm"
           :pwSaving="pwSaving" :pwMsg="pwMsg" :pwMsgType="pwMsgType"
           :showPwOld="showPwOld" :showPwNew="showPwNew" :showPwConfirm="showPwConfirm"
@@ -254,7 +254,7 @@ watch(user, (u) => {
 
       <!-- ══ TAB: NOTIFIKASI ═══════════════════════════════════════════════ -->
       <template v-else-if="activeTab === 'notifications'">
-        <TabNotifications
+        <ProfileTabNotifications
           :userSettings="userSettings"
           :isDark="isDark"
           @toggle-setting="toggleSetting"

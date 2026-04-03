@@ -54,7 +54,7 @@ const subtotal = computed(() => (props.price * qty.value).toLocaleString('id-ID'
     <!-- Tombol aksi -->
     <div class="flex gap-3">
       <button
-        @click="emit('add-to-cart')"
+        @click="emit('add-to-cart', qty)"
         :disabled="isOutOfStock"
         class="vt-btn-primary flex-1 py-3 rounded-xl text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed transition hover:opacity-90 hover:shadow-lg text-sm inline-flex items-center justify-center gap-1.5"
         style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);"
@@ -63,7 +63,7 @@ const subtotal = computed(() => (props.price * qty.value).toLocaleString('id-ID'
         Keranjang
       </button>
       <button
-        @click="emit('buy-now')"
+        @click="emit('buy-now', qty)"
         :disabled="isOutOfStock"
         class="vt-buy-outline-btn flex-1 py-3 rounded-xl border-2 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition text-sm"
         :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc;' : 'border-color: #1e3a8a; color: #1e3a8a;'"
@@ -76,10 +76,11 @@ const subtotal = computed(() => (props.price * qty.value).toLocaleString('id-ID'
     <!-- Toast -->
     <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 -translate-y-1" leave-active-class="transition duration-150" leave-to-class="opacity-0">
       <p v-if="cartMsg" class="text-center text-sm font-medium"
-        :class="cartMsg === 'copied' ? 'text-gray-500' : 'text-green-600'">
+        :class="['cart', 'buy', 'copied'].includes(cartMsg) ? (cartMsg === 'copied' ? 'text-gray-500' : 'text-green-600') : 'text-red-500'">
         <template v-if="cartMsg === 'cart'">✅ Ditambahkan ke keranjang!</template>
-        <template v-else-if="cartMsg === 'buy'">✅ Mengarahkan ke checkout...</template>
+        <template v-else-if="cartMsg === 'buy'">✅ Mengarahkan ke keranjang...</template>
         <template v-else-if="cartMsg === 'copied'">🔗 Link disalin!</template>
+        <template v-else>⚠️ {{ cartMsg }}</template>
       </p>
     </Transition>
   </div>

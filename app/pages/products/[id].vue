@@ -135,8 +135,22 @@ const productDateLabel = computed(() => {
 const stock = computed(() => product.value?.stock ?? null)
 const isOutOfStock = computed(() => product.value?.status === 'sold' || (stock.value !== null && stock.value <= 0))
 
+// ── Cart ─────────────────────────────────────────────────────────
+const { addToCart: doAddToCart, cartOpen } = useCart()
+
+// ── Wishlist ─────────────────────────────────────────────────────
+const { isWishlisted, toggleWishlist: doToggleWishlist, fetchWishlist } = useWishlist()
+const wishlistLoading = ref(false)
+
+async function toggleWishlist() {
+  if (!currentUser.value) return navigateTo('/auth/signin')
+  if (!product.value?.id) return
+  wishlistLoading.value = true
+  await doToggleWishlist(product.value.id)
+  wishlistLoading.value = false
+}
+
 // ── Actions ──────────────────────────────────────────────────────
-const wishlist = ref(false)
 const cartMsg = ref('')
 const chatLoading = ref(false)
 const chatError = ref('')
@@ -177,15 +191,25 @@ async function openChat() {
   }
 }
 
-function addToCart() {
-  cartMsg.value = 'cart'
-  setTimeout(() => cartMsg.value = '', 2500)
+async function addToCart(qty = 1) {
+  if (!currentUser.value) return navigateTo('/auth/signin')
+  const result = await doAddToCart(product.value.id, qty)
+  if (!result.success && result.message === 'login') return navigateTo('/auth/signin')
+  cartMsg.value = result.success ? 'cart' : 'error'
+  if (!result.success) cartMsg.value = result.message
+  setTimeout(() => cartMsg.value = '', 3000)
+  if (result.success) cartOpen.value = true
 }
-function buyNow() {
-  cartMsg.value = 'buy'
-  setTimeout(() => cartMsg.value = '', 2500)
+async function buyNow(qty = 1) {
+  if (!currentUser.value) return navigateTo('/auth/signin')
+  const result = await doAddToCart(product.value.id, qty)
+  if (result.success) {
+    await navigateTo('/cart')
+  } else {
+    cartMsg.value = result.message
+    setTimeout(() => cartMsg.value = '', 3000)
+  }
 }
-function toggleWishlist() { wishlist.value = !wishlist.value }
 function shareProduct() {
   if (navigator.share) {
     navigator.share({ title: product.value?.title, url: window.location.href })
@@ -212,6 +236,7 @@ onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
   currentUserId.value = session?.user?.id ?? currentUser.value?.id ?? null
   fetchSellerAddressAndDistance(currentUserId.value)
+  if (currentUserId.value) fetchWishlist()
 })
 </script>
 
@@ -253,9 +278,9 @@ onMounted(async () => {
             <span>Chat</span>
           </button>
           <div class="vt-action-bar-divider w-px self-stretch" :style="isDark ? 'background: rgba(255,255,255,0.10)' : 'background: rgba(30,58,138,0.12)'"></div>
-          <button @click="toggleWishlist" class="flex-1 flex flex-col items-center gap-1 py-3 transition" :class="[wishlist ? 'text-red-500' : isDark ? 'text-gray-300' : 'text-gray-600', isDark ? 'hover:bg-white/10' : 'hover:bg-white/40']">
-            <svg class="w-5 h-5" :fill="wishlist ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
-            <span>{{ wishlist ? 'Disimpan' : 'Wishlist' }}</span>
+          <button @click="toggleWishlist" :disabled="wishlistLoading" class="flex-1 flex flex-col items-center gap-1 py-3 transition disabled:opacity-60" :class="[isWishlisted(product?.id) ? 'text-red-500' : isDark ? 'text-gray-300' : 'text-gray-600', isDark ? 'hover:bg-white/10' : 'hover:bg-white/40']">
+            <svg class="w-5 h-5" :fill="isWishlisted(product?.id) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+            <span>{{ isWishlisted(product?.id) ? 'Disimpan' : 'Wishlist' }}</span>
           </button>
           <div class="vt-action-bar-divider w-px self-stretch" :style="isDark ? 'background: rgba(255,255,255,0.10)' : 'background: rgba(30,58,138,0.12)'"></div>
           <button @click="shareProduct" class="flex-1 flex flex-col items-center gap-1 py-3 transition" :class="isDark ? 'text-gray-300 hover:bg-white/10' : 'text-gray-600 hover:bg-white/40'">

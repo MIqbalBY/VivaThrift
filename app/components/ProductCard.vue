@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const { isDark } = useDarkMode()
+const user = useSupabaseUser()
+const { isWishlisted, toggleWishlist } = useWishlist()
 
 const props = withDefaults(defineProps<{
   product: any
@@ -13,6 +15,20 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   (e: 'seller-click', userId: string): void
 }>()
+
+const isOwnProduct = computed(() => {
+  const sellerId = props.product.seller_id ?? props.product.users?.id
+  const userId = user.value?.id ?? user.value?.sub
+  return !!userId && sellerId === userId
+})
+
+async function onWishlistClick(e: Event) {
+  e.preventDefault()
+  e.stopPropagation()
+  if (!user.value) return navigateTo('/auth/signin')
+  if (isOwnProduct.value) return
+  await toggleWishlist(props.product.id)
+}
 </script>
 
 <template>
@@ -49,6 +65,21 @@ const emit = defineEmits<{
       <div v-if="isSold" class="absolute inset-0 flex items-center justify-center" style="background: rgba(0,0,0,0.45);">
         <span class="text-white text-xs font-bold px-2.5 py-1 rounded-full" style="background: rgba(239,68,68,0.85); letter-spacing:0.05em;">HABIS</span>
       </div>
+
+      <!-- Wishlist button top-right -->
+      <button
+        v-if="!isOwnProduct"
+        @click="onWishlistClick"
+        class="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition opacity-0 group-hover:opacity-100 shadow-sm"
+        :class="isWishlisted(product.id)
+          ? 'opacity-100 bg-white/90 text-red-500'
+          : isDark ? 'bg-slate-800/80 text-gray-400 hover:text-red-400' : 'bg-white/80 text-gray-400 hover:text-red-500'"
+        :title="isWishlisted(product.id) ? 'Hapus dari wishlist' : 'Simpan ke wishlist'"
+      >
+        <svg class="w-4 h-4" :fill="isWishlisted(product.id) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
+        </svg>
+      </button>
 
       <!-- Floating badges top-left -->
       <div class="absolute top-2 left-2 flex flex-col items-start gap-1">
