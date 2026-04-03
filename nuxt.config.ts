@@ -74,6 +74,7 @@ export default defineNuxtConfig({
     compressPublicAssets: true,
   },
   sitemap: {
+    sources: ['/api/__sitemap__/urls'],
     xslColumns: [
       { label: 'URL', width: '65%' },
       { label: 'Last Modified', select: 'sitemap:lastmod', width: '25%' },

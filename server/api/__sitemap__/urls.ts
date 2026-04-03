@@ -1,8 +1,8 @@
-import { defineEventHandler } from '#imports'
+import { defineSitemapEventHandler } from '#imports'
 import { serverSupabaseClient } from '#supabase/server'
-import type { H3Event } from 'h3'
+import type { SitemapUrlInput } from '#sitemap/types'
 
-export default defineEventHandler(async (event: H3Event) => {
+export default defineSitemapEventHandler(async (event) => {
   try {
     const supabase = await serverSupabaseClient(event)
 
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event: H3Event) => {
       priority: 0.5,
     }))
 
-    return [...productUrls, ...profileUrls]
+    return [...productUrls, ...profileUrls] satisfies SitemapUrlInput[]
   } catch (e) {
     console.error('[sitemap] Failed to fetch dynamic URLs:', e)
     return []
