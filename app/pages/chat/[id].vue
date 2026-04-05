@@ -44,7 +44,7 @@ const { data: { session } } = await supabase.auth.getSession()
 const currentUserId = ref(session?.user?.id ?? currentUser.value?.id ?? null)
 const myId = computed(() => currentUserId.value ?? currentUser.value?.id ?? null)
 
-if (!chat.value || !myId.value || chat.value.product?.status === 'deleted') {
+if (!chat.value || !myId.value) {
   await navigateTo('/chat')
 }
 

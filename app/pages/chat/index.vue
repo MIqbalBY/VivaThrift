@@ -15,7 +15,7 @@ const { data: chats, pending, refresh } = await useAsyncData('chats-list', async
   const { data } = await supabase
     .from('chats')
     .select(`
-      id, created_at,
+      id, created_at, buyer_hidden_at, seller_hidden_at,
       product:products ( id, title, slug, status, product_media ( media_url, media_type, thumbnail_url, is_primary ) ),
       buyer:users!buyer_id ( id, name, avatar_url ),
       seller:users!seller_id ( id, name, avatar_url ),
@@ -24,8 +24,20 @@ const { data: chats, pending, refresh } = await useAsyncData('chats-list', async
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
     .order('created_at', { ascending: false })
 
-  // Filter out orphaned rows (null buyer/seller) and chats for deleted products
-  const valid = (data ?? []).filter(chat => chat.buyer?.id && chat.seller?.id && chat.product && chat.product.status !== 'deleted')
+  // Filter out orphaned rows (null buyer/seller) and per-user hidden chats (WhatsApp-style)
+  const valid = (data ?? []).filter(chat => {
+    if (!chat.buyer?.id || !chat.seller?.id || !chat.product) return false
+    // Per-user hide: check if current user has hidden this chat
+    const iAmBuyer = userId === chat.buyer.id
+    const hiddenAt = iAmBuyer ? chat.buyer_hidden_at : chat.seller_hidden_at
+    if (hiddenAt) {
+      // Re-show if there are new messages after the hide timestamp
+      const msgs = chat.messages ?? []
+      const hasNewMsg = msgs.some(m => new Date(m.created_at) > new Date(hiddenAt))
+      if (!hasNewMsg) return false
+    }
+    return true
+  })
 
   // Enrich each chat with lastMessage only (unreadCount computed client-side via localStorage)
   const processed = valid.map(chat => {
@@ -166,6 +178,30 @@ function formatTime(iso) {
 function avatarInitials(name) {
   return (name ?? '?').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
+
+// ── WhatsApp-style per-user chat deletion ────────────────────────
+const confirmHideId = ref(null)
+const hiding = ref(false)
+
+async function hideChat(chatId) {
+  if (!userId || hiding.value) return
+  hiding.value = true
+  try {
+    const chat = chats.value?.find(c => c.id === chatId)
+    if (!chat) return
+    const col = userId === chat.buyer?.id ? 'buyer_hidden_at' : 'seller_hidden_at'
+    const { error } = await supabase
+      .from('chats')
+      .update({ [col]: new Date().toISOString() })
+      .eq('id', chatId)
+    if (!error) {
+      chats.value = chats.value.filter(c => c.id !== chatId)
+    }
+  } finally {
+    hiding.value = false
+    confirmHideId.value = null
+  }
+}
 </script>
 
 <template>
@@ -193,11 +229,10 @@ function avatarInitials(name) {
     </div>
 
     <div v-else class="flex flex-col gap-2">
-      <NuxtLink
+      <div
         v-for="chat in chats"
         :key="chat.id"
-        :to="`/chat/${chat.id}`"
-        class="flex items-center gap-3 px-4 py-3 rounded-2xl transition-shadow cursor-pointer"
+        class="relative flex items-center gap-3 px-4 py-3 rounded-2xl transition-shadow group"
         :class="(clientUnread[chat.id] ?? 0) > 0
           ? (isDark ? 'hover:bg-white/5' : 'hover:bg-blue-50/60')
           : (isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50')"
@@ -205,8 +240,10 @@ function avatarInitials(name) {
           ? 'background: rgba(15,25,50,0.70); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 2px 12px rgba(0,0,0,0.3);'
           : 'background: rgba(255,255,255,0.80); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 2px 12px rgba(30,58,138,0.07);'"
       >
+        <NuxtLink :to="`/chat/${chat.id}`" class="absolute inset-0 z-0" />
+
         <!-- Other party avatar -->
-        <div class="w-11 h-11 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold text-white"
+        <div class="w-11 h-11 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold text-white z-[1]"
           :style="isDark
             ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8);'
             : 'background: linear-gradient(135deg,#1e3a8a,#2563eb);'"
@@ -258,9 +295,53 @@ function avatarInitials(name) {
           <!-- Product title hint -->
           <p class="text-[10px] truncate mt-0.5" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
             {{ chat.product?.title }}
+            <span v-if="chat.product?.status === 'sold'" class="ml-1 text-red-400 font-medium">(Terjual)</span>
           </p>
         </div>
-      </NuxtLink>
+
+        <!-- Delete button (appears on hover) -->
+        <button
+          @click.prevent.stop="confirmHideId = chat.id"
+          class="relative z-[2] shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+          :class="isDark ? 'hover:bg-red-900/40 text-red-400' : 'hover:bg-red-50 text-red-400'"
+          title="Hapus chat"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </div>
     </div>
+
+    <!-- Confirm hide modal -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="confirmHideId" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" @click.self="confirmHideId = null">
+          <div class="w-full max-w-sm rounded-2xl p-6 shadow-xl"
+            :style="isDark
+              ? 'background: rgba(15,25,50,0.95); border: 1px solid rgba(255,255,255,0.10);'
+              : 'background: #fff; border: 1px solid rgba(0,0,0,0.06);'"
+          >
+            <h3 class="text-base font-bold mb-2" :class="isDark ? 'text-white' : 'text-gray-800'">Hapus chat ini?</h3>
+            <p class="text-sm mb-5" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+              Chat akan dihapus dari daftarmu. Pihak lain masih bisa melihat chat ini. Jika ada pesan baru, chat akan muncul kembali.
+            </p>
+            <div class="flex gap-3 justify-end">
+              <button
+                @click="confirmHideId = null"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition"
+                :class="isDark ? 'text-gray-300 hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'"
+              >Batal</button>
+              <button
+                @click="hideChat(confirmHideId)"
+                :disabled="hiding"
+                class="px-4 py-2 rounded-xl text-sm font-bold text-white transition disabled:opacity-50"
+                style="background: linear-gradient(to right, #dc2626, #ef4444);"
+              >{{ hiding ? 'Menghapus...' : 'Hapus' }}</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
