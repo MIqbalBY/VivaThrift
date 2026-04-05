@@ -45,13 +45,23 @@ function extractTokenFromCookies(event: H3Event): string | undefined {
 
     if (!raw) continue
 
+    // Handle `base64-` prefix encoding used by newer @nuxtjs/supabase
+    let decoded = raw
+    if (decoded.startsWith('base64-')) {
+      try {
+        decoded = Buffer.from(decoded.slice(7), 'base64').toString('utf-8')
+      } catch {
+        // If base64 decode fails, try raw value as-is
+      }
+    }
+
     try {
-      const parsed = JSON.parse(raw)
+      const parsed = JSON.parse(decoded)
       const token = typeof parsed === 'string' ? parsed : parsed?.access_token
       if (token) return token
     } catch {
-      // raw might be a plain JWT string
-      if (raw.includes('.')) return raw
+      // decoded might be a plain JWT string
+      if (decoded.includes('.')) return decoded
     }
   }
 
