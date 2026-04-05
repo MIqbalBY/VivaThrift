@@ -92,7 +92,8 @@ async function saveEdits() {
   errorMsg.value = ''
   if (!form.title.trim()) return (errorMsg.value = 'Judul barang wajib diisi.')
   if (!form.price || Number(form.price) <= 0) return (errorMsg.value = 'Harga harus lebih dari 0.')
-  if (!form.stock || Number(form.stock) < 1) return (errorMsg.value = 'Stok harus minimal 1.')
+  const stockNum = Number(form.stock)
+  if (isNaN(stockNum) || stockNum < 0) return (errorMsg.value = 'Stok tidak boleh negatif.')
   if (!form.condition) return (errorMsg.value = 'Kondisi barang wajib dipilih.')
   if (!form.category_id) return (errorMsg.value = 'Kategori wajib dipilih.')
   if (!form.description.trim()) return (errorMsg.value = 'Deskripsi wajib diisi.')
