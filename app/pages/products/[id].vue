@@ -197,7 +197,7 @@ async function openChat() {
 }
 
 async function addToCart(qty = 1) {
-  if (!currentUser.value) return navigateTo('/auth/signin')
+  if (!currentUserId.value) return navigateTo('/auth/signin')
   const result = await doAddToCart(product.value.id, qty)
   if (!result.success && result.message === 'login') return navigateTo('/auth/signin')
   cartMsg.value = result.success ? 'cart' : 'error'
@@ -206,7 +206,7 @@ async function addToCart(qty = 1) {
   if (result.success) cartOpen.value = true
 }
 async function buyNow(qty = 1) {
-  if (!currentUser.value) return navigateTo('/auth/signin')
+  if (!currentUserId.value) return navigateTo('/auth/signin')
   const result = await doAddToCart(product.value.id, qty)
   if (result.success) {
     await navigateTo('/cart')

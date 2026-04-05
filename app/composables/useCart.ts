@@ -30,22 +30,32 @@ export function useCart() {
   const cartOpen = useState<boolean>('cart-open', () => false)
   const cartLoading = ref(false)
 
+  // useSupabaseUser() can be null briefly while an ISR-cached page re-hydrates
+  // even when the user is logged in. Fall back to getSession() for auth checks
+  // inside async action functions.
+  async function resolveUid(): Promise<string | null> {
+    if (userId.value) return userId.value
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.user?.id ?? null
+  }
+
   const cartCount = computed(() => cartItems.value.reduce((sum, i) => sum + i.quantity, 0))
   const cartTotal = computed(() => cartItems.value.reduce((sum, i) => sum + (i.product?.price ?? 0) * i.quantity, 0))
 
   // Ensure the user has a cart row, return cart id
   async function ensureCart(): Promise<string | null> {
-    if (!userId.value) return null
+    const uid = await resolveUid()
+    if (!uid) return null
     const { data: existing } = await supabase
       .from('carts')
       .select('id')
-      .eq('user_id', userId.value)
+      .eq('user_id', uid)
       .maybeSingle()
     if (existing) return existing.id
 
     const { data: created } = await supabase
       .from('carts')
-      .insert({ user_id: userId.value })
+      .insert({ user_id: uid })
       .select('id')
       .single()
     return created?.id ?? null
@@ -81,7 +91,7 @@ export function useCart() {
   }
 
   async function addToCart(productId: string, quantity = 1): Promise<{ success: boolean; message: string }> {
-    if (!userId.value) return { success: false, message: 'login' }
+    if (!(await resolveUid())) return { success: false, message: 'login' }
 
     cartLoading.value = true
     try {

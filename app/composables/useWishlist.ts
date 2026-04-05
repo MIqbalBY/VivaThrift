@@ -10,15 +10,23 @@ export function useWishlist() {
 
   const userId = computed(() => user.value?.id ?? user.value?.sub ?? null)
 
+  // Fallback for ISR-cached pages where useSupabaseUser() may be null on hydration
+  async function resolveUid(): Promise<string | null> {
+    if (userId.value) return userId.value
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.user?.id ?? null
+  }
+
   async function fetchWishlist() {
-    if (!userId.value) {
+    const uid = await resolveUid()
+    if (!uid) {
       wishlistedIds.value = new Set()
       return
     }
     const { data } = await supabase
       .from('wishlists')
       .select('product_id')
-      .eq('user_id', userId.value)
+      .eq('user_id', uid)
     if (data) {
       wishlistedIds.value = new Set(data.map((w) => w.product_id))
     }
@@ -29,7 +37,8 @@ export function useWishlist() {
   }
 
   async function toggleWishlist(productId: string) {
-    if (!userId.value) return false
+    const uid = await resolveUid()
+    if (!uid) return false
 
     loading.value = true
     try {
@@ -37,7 +46,7 @@ export function useWishlist() {
         const { error } = await supabase
           .from('wishlists')
           .delete()
-          .eq('user_id', userId.value)
+          .eq('user_id', uid)
           .eq('product_id', productId)
         if (error) {
           console.error('[Wishlist] delete error:', error.message)
@@ -50,7 +59,7 @@ export function useWishlist() {
       } else {
         const { error } = await supabase
           .from('wishlists')
-          .insert({ user_id: userId.value, product_id: productId })
+          .insert({ user_id: uid, product_id: productId })
         if (error) {
           console.error('[Wishlist] insert error:', error.message)
           return false
