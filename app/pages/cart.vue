@@ -32,8 +32,9 @@ async function handleValidateAndCheckout() {
       return
     }
     await navigateTo('/cart/checkout')
-  } catch (e: any) {
-    checkoutError.value = e?.data?.statusMessage ?? e?.message ?? 'Terjadi kesalahan. Coba lagi.'
+  } catch (e) {
+    const err = e as any
+    checkoutError.value = err?.data?.statusMessage ?? err?.message ?? 'Terjadi kesalahan. Coba lagi.'
   } finally {
     validating.value = false
   }
