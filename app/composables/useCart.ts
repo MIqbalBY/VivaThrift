@@ -24,7 +24,7 @@ export type CartItem = {
 export function useCart() {
   const supabase = useSupabaseClient()
   const user = useSupabaseUser()
-  const userId = computed(() => (user.value as any)?.id ?? (user.value as any)?.sub ?? null)
+  const userId = computed(() => (user.value as any)?.id ?? null)
 
   const cartItems = useState<CartItem[]>('cart-items', () => [])
   const cartOpen = useState<boolean>('cart-open', () => false)

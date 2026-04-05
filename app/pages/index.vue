@@ -142,7 +142,7 @@ const { data: products } = useAsyncData(
     if (activeNegotiable.value === 'no')  query = query.eq('is_negotiable', false)
     if (activeCod.value  === 'yes')       query = query.eq('is_cod', true)
     if (activeCod.value  === 'no')        query = query.eq('is_cod', false)
-    if (activeSearch.value)           query = query.ilike('title', `%${activeSearch.value}%`)
+    if (activeSearch.value)           query = query.textSearch('search_vector', activeSearch.value, { type: 'websearch', config: 'indonesian' })
 
     const isFiltered = hasCatFilter || activeSearch.value || activeCondition.value.length || activeNegotiable.value || activeCod.value
     const { data, error } = await query.limit(isFiltered ? 50 : 12)

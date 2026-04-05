@@ -149,25 +149,28 @@ export type Database = {
       }
       chats: {
         Row: {
-          buyer_id: string | null
-          created_at: string | null
+          buyer_id: string
+          created_at: string
           id: string
-          product_id: string | null
-          seller_id: string | null
+          product_id: string
+          seller_id: string
+          updated_at: string
         }
         Insert: {
-          buyer_id?: string | null
-          created_at?: string | null
+          buyer_id: string
+          created_at?: string
           id?: string
-          product_id?: string | null
-          seller_id?: string | null
+          product_id: string
+          seller_id: string
+          updated_at?: string
         }
         Update: {
-          buyer_id?: string | null
-          created_at?: string | null
+          buyer_id?: string
+          created_at?: string
           id?: string
-          product_id?: string | null
-          seller_id?: string | null
+          product_id?: string
+          seller_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -231,40 +234,43 @@ export type Database = {
       }
       messages: {
         Row: {
-          chat_id: string | null
+          chat_id: string
           content: string
-          created_at: string | null
+          created_at: string
           edited_at: string | null
           id: string
           is_deleted: boolean
-          is_read: boolean | null
+          is_read: boolean
           offer_id: string | null
           reply_to_id: string | null
-          sender_id: string | null
+          sender_id: string
+          updated_at: string
         }
         Insert: {
-          chat_id?: string | null
+          chat_id: string
           content: string
-          created_at?: string | null
+          created_at?: string
           edited_at?: string | null
           id?: string
           is_deleted?: boolean
-          is_read?: boolean | null
+          is_read?: boolean
           offer_id?: string | null
           reply_to_id?: string | null
-          sender_id?: string | null
+          sender_id: string
+          updated_at?: string
         }
         Update: {
-          chat_id?: string | null
+          chat_id?: string
           content?: string
-          created_at?: string | null
+          created_at?: string
           edited_at?: string | null
           id?: string
           is_deleted?: boolean
-          is_read?: boolean | null
+          is_read?: boolean
           offer_id?: string | null
           reply_to_id?: string | null
-          sender_id?: string | null
+          sender_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -357,37 +363,37 @@ export type Database = {
       }
       offers: {
         Row: {
-          buyer_id: string | null
-          chat_id: string | null
-          created_at: string | null
+          buyer_id: string
+          chat_id: string
+          created_at: string
           id: string
           offered_price: number
-          product_id: string | null
+          product_id: string
           quantity: number
-          status: string | null
-          updated_at: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
-          buyer_id?: string | null
-          chat_id?: string | null
-          created_at?: string | null
+          buyer_id: string
+          chat_id: string
+          created_at?: string
           id?: string
           offered_price: number
-          product_id?: string | null
+          product_id: string
           quantity?: number
-          status?: string | null
-          updated_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
-          buyer_id?: string | null
-          chat_id?: string | null
-          created_at?: string | null
+          buyer_id?: string
+          chat_id?: string
+          created_at?: string
           id?: string
           offered_price?: number
-          product_id?: string | null
+          product_id?: string
           quantity?: number
-          status?: string | null
-          updated_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -416,27 +422,24 @@ export type Database = {
       order_items: {
         Row: {
           id: string
-          order_id: string | null
+          order_id: string
           price_at_time: number
-          product_id: string | null
-          quantity: number | null
-          unit_price: number | null
+          product_id: string
+          quantity: number
         }
         Insert: {
           id?: string
-          order_id?: string | null
+          order_id: string
           price_at_time: number
-          product_id?: string | null
-          quantity?: number | null
-          unit_price?: number | null
+          product_id: string
+          quantity: number
         }
         Update: {
           id?: string
-          order_id?: string | null
+          order_id?: string
           price_at_time?: number
-          product_id?: string | null
-          quantity?: number | null
-          unit_price?: number | null
+          product_id?: string
+          quantity?: number
         }
         Relationships: [
           {
@@ -457,37 +460,40 @@ export type Database = {
       }
       orders: {
         Row: {
-          buyer_id: string | null
-          created_at: string | null
+          buyer_id: string
+          created_at: string
           id: string
           offer_id: string | null
-          seller_id: string | null
+          seller_id: string
           shipping_address_id: string | null
           shipping_method: string | null
-          status: string | null
+          status: string
           total_amount: number
+          updated_at: string
         }
         Insert: {
-          buyer_id?: string | null
-          created_at?: string | null
+          buyer_id: string
+          created_at?: string
           id?: string
           offer_id?: string | null
-          seller_id?: string | null
+          seller_id: string
           shipping_address_id?: string | null
           shipping_method?: string | null
-          status?: string | null
+          status?: string
           total_amount: number
+          updated_at?: string
         }
         Update: {
-          buyer_id?: string | null
-          created_at?: string | null
+          buyer_id?: string
+          created_at?: string
           id?: string
           offer_id?: string | null
-          seller_id?: string | null
+          seller_id?: string
           shipping_address_id?: string | null
           shipping_method?: string | null
-          status?: string | null
+          status?: string
           total_amount?: number
+          updated_at?: string
         }
         Relationships: [
           {
@@ -524,28 +530,28 @@ export type Database = {
         Row: {
           amount: number
           id: string
-          order_id: string | null
+          order_id: string
           paid_at: string | null
           payment_method: string | null
-          status: string | null
+          status: string
           xendit_invoice_id: string | null
         }
         Insert: {
           amount: number
           id?: string
-          order_id?: string | null
+          order_id: string
           paid_at?: string | null
           payment_method?: string | null
-          status?: string | null
+          status?: string
           xendit_invoice_id?: string | null
         }
         Update: {
           amount?: number
           id?: string
-          order_id?: string | null
+          order_id?: string
           paid_at?: string | null
           payment_method?: string | null
-          status?: string | null
+          status?: string
           xendit_invoice_id?: string | null
         }
         Relationships: [
@@ -564,7 +570,7 @@ export type Database = {
           is_primary: boolean | null
           media_type: string | null
           media_url: string
-          product_id: string | null
+          product_id: string
           thumbnail_url: string | null
         }
         Insert: {
@@ -572,7 +578,7 @@ export type Database = {
           is_primary?: boolean | null
           media_type?: string | null
           media_url: string
-          product_id?: string | null
+          product_id: string
           thumbnail_url?: string | null
         }
         Update: {
@@ -580,7 +586,7 @@ export type Database = {
           is_primary?: boolean | null
           media_type?: string | null
           media_url?: string
-          product_id?: string | null
+          product_id?: string
           thumbnail_url?: string | null
         }
         Relationships: [
@@ -603,12 +609,12 @@ export type Database = {
           is_cod: boolean | null
           is_negotiable: boolean | null
           price: number
-          seller_id: string | null
+          seller_id: string
           slug: string | null
-          status: string | null
+          status: string
           stock: number | null
           title: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           category_id?: number | null
@@ -619,12 +625,12 @@ export type Database = {
           is_cod?: boolean | null
           is_negotiable?: boolean | null
           price: number
-          seller_id?: string | null
+          seller_id: string
           slug?: string | null
-          status?: string | null
+          status?: string
           stock?: number | null
           title: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           category_id?: number | null
@@ -637,10 +643,10 @@ export type Database = {
           price?: number
           seller_id?: string | null
           slug?: string | null
-          status?: string | null
+          status?: string
           stock?: number | null
           title?: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -714,36 +720,39 @@ export type Database = {
       reviews: {
         Row: {
           comment: string | null
-          created_at: string | null
+          created_at: string
           id: string
-          order_id: string | null
-          product_id: string | null
+          order_id: string
+          product_id: string
           rating_product: number | null
           rating_seller: number | null
-          reviewee_id: string | null
-          reviewer_id: string | null
+          reviewee_id: string
+          reviewer_id: string
+          updated_at: string
         }
         Insert: {
           comment?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          order_id?: string | null
-          product_id?: string | null
+          order_id: string
+          product_id: string
           rating_product?: number | null
           rating_seller?: number | null
-          reviewee_id?: string | null
-          reviewer_id?: string | null
+          reviewee_id: string
+          reviewer_id: string
+          updated_at?: string
         }
         Update: {
           comment?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          order_id?: string | null
-          product_id?: string | null
+          order_id?: string
+          product_id?: string
           rating_product?: number | null
           rating_seller?: number | null
-          reviewee_id?: string | null
-          reviewer_id?: string | null
+          reviewee_id?: string
+          reviewer_id?: string
+          updated_at?: string
         }
         Relationships: [
           {

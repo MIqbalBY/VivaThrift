@@ -59,11 +59,11 @@ if (!checkoutData.value) await navigateTo('/')
 
 const offer = computed(() => checkoutData.value?.offer ?? null)
 
-useHead({ title: computed(() => {
+useSeoMeta({ title: () => {
   const productTitle = offer.value?.product?.title
   if (productTitle) return `Checkout ${productTitle} — VivaThrift`
   return 'Checkout — VivaThrift'
-}) })
+} })
 
 // If an order already exists, jump straight to success view
 if (checkoutData.value?.alreadyOrdered) {
@@ -93,82 +93,21 @@ async function placeOrder() {
   placing.value = true
   orderErr.value = ''
   try {
-    // Guard against duplicate orders (e.g. double-click or back-navigation)
-    const { data: existingOrder } = await supabase
-      .from('orders')
-      .select('id')
-      .eq('offer_id', offer.value.id)
-      .eq('buyer_id', myId.value)
-      .maybeSingle()
-    if (existingOrder) {
-      orderDone.value = true
-      return
-    }
-
-    // Re-check current stock in real-time to prevent over-checkout
-    const { data: currentProd } = await supabase
-      .from('products')
-      .select('stock, status')
-      .eq('id', offer.value.product.id)
-      .single()
-    if (
-      !currentProd ||
-      currentProd.status === 'sold' || currentProd.status === 'deleted' ||
-      (currentProd.stock !== null && currentProd.stock !== undefined && currentProd.stock < offer.value.quantity)
-    ) {
-      stockDepleted.value = true
-      throw new Error('Maaf, stok produk ini sudah habis. Tawaran lain mungkin sudah dikonfirmasi lebih dulu.')
-    }
-
-    const sellerId = offer.value.chat?.seller_id ?? offer.value.product?.seller_id
-
-    // 1. Create order
-    const { data: order, error: ordErr } = await supabase
-      .from('orders')
-      .insert({
-        buyer_id:     myId.value,
-        seller_id:    sellerId,
-        total_amount: total.value,
-        status:       'pending',
-        offer_id:     offer.value.id,
-      })
-      .select('id')
-      .single()
-    if (ordErr) throw ordErr
-
-    // 2. Create order item with locked unit price
-    const { error: itemErr } = await supabase.from('order_items').insert({
-      order_id:      order.id,
-      product_id:    offer.value.product.id,
-      quantity:      offer.value.quantity,
-      price_at_time: offer.value.offered_price,
+    const result = await $fetch('/api/orders', {
+      method: 'POST',
+      body: { offerId: offer.value.id },
     })
-    if (itemErr) throw itemErr
-
-    // 3. Reduce product stock
-    const { data: prod } = await supabase
-      .from('products')
-      .select('stock')
-      .eq('id', offer.value.product.id)
-      .single()
-    if (prod && prod.stock !== null && prod.stock !== undefined) {
-      const newStock = Math.max(0, prod.stock - offer.value.quantity)
-      const stockUpdate = { stock: newStock }
-      if (newStock === 0) stockUpdate.status = 'sold'
-      await supabase.from('products')
-        .update(stockUpdate)
-        .eq('id', offer.value.product.id)
+    if (result.alreadyExisted || result.orderId) {
+      orderDone.value = true
     }
-
-    // 4. Mark offer as expired so it can't be checked out again
-    await supabase
-      .from('offers')
-      .update({ status: 'expired', updated_at: new Date().toISOString() })
-      .eq('id', offer.value.id)
-
-    orderDone.value = true
-  } catch (e) {
-    orderErr.value = e.message ?? 'Terjadi kesalahan. Silakan coba lagi.'
+  } catch (e: any) {
+    const msg: string = e?.data?.statusMessage ?? e?.message ?? 'Terjadi kesalahan.'
+    if (msg === 'stock_depleted') {
+      stockDepleted.value = true
+      orderErr.value = 'Maaf, stok produk ini sudah habis. Tawaran lain mungkin sudah dikonfirmasi lebih dulu.'
+    } else {
+      orderErr.value = msg
+    }
   } finally {
     placing.value = false
   }

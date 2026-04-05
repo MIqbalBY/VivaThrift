@@ -14,7 +14,7 @@ export default defineNuxtConfig({
     '~/assets/css/components.css',
     '~/assets/css/animations.css',
   ],
-  compatibilityDate: '2025-07-15',
+  compatibilityDate: '2026-04-04',
   devServer: { port: 3004 },
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
   modules: [

@@ -37,7 +37,7 @@ export function useNavSearch() {
         .from('products')
         .select('id, slug, title, price, product_media ( media_url, media_type, thumbnail_url, is_primary )')
         .eq('status', 'active')
-        .ilike('title', `%${q}%`)
+        .textSearch('search_vector', q, { type: 'websearch', config: 'indonesian' })
         .limit(6)
       suggestions.value = data ?? []
       isSearching.value = false

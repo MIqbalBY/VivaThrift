@@ -47,52 +47,39 @@ export function useChatOffer(
 
     submittingOffer.value = true
     try {
-      const { data: offer, error: offErr } = await supabase
-        .from('offers')
-        .insert({
-          chat_id: chatId,
-          product_id: chat.value.product.id,
-          buyer_id: myId.value,
-          offered_price: price,
+      const result = await $fetch<{ offerId: string; message: any }>('/api/offers', {
+        method: 'POST',
+        body: {
+          chatId,
+          productId: chat.value.product.id,
+          price,
           quantity: qty,
-          status: 'pending',
-        })
-        .select('id')
-        .single()
-      if (offErr) throw offErr
+        },
+      })
 
-      const { data: newMsg, error: msgErr } = await supabase.from('messages').insert({
-        chat_id: chatId,
-        sender_id: myId.value,
-        offer_id: offer.id,
-        content: `Mengajukan penawaran: Rp ${price.toLocaleString('id-ID')} × ${qty} unit`,
-      }).select('id, content, is_read, created_at, sender_id, offer_id, reply_to_id, edited_at, is_deleted').single()
-      if (msgErr) throw msgErr
+      const offerData = { id: result.offerId, offered_price: price, quantity: qty, status: 'pending' }
 
-      const offerData = { id: offer.id, offered_price: price, quantity: qty, status: 'pending' }
-
-      if (newMsg && !messages.value.some(m => m.id === newMsg.id)) {
-        messages.value.push({ ...newMsg, offer: offerData, reply: null, sender: null })
+      if (result.message && !messages.value.some((m: any) => m.id === result.message.id)) {
+        messages.value.push({ ...result.message, offer: offerData, reply: null, sender: null })
         scrollToBottom()
       }
 
-      channel.value?.send({ type: 'broadcast', event: 'new-offer', payload: { message: newMsg, offer: offerData } })
+      channel.value?.send({ type: 'broadcast', event: 'new-offer', payload: { message: result.message, offer: offerData } })
       showOfferModal.value = false
     } catch (e: any) {
-      offerError.value = e.message ?? 'Gagal mengajukan penawaran.'
+      offerError.value = e.data?.statusMessage ?? e.message ?? 'Gagal mengajukan penawaran.'
     } finally {
       submittingOffer.value = false
     }
   }
 
-  async function respondOffer(offerId: string, status: string) {
+  async function respondOffer(offerId: string, status: 'accepted' | 'rejected') {
     processingOffer.value = offerId
     try {
-      const { error } = await supabase
-        .from('offers')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', offerId)
-      if (error) throw error
+      await $fetch(`/api/offers/${offerId}`, {
+        method: 'PATCH',
+        body: { status },
+      })
 
       const offerMsg = messages.value.find(m => m.offer_id === offerId || m.offer?.id === offerId)
       if (offerMsg?.offer) offerMsg.offer.status = status

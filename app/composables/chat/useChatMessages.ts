@@ -15,8 +15,46 @@ export function useChatMessages(
   const messageText = ref('')
   const sending = ref(false)
   const messagesContainer = ref<HTMLElement | null>(null)
+  const PAGE_SIZE = 50
+  const hasMore = ref(false)
+  const oldestCursor = ref<string | null>(null)
 
-  // ── Load messages ──────────────────────────────────────────────
+  // ── Reply reference resolver (shared by load + loadOlder) ──────
+  async function resolveReplies(batch: any[]) {
+    const replyIds = batch.filter(m => m.reply_to_id).map(m => m.reply_to_id)
+    if (!replyIds.length) {
+      batch.forEach(m => { m.reply = null })
+      return
+    }
+    const localMap = new Map<string, any>([
+      ...messages.value.map((m: any): [string, any] => [m.id, m]),
+      ...batch.map((m: any): [string, any] => [m.id, m]),
+    ])
+    const missingIds = replyIds.filter(id => !localMap.has(id))
+    let remoteMap = new Map<string, any>()
+    if (missingIds.length) {
+      const { data: remote } = await supabase
+        .from('messages')
+        .select('id, content, sender_id, is_deleted, offer_id, sender:users!sender_id(name)')
+        .in('id', missingIds)
+      if (remote) remoteMap = new Map(remote.map((m: any) => [m.id, m]))
+    }
+    for (const msg of batch) {
+      if (!msg.reply_to_id) { msg.reply = null; continue }
+      const local = localMap.get(msg.reply_to_id)
+      if (local) {
+        msg.reply = {
+          id: local.id, content: local.content, sender_id: local.sender_id,
+          is_deleted: local.is_deleted, offer_id: local.offer_id,
+          sender: local.sender ? { name: local.sender.name } : null,
+        }
+      } else {
+        msg.reply = remoteMap.get(msg.reply_to_id) ?? null
+      }
+    }
+  }
+
+  // ── Load messages (last PAGE_SIZE, cursor-based) ───────────────
   async function loadMessages() {
     const { data, error } = await supabase
       .from('messages')
@@ -26,44 +64,50 @@ export function useChatMessages(
         offer:offers ( id, offered_price, quantity, status )
       `)
       .eq('chat_id', chatId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE)
     if (error) {
       const { data: fallback } = await supabase
         .from('messages')
         .select(`id, content, is_read, created_at, sender_id, is_deleted, edited_at, sender:users!sender_id ( id, name, avatar_url )`)
         .eq('chat_id', chatId)
-        .order('created_at', { ascending: true })
-      messages.value = fallback ?? []
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE)
+      const batch = (fallback ?? []).reverse()
+      messages.value = batch
+      hasMore.value = (fallback ?? []).length >= PAGE_SIZE
+      oldestCursor.value = batch[0]?.created_at ?? null
     } else {
-      messages.value = data ?? []
+      const batch = (data ?? []).reverse()
+      hasMore.value = (data ?? []).length >= PAGE_SIZE
+      oldestCursor.value = batch[0]?.created_at ?? null
+      await resolveReplies(batch)
+      messages.value = batch
     }
+  }
 
-    // Resolve reply references
-    const replyIds = messages.value.filter(m => m.reply_to_id).map(m => m.reply_to_id)
-    if (replyIds.length) {
-      const localMap = new Map(messages.value.map(m => [m.id, m]))
-      const missingIds = replyIds.filter(id => !localMap.has(id))
-      let remoteMap = new Map()
-      if (missingIds.length) {
-        const { data: remote } = await supabase
-          .from('messages')
-          .select('id, content, sender_id, is_deleted, offer_id, sender:users!sender_id(name)')
-          .in('id', missingIds)
-        if (remote) remoteMap = new Map(remote.map((m: any) => [m.id, m]))
-      }
-      for (const msg of messages.value) {
-        if (!msg.reply_to_id) { msg.reply = null; continue }
-        const local = localMap.get(msg.reply_to_id)
-        if (local) {
-          msg.reply = {
-            id: local.id, content: local.content, sender_id: local.sender_id,
-            is_deleted: local.is_deleted, offer_id: local.offer_id,
-            sender: local.sender ? { name: local.sender.name } : null,
-          }
-        } else {
-          msg.reply = remoteMap.get(msg.reply_to_id) ?? null
-        }
-      }
+  // ── Load older messages (prepend, cursor = oldest seen) ────────
+  async function loadOlderMessages() {
+    if (!hasMore.value || !oldestCursor.value) return
+    const { data, error } = await supabase
+      .from('messages')
+      .select(`
+        id, content, is_read, created_at, sender_id, offer_id, reply_to_id, edited_at, is_deleted,
+        sender:users!sender_id ( id, name, avatar_url ),
+        offer:offers ( id, offered_price, quantity, status )
+      `)
+      .eq('chat_id', chatId)
+      .lt('created_at', oldestCursor.value)
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE)
+    if (!error && data?.length) {
+      const batch = data.reverse()
+      await resolveReplies(batch)
+      messages.value = [...batch, ...messages.value]
+      hasMore.value = data.length >= PAGE_SIZE
+      oldestCursor.value = batch[0]?.created_at ?? null
+    } else {
+      hasMore.value = false
     }
   }
 
@@ -256,7 +300,9 @@ export function useChatMessages(
     messageText,
     sending,
     messagesContainer,
+    hasMore,
     loadMessages,
+    loadOlderMessages,
     scrollToBottom,
     scrollToMsg,
     canModifyMsg,

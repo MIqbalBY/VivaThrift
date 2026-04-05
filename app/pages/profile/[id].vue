@@ -28,7 +28,7 @@ const { data: profile } = await useAsyncData(`profile-${route.params.id}`, async
   return data
 }, { watch: [profileId] })
 
-useHead({ title: computed(() => profile.value?.name ? `${profile.value.name} — VivaThrift` : 'Profil — VivaThrift') })
+useSeoMeta({ title: () => profile.value?.name ? `${profile.value.name} — VivaThrift` : 'Profil — VivaThrift' })
 
 // ── Resolved profile user ID (always UUID after fetch) ──────────────────────
 const resolvedId = computed(() => profile.value?.id ?? profileId.value)
