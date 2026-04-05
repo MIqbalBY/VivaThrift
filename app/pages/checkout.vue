@@ -87,18 +87,19 @@ const total = computed(() =>
   (offer.value?.offered_price ?? 0) * (offer.value?.quantity ?? 1)
 )
 
-// ── Place Order ───────────────────────────────────────────────────
+// ── Checkout via Xendit Payment Gateway ──────────────────────────
 async function placeOrder() {
   if (placing.value || orderDone.value) return
   placing.value = true
   orderErr.value = ''
   try {
-    const result = await $fetch('/api/orders', {
+    const result = await $fetch<{ orderId: string; paymentUrl: string }>('/api/checkout', {
       method: 'POST',
       body: { offerId: offer.value.id },
     })
-    if (result.alreadyExisted || result.orderId) {
-      orderDone.value = true
+    // Redirect ke halaman invoice Xendit (rekening bersama)
+    if (result.paymentUrl) {
+      await navigateTo(result.paymentUrl, { external: true })
     }
   } catch (e: any) {
     const msg: string = e?.data?.statusMessage ?? e?.message ?? 'Terjadi kesalahan.'
@@ -200,9 +201,9 @@ async function placeOrder() {
       <!-- Info banner -->
       <div class="flex items-start gap-2 text-xs rounded-xl px-4 py-3 mb-5" :class="isDark ? 'text-sky-300 bg-sky-900/30 border border-sky-700/40' : 'text-blue-700 bg-blue-50 border border-blue-100'">
         <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </svg>
-        Harga ini sudah disetujui penjual. Koordinasikan pengambilan / COD langsung lewat chat.
+        Pembayaran diamankan oleh <strong class="mx-0.5">Xendit</strong> (Rekening Bersama). Dana hanya diteruskan ke penjual setelah transaksi selesai.
       </div>
 
       <p v-if="orderErr" class="text-red-600 text-sm border border-red-100 bg-red-50 rounded-xl px-4 py-3 mb-4">
@@ -217,7 +218,7 @@ async function placeOrder() {
           ? 'background: linear-gradient(to right, #0369a1, #0ea5e9, #38bdf8);'
           : 'background: linear-gradient(to right, #0369a1, #0ea5e9, #38bdf8);'"
       >
-        {{ placing ? 'Memproses…' : '✅ Konfirmasi Pembelian' }}
+        {{ placing ? 'Menyiapkan pembayaran…' : '🔒 Bayar Sekarang' }}
       </button>
     </template>
 
