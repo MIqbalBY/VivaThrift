@@ -62,14 +62,15 @@ export function useCart() {
   }
 
   async function fetchCart() {
-    if (!userId.value) {
+    const uid = await resolveUid()
+    if (!uid) {
       cartItems.value = []
       return
     }
     const { data: cart } = await supabase
       .from('carts')
       .select('id')
-      .eq('user_id', userId.value)
+      .eq('user_id', uid)
       .maybeSingle()
     if (!cart) {
       cartItems.value = []

@@ -13,16 +13,21 @@ function getImage(item: any) {
   <!-- Overlay -->
   <Teleport to="body">
     <Transition name="vt-overlay">
-      <div v-if="cartOpen" class="fixed inset-0 z-50 flex justify-end" @click.self="close">
+      <div v-if="cartOpen" class="fixed inset-0 z-[60] flex items-end md:items-stretch md:justify-end" @click.self="close">
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="close" />
 
-        <!-- Drawer panel -->
+        <!-- Drawer panel: bottom-sheet on mobile, side drawer on md+ -->
         <Transition name="vt-drawer">
           <div
             v-if="cartOpen"
-            class="relative z-10 w-full max-w-md h-full flex flex-col shadow-2xl"
+            class="relative z-10 w-full md:max-w-md h-[82vh] md:h-full flex flex-col shadow-2xl rounded-t-2xl md:rounded-none"
             :class="isDark ? 'bg-[#0a1225]' : 'bg-white'"
           >
+            <!-- Drag handle (mobile only) -->
+            <div class="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+              <div class="w-10 h-1 rounded-full" :class="isDark ? 'bg-white/20' : 'bg-gray-300'"></div>
+            </div>
+
             <!-- Header -->
             <div class="flex items-center justify-between px-5 py-4 border-b" :class="isDark ? 'border-white/10' : 'border-gray-100'">
               <div class="flex items-center gap-2">
@@ -138,8 +143,15 @@ function getImage(item: any) {
 .vt-overlay-enter-from,
 .vt-overlay-leave-to { opacity: 0; }
 
+/* Mobile: slide from bottom */
 .vt-drawer-enter-active,
-.vt-drawer-leave-active { transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+.vt-drawer-leave-active { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .vt-drawer-enter-from,
-.vt-drawer-leave-to { transform: translateX(100%); }
+.vt-drawer-leave-to { transform: translateY(100%); }
+
+/* Desktop: slide from right */
+@media (min-width: 768px) {
+  .vt-drawer-enter-from,
+  .vt-drawer-leave-to { transform: translateX(100%); }
+}
 </style>
