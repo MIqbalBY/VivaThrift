@@ -145,6 +145,20 @@ export default defineEventHandler(async (event) => {
     orderIds.push(order.id)
   }
 
+  // ── 6b. Decrement stock per product (optimistic) ──────────────────────────
+  for (const item of items) {
+    const p = item.product as any
+    if (p.stock !== null && p.stock !== undefined) {
+      const newStock = Math.max(0, p.stock - item.quantity)
+      const stockUpdate: Record<string, unknown> = { stock: newStock }
+      if (newStock === 0) stockUpdate.status = 'sold'
+      await supabaseAdmin
+        .from('products')
+        .update(stockUpdate)
+        .eq('id', item.product_id)
+    }
+  }
+
   // ── 7. Buat satu Xendit Invoice untuk total keseluruhan ───────────────────
   // external_id = semua order ID dipisah underscore
   // Webhook akan update semua orders berdasarkan xendit_invoice_id
@@ -183,8 +197,17 @@ export default defineEventHandler(async (event) => {
     xenditInvoiceId = invoiceRes.id
     paymentUrl      = invoiceRes.invoice_url
   } catch (e: any) {
-    // Rollback orders (best-effort) jika Xendit gagal
+    // Rollback orders + restore stock (best-effort) jika Xendit gagal
     await supabaseAdmin.from('orders').delete().in('id', orderIds)
+    for (const item of items) {
+      const p = item.product as any
+      if (p.stock !== null && p.stock !== undefined) {
+        await supabaseAdmin
+          .from('products')
+          .update({ stock: p.stock, status: p.status })
+          .eq('id', item.product_id)
+      }
+    }
     throw createError({ statusCode: 502, statusMessage: e?.data?.message ?? 'Gagal membuat invoice Xendit.' })
   }
 
@@ -193,6 +216,9 @@ export default defineEventHandler(async (event) => {
   await (supabaseAdmin.from('orders') as any)
     .update({ xendit_invoice_id: xenditInvoiceId, payment_url: paymentUrl })
     .in('id', orderIds)
+
+  // ── 9. Clear cart items (best-effort) ─────────────────────────────────────
+  await supabaseAdmin.from('cart_items').delete().eq('cart_id', cart.id)
 
   return { paymentUrl, orderIds, grandTotal, alreadyExisted: false }
 })

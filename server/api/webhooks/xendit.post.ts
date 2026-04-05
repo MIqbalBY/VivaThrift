@@ -68,6 +68,74 @@ export default defineEventHandler(async (event) => {
     return { received: true, action: 'no_orders_found' }
   }
 
+  // ── Ensure stock decremented for each order_item (safety net) ─────────────
+  // Offer-based & cart-based checkout should decrement stock optimistically,
+  // but if for any reason it was skipped, we fix it here.
+  for (const order of updatedOrders) {
+    const { data: orderItems } = await supabaseAdmin
+      .from('order_items')
+      .select('product_id, quantity')
+      .eq('order_id', order.id)
+
+    if (!orderItems?.length) continue
+
+    for (const oi of orderItems) {
+      const { data: prod } = await supabaseAdmin
+        .from('products')
+        .select('stock, status')
+        .eq('id', oi.product_id)
+        .single()
+
+      if (!prod || prod.stock === null || prod.stock === undefined) continue
+
+      const newStock = Math.max(0, prod.stock - oi.quantity)
+      // Only decrement if stock hasn't been adjusted yet (still >= quantity)
+      if (prod.stock >= oi.quantity) {
+        const stockUpdate: Record<string, unknown> = { stock: newStock }
+        if (newStock === 0) stockUpdate.status = 'sold'
+        await supabaseAdmin
+          .from('products')
+          .update(stockUpdate)
+          .eq('id', oi.product_id)
+      }
+    }
+  }
+
+  // ── Clear cart items for buyer (best-effort) ──────────────────────────────
+  // Find buyer from first order, then remove their purchased cart items.
+  const { data: firstOrder } = await supabaseAdmin
+    .from('orders')
+    .select('buyer_id')
+    .eq('id', updatedOrders[0].id)
+    .single()
+
+  if (firstOrder) {
+    const { data: buyerCart } = await supabaseAdmin
+      .from('carts')
+      .select('id')
+      .eq('user_id', firstOrder.buyer_id)
+      .maybeSingle()
+
+    if (buyerCart) {
+      // Kumpulkan product_ids dari semua order items
+      const allProductIds: string[] = []
+      for (const order of updatedOrders) {
+        const { data: ois } = await supabaseAdmin
+          .from('order_items')
+          .select('product_id')
+          .eq('order_id', order.id)
+        if (ois) allProductIds.push(...ois.map(o => o.product_id))
+      }
+      if (allProductIds.length > 0) {
+        await supabaseAdmin
+          .from('cart_items')
+          .delete()
+          .eq('cart_id', buyerCart.id)
+          .in('product_id', allProductIds)
+      }
+    }
+  }
+
   // ── Insert payment record per order (non-fatal) ───────────────────────────
   // Untuk cart checkout dengan banyak order, amount dibagi proporsional.
   const totalDbAmount = updatedOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
