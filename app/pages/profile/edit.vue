@@ -141,7 +141,6 @@ watch(user, (u) => {
           <h1 class="font-heading text-3xl font-bold text-white leading-tight">⚙️ Pengaturan</h1>
           <p class="text-white/65 text-sm">Kelola informasi akun dan alamat pengirimanmu.</p>
         </div>
-        <img src="/img/illustrations/personal-settings.svg" alt="" width="112" height="112" loading="lazy" class="hidden md:block w-28 h-auto opacity-70 shrink-0" aria-hidden="true" />
       </div>
     </div>
 

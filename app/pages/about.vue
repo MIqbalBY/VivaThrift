@@ -50,6 +50,7 @@ const values = [
     border: 'rgba(21,128,61,0.14)',
   },
 ]
+
 </script>
 
 <template>
@@ -58,21 +59,21 @@ const values = [
     <!-- ══════════════════════════════════════
          1. HERO + STATS BAND (one gradient)
          ══════════════════════════════════════ -->
-    <div class="vt-hero-wrapper relative pb-44">
+    <div class="vt-hero-wrapper relative pb-44 overflow-hidden">
 
-      <!-- Dot grid spanning full wrapper -->
-      <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <pattern id="hero-dots" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1.5" fill="white" fill-opacity="0.25"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#hero-dots)"/>
-      </svg>
-
-      <!-- Sky glow -->
-      <div class="absolute top-0 right-0 w-[600px] h-[400px] pointer-events-none opacity-10"
-           style="background: radial-gradient(ellipse at 70% 20%, #38bdf8 0%, transparent 65%);"></div>
+      <!-- Banner-4 photo background -->
+      <img
+        src="/img/banner-4.png"
+        alt=""
+        width="2752"
+        height="1536"
+        fetchpriority="high"
+        class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+        style="object-position: center 20%;"
+        aria-hidden="true"
+      />
+      <!-- Photo overlay: maintains brand color + text legibility -->
+      <div class="vt-hero-photo-overlay absolute inset-0 pointer-events-none"></div>
 
       <!-- HERO text -->
       <section class="relative flex flex-col justify-center min-h-[520px] pt-28 overflow-hidden">
@@ -314,12 +315,19 @@ const values = [
 </template>
 
 <style scoped>
-/* ── Hero + Stats wrapper (one gradient) ── */
+/* ── Hero + Stats wrapper ── */
 .vt-hero-wrapper {
-  background: linear-gradient(170deg, #0c4a6e 0%, #0369a1 40%, #0ea5e9 75%, #38bdf8 100%);
+  background: #071428; /* fallback while photo loads */
 }
 .dark .vt-hero-wrapper {
-  background: linear-gradient(160deg, #0a1220 0%, #0d1829 50%, #0f172a 100%);
+  background: #060d1a;
+}
+/* Photo overlay: brand-tinted gradient on top of photo for text legibility */
+.vt-hero-photo-overlay {
+  background: linear-gradient(170deg, rgba(7,20,40,0.88) 0%, rgba(3,69,161,0.72) 45%, rgba(14,165,233,0.45) 100%);
+}
+.dark .vt-hero-photo-overlay {
+  background: linear-gradient(160deg, rgba(4,9,18,0.95) 0%, rgba(10,18,32,0.90) 50%, rgba(15,23,42,0.80) 100%);
 }
 .vt-stats-fade {
   background: linear-gradient(to bottom, transparent, #ffffff);
@@ -582,5 +590,7 @@ const values = [
   background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8);
   box-shadow: 0 4px 20px rgba(56, 189, 248, 0.30);
 }
+
+
 
 </style>
