@@ -2,6 +2,12 @@ export function useAvatarUpload() {
   const supabase = useSupabaseClient() as any
   const user = useSupabaseUser()
 
+  async function resolveUid(): Promise<string | null> {
+    if (user.value?.id) return user.value.id
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.user?.id ?? null
+  }
+
   const avatarUploading = ref(false)
   const avatarInput     = ref<HTMLInputElement | null>(null)
 
@@ -40,7 +46,7 @@ export function useAvatarUpload() {
     const { canvas } = cropperRef.value.getResult()
     const blob = await new Promise<Blob>(res => canvas.toBlob(res, 'image/jpeg', 0.92))
 
-    const uid  = user.value?.id ?? userId
+    const uid  = user.value?.id ?? userId ?? await resolveUid()
     const path = `${uid}/avatar.jpg`
     const { error: upErr } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
     if (upErr) {
@@ -70,7 +76,7 @@ export function useAvatarUpload() {
 
   async function confirmDeleteAvatar(avatarUrl: Ref<string>, userId?: string | null, msgCallback?: (msg: string, type: string) => void) {
     showDeleteAvatarConfirm.value = false
-    const uid = user.value?.id ?? userId
+    const uid = user.value?.id ?? userId ?? await resolveUid()
     if (!uid) return
     avatarUploading.value = true
     const path = `${uid}/avatar.jpg`

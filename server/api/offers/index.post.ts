@@ -1,4 +1,5 @@
 import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { supabaseAdmin } from '../../utils/supabase-admin'
 import { validateOfferPrice, PRODUCT_UNAVAILABLE_STATUSES } from '../../utils/domain-rules'
 
 // POST /api/offers
@@ -65,7 +66,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── 6. Supersede existing pending offers in this chat (same buyer) ──
-  await supabase
+  // Admin client: bypasses RLS — business rules already validated above.
+  await supabaseAdmin
     .from('offers')
     .update({ status: 'superseded', updated_at: new Date().toISOString() })
     .eq('chat_id', chatId)
@@ -73,7 +75,7 @@ export default defineEventHandler(async (event) => {
     .eq('status', 'pending')
 
   // ── 7. INSERT new offer ───────────────────────────────────────────
-  const { data: offer, error: offerErr } = await supabase
+  const { data: offer, error: offerErr } = await supabaseAdmin
     .from('offers')
     .insert({
       chat_id:       chatId,
@@ -91,7 +93,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── 8. INSERT offer message ───────────────────────────────────────
-  const { data: message, error: msgErr } = await supabase
+  const { data: message, error: msgErr } = await supabaseAdmin
     .from('messages')
     .insert({
       chat_id:   chatId,

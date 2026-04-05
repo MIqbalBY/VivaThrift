@@ -2,6 +2,12 @@ export function useAddressEdit() {
   const supabase = useSupabaseClient() as any
   const user = useSupabaseUser()
 
+  async function resolveUid(): Promise<string | null> {
+    if (user.value?.id) return user.value.id
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.user?.id ?? null
+  }
+
   const addrSaving    = ref(false)
   const addrMsg       = ref('')
   const addrMsgType   = ref('')
@@ -75,7 +81,7 @@ export function useAddressEdit() {
       addrMsgType.value = 'err'
       return
     }
-    const uid = user.value?.id ?? userId
+    const uid = user.value?.id ?? userId ?? await resolveUid()
     if (!uid) {
       addrMsg.value = 'Sesi tidak ditemukan, coba muat ulang halaman.'
       addrMsgType.value = 'err'

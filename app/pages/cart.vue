@@ -11,6 +11,7 @@ const loading = ref(true)
 const validating = ref(false)
 const stockWarnings = ref([])
 const toast = ref('')
+const checkoutError = ref('')
 
 async function load() {
   loading.value = true
@@ -22,16 +23,17 @@ async function handleValidateAndCheckout() {
   if (cartItems.value.length === 0) return
   validating.value = true
   stockWarnings.value = []
+  checkoutError.value = ''
   try {
-    const { valid, removed } = await validateCartStock()
+    const { removed } = await validateCartStock()
     if (removed.length > 0) {
       stockWarnings.value = removed
-      showToast(`${removed.length} produk dihapus dari keranjang karena stok habis.`)
+      showToast(`${removed.length} produk dihapus karena tidak tersedia.`)
       return
     }
-    // All valid — redirect to checkout
-    // For now, if multiple sellers: group by seller and handle
     await navigateTo('/cart/checkout')
+  } catch (e: any) {
+    checkoutError.value = e?.data?.statusMessage ?? e?.message ?? 'Terjadi kesalahan. Coba lagi.'
   } finally {
     validating.value = false
   }
@@ -229,6 +231,10 @@ onMounted(load)
             <span class="text-xl font-bold" :style="isDark ? 'color:#7dd3fc' : 'color:#1e3a8a'">Rp {{ cartTotal.toLocaleString('id-ID') }}</span>
           </div>
         </div>
+
+        <p v-if="checkoutError" class="text-red-500 text-xs p-2.5 rounded-lg border border-red-100 bg-red-50">
+          {{ checkoutError }}
+        </p>
 
         <button
           @click="handleValidateAndCheckout"

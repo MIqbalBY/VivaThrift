@@ -164,11 +164,12 @@ export function useCart() {
   }
 
   async function clearCart() {
-    if (!userId.value) return
+    const uid = await resolveUid()
+    if (!uid) return
     const { data: cart } = await supabase
       .from('carts')
       .select('id')
-      .eq('user_id', userId.value)
+      .eq('user_id', uid)
       .maybeSingle()
     if (cart) {
       await supabase.from('cart_items').delete().eq('cart_id', cart.id)

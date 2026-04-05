@@ -2,6 +2,12 @@ export function useProfileEdit() {
   const supabase = useSupabaseClient() as any
   const user = useSupabaseUser()
 
+  async function resolveUid(): Promise<string | null> {
+    if (user.value?.id) return user.value.id
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.user?.id ?? null
+  }
+
   const name       = ref('')
   const username   = ref('')
   const faculty    = ref('')
@@ -71,7 +77,7 @@ export function useProfileEdit() {
   }
 
   async function saveProfile(userId?: string | null) {
-    const uid = user.value?.id ?? userId
+    const uid = user.value?.id ?? userId ?? await resolveUid()
     if (!uid) return
     if (username.value && !usernameRegex.test(username.value)) {
       profileMsg.value = 'Username tidak valid.'

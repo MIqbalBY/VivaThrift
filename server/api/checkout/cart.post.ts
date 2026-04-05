@@ -115,7 +115,11 @@ export default defineEventHandler(async (event) => {
   const orderIds: string[] = []
 
   for (const [sellerId, group] of sellerMap.entries()) {
-    const { data: order, error: ordErr } = await supabase
+    // Admin client: buyer cannot INSERT orders that reference other sellers via
+    // user-JWT + RLS alone because the orders_buyer_insert policy only checks
+    // buyer_id = auth.uid() but auth.uid() can be null on Vercel serverless.
+    // Business rules (buyer ≠ seller, stock, self-purchase) are already validated above.
+    const { data: order, error: ordErr } = await supabaseAdmin
       .from('orders')
       .insert({
         buyer_id:     user.id,
