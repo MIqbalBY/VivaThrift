@@ -5,6 +5,11 @@ const currentUser = useSupabaseUser()
 const { isDark } = useDarkMode()
 const { reveal } = useScrollReveal()
 
+// Resolve user ID reliably — mirrors the pattern in checkout.vue.
+// getSession() is awaited at setup time so SSR + hydration both get the value.
+// currentUser (reactive ref) catches any auth state change after hydration.
+const { data: { session } } = await supabase.auth.getSession()
+
 // route.params.id holds the slug (e.g. "keyboard-rexus-5b4b6d36")
 const { data: product } = await useAsyncData(`product-${route.params.id}`, async () => {
   const param = route.params.id
@@ -221,7 +226,9 @@ function shareProduct() {
 }
 
 // ── Seller detection ─────────────────────────────────────────────
-const currentUserId = ref(null)
+// Computed (not ref) so it reacts immediately when currentUser settles
+// after hydration — no async gap, no flash of wrong buyer/seller UI.
+const currentUserId = computed(() => session?.user?.id ?? currentUser.value?.id ?? null)
 const isSeller = computed(() => !!currentUserId.value && currentUserId.value === product.value?.users?.id)
 const profileCardUserId = ref(null)
 
@@ -232,11 +239,19 @@ function onEditSaved(data) {
   editMode.value = false
 }
 
-onMounted(async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  currentUserId.value = session?.user?.id ?? currentUser.value?.id ?? null
+onMounted(() => {
+  // Fetch immediately if session was already available at setup time
   fetchSellerAddressAndDistance(currentUserId.value)
   if (currentUserId.value) fetchWishlist()
+})
+
+// If auth state settles after mount (e.g. ISR-cached page + returning user),
+// re-trigger distance calculation and wishlist fetch.
+watch(currentUserId, (id, prevId) => {
+  if (id && !prevId) {
+    fetchSellerAddressAndDistance(id)
+    fetchWishlist()
+  }
 })
 </script>
 
