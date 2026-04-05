@@ -1,5 +1,5 @@
 import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
-import { supabaseAdmin } from '~/server/utils/supabase-admin'
+import { supabaseAdmin } from '../../utils/supabase-admin'
 
 // POST /api/checkout/cart
 //
