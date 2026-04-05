@@ -163,8 +163,7 @@ async function handleCheckout() {
           <button
             @click="handleCheckout"
             :disabled="placing || cartItems.length === 0"
-            class="w-full py-3 rounded-full text-white font-bold text-sm transition hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            :class="isDark ? 'bg-sky-600 hover:bg-sky-500' : 'bg-blue-900 hover:bg-blue-800'"
+            class="vt-btn-primary w-full py-3 rounded-full text-white font-bold text-sm transition hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <svg v-if="placing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -187,3 +186,8 @@ async function handleCheckout() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.vt-btn-primary { background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af); }
+.dark .vt-btn-primary { background: linear-gradient(to right, #0369a1, #0ea5e9, #38bdf8); }
+</style>

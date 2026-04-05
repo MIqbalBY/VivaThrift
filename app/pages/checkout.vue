@@ -132,10 +132,7 @@ async function placeOrder() {
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Silakan hubungi penjual untuk mengatur pengiriman / COD.</p>
       <NuxtLink
         :to="`/chat/${offer?.chat?.id}`"
-        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm hover:opacity-90 transition"
-        :style="isDark
-          ? 'background: linear-gradient(to right, #0369a1, #0ea5e9, #38bdf8);'
-          : 'background: linear-gradient(to right, #0369a1, #0ea5e9, #38bdf8);'"
+        class="vt-btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm hover:opacity-90 transition"
       >
         💬 Kembali ke Chat
       </NuxtLink>
@@ -148,8 +145,7 @@ async function placeOrder() {
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Maaf, stok produk ini sudah habis karena tawaran lain telah dikonfirmasi lebih dulu.</p>
       <NuxtLink
         :to="`/chat/${offer?.chat?.id}`"
-        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm hover:opacity-90 transition"
-        style="background: linear-gradient(to right, #0369a1, #0ea5e9, #38bdf8);"
+        class="vt-btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm hover:opacity-90 transition"
       >
         💬 Kembali ke Chat
       </NuxtLink>
@@ -213,10 +209,7 @@ async function placeOrder() {
       <button
         @click="placeOrder"
         :disabled="placing"
-        class="w-full py-3 rounded-xl text-white font-bold text-sm hover:opacity-90 disabled:opacity-60 transition"
-        :style="isDark
-          ? 'background: linear-gradient(to right, #0369a1, #0ea5e9, #38bdf8);'
-          : 'background: linear-gradient(to right, #0369a1, #0ea5e9, #38bdf8);'"
+        class="vt-btn-primary w-full py-3 rounded-xl text-white font-bold text-sm hover:opacity-90 disabled:opacity-60 transition"
       >
         {{ placing ? 'Menyiapkan pembayaran…' : '🔒 Bayar Sekarang' }}
       </button>
@@ -224,3 +217,8 @@ async function placeOrder() {
 
   </div>
 </template>
+
+<style scoped>
+.vt-btn-primary { background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af); }
+.dark .vt-btn-primary { background: linear-gradient(to right, #0369a1, #0ea5e9, #38bdf8); }
+</style>
