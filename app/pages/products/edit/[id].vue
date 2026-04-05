@@ -181,6 +181,10 @@ async function saveEdits() {
       }
     }
 
+    // Clear cached product data so detail page fetches fresh data
+    clearNuxtData(`product-${param}`)
+    clearNuxtData(`product-${newSlug}`)
+    clearNuxtData(`edit-product-${param}`)
     await navigateTo(`/products/${newSlug}`)
   } catch (err) {
     errorMsg.value = err.message ?? 'Terjadi kesalahan, coba lagi.'
