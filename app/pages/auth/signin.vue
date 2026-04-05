@@ -28,8 +28,9 @@ async function handleLogin() {
       password: password.value,
     })
     if (error) throw error
-    await navigateTo('/')
   } catch (err) {
+    // Only catch Supabase auth errors — navigateTo is outside this block
+    // so a navigation abort/interrupt never triggers a false error message.
     const msg = err.message?.toLowerCase() ?? ''
     if (msg.includes('invalid login') || msg.includes('invalid_credentials'))
       errorMsg.value = 'Email atau password salah.'
@@ -39,9 +40,13 @@ async function handleLogin() {
       errorMsg.value = 'Terlalu banyak percobaan. Coba lagi nanti.'
     else
       errorMsg.value = 'Login gagal. Periksa email dan password kamu.'
-  } finally {
     isLoading.value = false
+    return
   }
+
+  // Reach here only on successful login — navigate outside try-catch
+  // so any router/middleware AbortError does not show a false error message.
+  await navigateTo('/')
 }
 </script>
 
