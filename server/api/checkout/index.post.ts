@@ -1,4 +1,6 @@
-import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { serverSupabaseClient } from '#supabase/server'
+import { resolveServerUser } from '../../utils/resolve-server-uid'
+import { supabaseAdmin } from '../../utils/supabase-admin'
 import { PRODUCT_UNAVAILABLE_STATUSES } from '../../utils/domain-rules'
 
 // POST /api/checkout
@@ -16,8 +18,7 @@ import { PRODUCT_UNAVAILABLE_STATUSES } from '../../utils/domain-rules'
 //   9. Return { orderId, paymentUrl }
 
 export default defineEventHandler(async (event) => {
-  const user = await serverSupabaseUser(event)
-  if (!user) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  const user = await resolveServerUser(event)
 
   const body = await readBody(event)
   const offerId: string | undefined = body?.offerId
@@ -44,7 +45,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── 2. Idempotency: return existing payment URL ──────────────────────────
-  const { data: existingOrder } = await supabase
+  const { data: existingOrder } = await supabaseAdmin
     .from('orders')
     .select('id, payment_url, xendit_invoice_id, status')
     .eq('offer_id', offerId)
@@ -97,7 +98,7 @@ export default defineEventHandler(async (event) => {
     // Order row exists but has no payment_url yet → reuse it
     orderId = existingOrder.id
   } else {
-    const { data: order, error: ordErr } = await supabase
+    const { data: order, error: ordErr } = await supabaseAdmin
       .from('orders')
       .insert({
         buyer_id:     user.id,
@@ -112,7 +113,7 @@ export default defineEventHandler(async (event) => {
     if (ordErr) throw createError({ statusCode: 500, statusMessage: ordErr.message })
 
     // INSERT order_item
-    const { error: itemErr } = await supabase
+    const { error: itemErr } = await supabaseAdmin
       .from('order_items')
       .insert({
         order_id:      order.id,
@@ -128,7 +129,7 @@ export default defineEventHandler(async (event) => {
       const newStock = Math.max(0, currentProduct.stock - offer.quantity)
       const stockUpdate: Record<string, unknown> = { stock: newStock }
       if (newStock === 0) stockUpdate.status = 'sold'
-      await supabase
+      await supabaseAdmin
         .from('products')
         .update(stockUpdate)
         .eq('id', offer.product_id as string)
@@ -159,7 +160,7 @@ export default defineEventHandler(async (event) => {
           amount:               totalAmount,
           description:          `VivaThrift - ${product?.title ?? 'Produk'}`,
           customer: {
-            given_names: user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Pembeli',
+            given_names: user.fullName ?? user.email?.split('@')[0] ?? 'Pembeli',
             email:       user.email,
           },
           success_redirect_url: `${siteUrl}/checkout/success?order_id=${orderId}`,
@@ -178,13 +179,13 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── 7. Persist Xendit data to order ──────────────────────────────────────
-  await supabase
+  await supabaseAdmin
     .from('orders')
     .update({ xendit_invoice_id: xenditInvoiceId, payment_url: paymentUrl })
     .eq('id', orderId)
 
   // ── 8. Mark offer as expired (cannot be checked out again) ───────────────
-  await supabase
+  await supabaseAdmin
     .from('offers')
     .update({ status: 'expired', updated_at: new Date().toISOString() })
     .eq('id', offerId)

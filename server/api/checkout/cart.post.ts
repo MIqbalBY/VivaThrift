@@ -1,4 +1,5 @@
-import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { serverSupabaseClient } from '#supabase/server'
+import { resolveServerUser } from '../../utils/resolve-server-uid'
 import { supabaseAdmin } from '../../utils/supabase-admin'
 
 // POST /api/checkout/cart
@@ -18,8 +19,7 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 //   8. Return { paymentUrl, orderIds, grandTotal }
 
 export default defineEventHandler(async (event) => {
-  const user = await serverSupabaseUser(event)
-  if (!user) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  const user = await resolveServerUser(event)
 
   const supabase = await serverSupabaseClient(event)
 
@@ -170,7 +170,7 @@ export default defineEventHandler(async (event) => {
           amount:               grandTotal,
           description:          `VivaThrift - ${itemSummary}`,
           customer: {
-            given_names: user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Pembeli',
+            given_names: user.fullName ?? user.email?.split('@')[0] ?? 'Pembeli',
             email:       user.email,
           },
           success_redirect_url: `${siteUrl}/cart/success?order_ids=${orderIds.join(',')}`,

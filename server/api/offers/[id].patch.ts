@@ -1,12 +1,12 @@
-import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { serverSupabaseClient } from '#supabase/server'
+import { resolveServerUid } from '../../utils/resolve-server-uid'
 
 // PATCH /api/offers/:id
 // Body: { status: 'accepted' | 'rejected' }
 // When accepting: also rejects all other pending offers for the same product (cascade-reject).
 // Both operations run server-side so they are atomic from the client's perspective.
 export default defineEventHandler(async (event) => {
-  const user = await serverSupabaseUser(event)
-  if (!user) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  await resolveServerUid(event) // validates auth; ID not needed below (RLS handles ownership)
 
   const offerId = getRouterParam(event, 'id')
   if (!offerId) throw createError({ statusCode: 400, statusMessage: 'offer id tidak ditemukan.' })

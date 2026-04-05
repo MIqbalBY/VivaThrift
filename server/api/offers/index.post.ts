@@ -1,5 +1,6 @@
-import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { serverSupabaseClient } from '#supabase/server'
 import { supabaseAdmin } from '../../utils/supabase-admin'
+import { resolveServerUid } from '../../utils/resolve-server-uid'
 import { validateOfferPrice, PRODUCT_UNAVAILABLE_STATUSES } from '../../utils/domain-rules'
 
 // POST /api/offers
@@ -12,8 +13,7 @@ import { validateOfferPrice, PRODUCT_UNAVAILABLE_STATUSES } from '../../utils/do
 //   5. Quantity must be within available stock
 //   6. Previous pending offers in this chat are superseded atomically
 export default defineEventHandler(async (event) => {
-  const user = await serverSupabaseUser(event)
-  if (!user) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  const userId = await resolveServerUid(event)
 
   const body = await readBody(event)
   const { chatId, productId, price, quantity = 1 } = body ?? {}
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── 2. Buyer ≠ seller (no self-purchase) ─────────────────────────
-  if (product.seller_id === user.id) {
+  if (product.seller_id === userId) {
     throw createError({ statusCode: 403, statusMessage: 'Tidak bisa menawar produk sendiri.' })
   }
 
@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
     .from('offers')
     .update({ status: 'superseded', updated_at: new Date().toISOString() })
     .eq('chat_id', chatId)
-    .eq('buyer_id', user.id)
+    .eq('buyer_id', userId)
     .eq('status', 'pending')
 
   // ── 7. INSERT new offer ───────────────────────────────────────────
@@ -80,7 +80,7 @@ export default defineEventHandler(async (event) => {
     .insert({
       chat_id:       chatId,
       product_id:    productId,
-      buyer_id:      user.id,
+      buyer_id:      userId,
       offered_price: price,
       quantity,
       status:        'pending',
@@ -97,7 +97,7 @@ export default defineEventHandler(async (event) => {
     .from('messages')
     .insert({
       chat_id:   chatId,
-      sender_id: user.id,
+      sender_id: userId,
       offer_id:  offer.id,
       content:   `Mengajukan penawaran: Rp ${price.toLocaleString('id-ID')} × ${quantity} unit`,
     })

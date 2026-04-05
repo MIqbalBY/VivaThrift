@@ -1,4 +1,5 @@
-import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { serverSupabaseClient } from '#supabase/server'
+import { resolveServerUid } from '../../utils/resolve-server-uid'
 import { PRODUCT_UNAVAILABLE_STATUSES } from '../../utils/domain-rules'
 
 // POST /api/orders
@@ -11,8 +12,7 @@ import { PRODUCT_UNAVAILABLE_STATUSES } from '../../utils/domain-rules'
 //   5. Decrement product stock (+ mark sold if stock hits 0)
 //   6. Mark offer as expired so it cannot be checked out again
 export default defineEventHandler(async (event) => {
-  const user = await serverSupabaseUser(event)
-  if (!user) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  const userId = await resolveServerUid(event)
 
   const body = await readBody(event)
   const offerId = body?.offerId
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     .from('offers')
     .select('id, offered_price, quantity, status, buyer_id, product_id, chat:chats(id, seller_id), product:products(id, title, seller_id, stock, status)')
     .eq('id', offerId)
-    .eq('buyer_id', user.id)
+    .eq('buyer_id', userId)
     .single()
 
   if (offerErr || !offer) {
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     .from('orders')
     .select('id')
     .eq('offer_id', offerId)
-    .eq('buyer_id', user.id)
+    .eq('buyer_id', userId)
     .maybeSingle()
 
   if (existingOrder) {
@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
   const { data: order, error: ordErr } = await supabase
     .from('orders')
     .insert({
-      buyer_id:     user.id,
+      buyer_id:     userId,
       seller_id:    sellerId,
       total_amount: offer.offered_price * offer.quantity,
       status:       'pending_payment',
