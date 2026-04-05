@@ -1,4 +1,5 @@
 import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { supabaseAdmin } from '~/server/utils/supabase-admin'
 
 // POST /api/checkout/cart
 //
@@ -43,8 +44,10 @@ export default defineEventHandler(async (event) => {
   if (itemsErr) throw createError({ statusCode: 500, statusMessage: itemsErr.message })
   if (!items?.length) throw createError({ statusCode: 400, statusMessage: 'Keranjang kosong.' })
 
-  // ── 3. Validasi stok ──────────────────────────────────────────────────────
+  // ── 3. Validasi stok + self-purchase ─────────────────────────────────────
   const depleted: string[] = []
+  const ownProducts: string[] = []
+
   for (const item of items) {
     const p = item.product as any
     if (!p || p.status === 'sold' || p.status === 'deleted') {
@@ -52,6 +55,16 @@ export default defineEventHandler(async (event) => {
     } else if (p.stock !== null && p.stock < item.quantity) {
       depleted.push(`${p.title} (sisa ${p.stock})`)
     }
+    if (p?.seller_id === user.id) {
+      ownProducts.push(p.title ?? item.product_id)
+    }
+  }
+
+  if (ownProducts.length > 0) {
+    throw createError({
+      statusCode: 422,
+      statusMessage: `Tidak bisa membeli produk milikmu sendiri: ${ownProducts.join(', ')}`,
+    })
   }
   if (depleted.length > 0) {
     throw createError({
@@ -61,7 +74,10 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── 4. Idempotency: cek pending orders yang sudah punya payment_url ────────
-  const { data: existingOrders } = await supabase
+  // Kolom payment_url / xendit_invoice_id ditambah via migration 006.
+  // Tipe Supabase belum di-regenerate → await dulu, baru cast hasilnya ke any.
+  type PendingOrder = { id: string; payment_url: string; xendit_invoice_id: string; total_amount: number }
+  const existingRaw: any = await supabase
     .from('orders')
     .select('id, payment_url, xendit_invoice_id, total_amount')
     .eq('buyer_id', user.id)
@@ -69,13 +85,13 @@ export default defineEventHandler(async (event) => {
     .not('payment_url', 'is', null)
     .order('created_at', { ascending: false })
     .limit(1)
+  const existingOrders = existingRaw?.data as PendingOrder[] | null
 
   if (existingOrders?.[0]?.payment_url) {
-    // Masih ada invoice aktif — kembalikan URL yang sama
     return {
-      paymentUrl: existingOrders[0].payment_url,
-      orderIds: [existingOrders[0].id],
-      grandTotal: existingOrders[0].total_amount,
+      paymentUrl:     existingOrders[0].payment_url,
+      orderIds:       [existingOrders[0].id],
+      grandTotal:     existingOrders[0].total_amount,
       alreadyExisted: true,
     }
   }
@@ -110,9 +126,9 @@ export default defineEventHandler(async (event) => {
       .select('id')
       .single()
 
-    if (ordErr) throw createError({ statusCode: 500, statusMessage: ordErr.message })
+    if (ordErr || !order) throw createError({ statusCode: 500, statusMessage: ordErr?.message ?? 'Gagal membuat order.' })
 
-    const { error: itemErr } = await supabase.from('order_items').insert(
+    const { error: itemErr } = await supabaseAdmin.from('order_items').insert(
       group.items.map(item => ({
         order_id:      order.id,
         product_id:    item.product_id,
@@ -133,7 +149,7 @@ export default defineEventHandler(async (event) => {
   const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
   const externalId  = orderIds.join('_')
   const itemSummary = items.length === 1
-    ? (items[0].product as any).title
+    ? ((items[0]!.product as any)?.title ?? 'produk')
     : `${items.length} produk dari keranjang`
 
   let xenditInvoiceId: string
@@ -164,13 +180,13 @@ export default defineEventHandler(async (event) => {
     paymentUrl      = invoiceRes.invoice_url
   } catch (e: any) {
     // Rollback orders (best-effort) jika Xendit gagal
-    await supabase.from('orders').delete().in('id', orderIds)
+    await supabaseAdmin.from('orders').delete().in('id', orderIds)
     throw createError({ statusCode: 502, statusMessage: e?.data?.message ?? 'Gagal membuat invoice Xendit.' })
   }
 
   // ── 8. Simpan xendit data ke semua orders ─────────────────────────────────
-  await supabase
-    .from('orders')
+  // Admin client: buyer tidak punya UPDATE policy untuk xendit columns (RLS: seller-only update).
+  await (supabaseAdmin.from('orders') as any)
     .update({ xendit_invoice_id: xenditInvoiceId, payment_url: paymentUrl })
     .in('id', orderIds)
 
