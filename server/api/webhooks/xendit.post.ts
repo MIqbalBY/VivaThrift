@@ -4,15 +4,16 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 //
 // Menerima notifikasi otomatis dari Xendit saat status Invoice berubah.
 //
-// Security layer:
+// Security:
 //   Xendit menyertakan X-CALLBACK-TOKEN di setiap request.
-//   Token ini di-set di dashboard Xendit → Settings → Developers → Callback Token.
-//   Jika token tidak cocok → 401 (drop request, tidak diproses).
+//   Set di: dashboard.xendit.co → Settings → Developers → Callback Token
 //
-// On PAID event:
-//   • Update orders.status → 'confirmed'
-//   • Update orders.payment_method
-//   • Insert record ke tabel payments
+// Mendukung dua flow:
+//   - Offer-based checkout  : external_id = single order UUID
+//   - Cart-based checkout   : external_id = "orderId1_orderId2_..."
+//
+// On PAID: update SEMUA orders dengan xendit_invoice_id tsb → 'confirmed'
+//          lalu insert payment record per order.
 
 export default defineEventHandler(async (event) => {
   // ── Security: verify Xendit callback token ────────────────────────────────
@@ -20,66 +21,75 @@ export default defineEventHandler(async (event) => {
   const expectedToken = process.env.XENDIT_CALLBACK_TOKEN
 
   if (!expectedToken) {
-    // Misconfiguration — block silently so server doesn't crash in dev
     console.error('[xendit-webhook] XENDIT_CALLBACK_TOKEN env var is not set!')
     throw createError({ statusCode: 500, statusMessage: 'Webhook misconfigured.' })
   }
-
   if (receivedToken !== expectedToken) {
     throw createError({ statusCode: 401, statusMessage: 'Invalid callback token.' })
   }
 
   // ── Parse body ────────────────────────────────────────────────────────────
   const body = await readBody(event)
-
   const {
-    id:           xenditInvoiceId, // Xendit Invoice ID  (e.g. "inv_xxx")
-    external_id:  orderId,         // Our orders.id (UUID we passed at creation)
-    status,                        // "PAID" | "EXPIRED" | "SETTLED" etc.
-    payment_method: paymentMethod, // "BANK_TRANSFER" | "CREDIT_CARD" | "EWALLET" etc.
-    paid_amount:  paidAmount,      // Actual amount paid (may differ from invoice if fee absorbed)
+    id:              xenditInvoiceId,
+    status,
+    payment_method:  paymentMethod,
+    paid_amount:     paidAmount,
   } = body ?? {}
 
-  // Only act on PAID events; acknowledge everything else silently
+  // Abaikan event selain PAID
   if (status !== 'PAID') {
     return { received: true, action: 'ignored', status }
   }
 
-  if (!orderId || !xenditInvoiceId) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing external_id or id in payload.' })
+  if (!xenditInvoiceId) {
+    throw createError({ statusCode: 400, statusMessage: 'Missing invoice id in payload.' })
   }
 
-  // ── Update order: confirmed + payment_method ──────────────────────────────
-  // Double guard: match both our order ID (external_id) AND xendit_invoice_id
-  // so a replayed webhook for a different order cannot modify unrelated rows.
-  const { error: orderErr } = await supabaseAdmin
+  // ── Update semua orders dengan invoice ID ini → confirmed ─────────────────
+  // Satu query handles both single-order (offer flow) dan multi-order (cart flow).
+  const { data: updatedOrders, error: orderErr } = await supabaseAdmin
     .from('orders')
     .update({
       status:         'confirmed',
       payment_method: paymentMethod ?? null,
     })
-    .eq('id', orderId)
     .eq('xendit_invoice_id', xenditInvoiceId)
+    .select('id, total_amount')
 
   if (orderErr) {
-    console.error('[xendit-webhook] Failed to update order:', orderErr)
-    // Return 500 so Xendit retries the webhook
-    throw createError({ statusCode: 500, statusMessage: 'Failed to update order.' })
+    console.error('[xendit-webhook] Failed to update orders:', orderErr)
+    throw createError({ statusCode: 500, statusMessage: 'Failed to update orders.' })
   }
 
-  // ── Insert payment record (non-fatal if it fails) ─────────────────────────
-  const { error: paymentErr } = await supabaseAdmin
-    .from('payments')
-    .insert({
-      order_id: orderId,
-      amount:   paidAmount ?? 0,
-      status:   'paid',
-    })
+  if (!updatedOrders?.length) {
+    // Invoice ID tidak ditemukan di DB — mungkin sudah diproses atau data stale
+    console.warn('[xendit-webhook] No orders found for invoice:', xenditInvoiceId)
+    return { received: true, action: 'no_orders_found' }
+  }
 
+  // ── Insert payment record per order (non-fatal) ───────────────────────────
+  // Untuk cart checkout dengan banyak order, amount dibagi proporsional.
+  const totalDbAmount = updatedOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
+  const actualPaid    = paidAmount ?? totalDbAmount
+
+  const paymentRows = updatedOrders.map(o => ({
+    order_id: o.id,
+    amount:   totalDbAmount > 0
+      ? Math.round(actualPaid * ((o.total_amount ?? 0) / totalDbAmount))
+      : 0,
+    status: 'paid',
+  }))
+
+  const { error: paymentErr } = await supabaseAdmin.from('payments').insert(paymentRows)
   if (paymentErr) {
-    console.error('[xendit-webhook] Failed to insert payment record:', paymentErr)
-    // Non-fatal: order is already confirmed, payment record is supplemental
+    console.error('[xendit-webhook] Failed to insert payment records:', paymentErr)
   }
 
-  return { received: true, action: 'confirmed', orderId }
+  return {
+    received:   true,
+    action:     'confirmed',
+    orderCount: updatedOrders.length,
+    orderIds:   updatedOrders.map(o => o.id),
+  }
 })
