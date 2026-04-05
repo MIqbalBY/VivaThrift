@@ -1,0 +1,138 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]: "|"
+      - link "Tentang VivaThrift" [ref=e8] [cursor=pointer]:
+        - /url: /about
+      - generic [ref=e9]: "|"
+      - button "Mulai Berjualan" [ref=e10]
+    - generic [ref=e12]:
+      - link "VivaThrift Logo VivaThrift" [ref=e13] [cursor=pointer]:
+        - /url: /
+        - img "VivaThrift Logo" [ref=e14]
+        - generic [ref=e15]: VivaThrift
+      - button "Kategori" [ref=e17]:
+        - text: Kategori
+        - img [ref=e18]
+      - generic [ref=e21]:
+        - textbox "Cari di VivaThrift" [ref=e22]
+        - button [ref=e23]:
+          - img [ref=e24]
+      - link "Chat" [ref=e26] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e27]
+      - link "Wishlist" [ref=e29] [cursor=pointer]:
+        - /url: /wishlist
+        - img [ref=e30]
+      - button "Keranjang" [ref=e32]:
+        - img [ref=e33]
+      - link "Masuk" [ref=e35] [cursor=pointer]:
+        - /url: /auth/signin
+      - link "Daftar" [ref=e36] [cursor=pointer]:
+        - /url: /auth/signup
+      - button "Aktifkan mode gelap" [ref=e37]:
+        - img [ref=e38]
+  - main [ref=e40]:
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - img "Banner VivaThrift"
+        - generic [ref=e44]:
+          - link "ITS Institut Teknologi Sepuluh Nopember" [ref=e45] [cursor=pointer]:
+            - /url: https://www.its.ac.id/
+            - img "ITS" [ref=e46]
+            - generic [ref=e47]: Institut Teknologi Sepuluh Nopember
+          - heading "Temukan Barang Preloved Berkualitas di Sekitar ITS!" [level=1] [ref=e48]:
+            - text: Temukan
+            - generic [ref=e49]: Barang Preloved
+            - text: Berkualitas di Sekitar ITS!
+          - paragraph [ref=e50]: Marketplace tepercaya khusus mahasiswa ITS. Jual beli buku mata kuliah, gadget, pakaian, hingga perlengkapan kos dengan mudah dan aman!
+          - generic [ref=e51]:
+            - button "Mulai Jelajah" [ref=e52]
+            - button "Jual Barang" [ref=e53]
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - heading "Cari barang preloved impianmu!" [level=2] [ref=e56]
+          - generic [ref=e57]:
+            - generic [ref=e58]: Urutkan
+            - combobox [ref=e59] [cursor=pointer]:
+              - option "🕐 Terbaru" [selected]
+              - option "⏳ Terlama"
+              - option "💰 Harga Terendah"
+              - option "💎 Harga Tertinggi"
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - generic [ref=e62]:
+              - generic [ref=e63]: Kategori
+              - generic [ref=e64]:
+                - button "📱 Aksesori & Gadget" [ref=e65]
+                - button "📚 Buku & Alat Tulis" [ref=e66]
+                - button "🍳 Dapur & Peralatan Makan" [ref=e67]
+                - button "💻 Elektronik" [ref=e68]
+                - button "👗 Fashion" [ref=e69]
+                - button "🎨 Hobi & Koleksi" [ref=e70]
+            - generic [ref=e72]:
+              - button "🚗 Kendaraan" [ref=e73]
+              - button "💄 Kosmetik & Skincare" [ref=e74]
+              - button "⚽ Olahraga" [ref=e75]
+              - button "🛋️ Perabot Kos" [ref=e76]
+              - button "🎫 Tiket & Voucher" [ref=e77]
+              - button "📦 Lainnya" [ref=e78]
+          - generic [ref=e79]:
+            - generic [ref=e80]: Kondisi
+            - button "🆕 Baru" [ref=e81]
+            - button "✨ Seperti Baru" [ref=e82]
+            - button "👍 Baik" [ref=e83]
+            - button "👌 Cukup Baik" [ref=e84]
+            - button "♻️ Bekas" [ref=e85]
+          - generic [ref=e86]:
+            - generic [ref=e87]: Nego
+            - button "🤝 Bisa Nego" [ref=e88]
+            - button "🚫 Tidak Nego" [ref=e89]
+          - generic [ref=e90]:
+            - generic [ref=e91]: COD
+            - button "🚲 Tersedia COD" [ref=e92]
+            - button "🚧 Non COD" [ref=e93]
+        - link "Buku SKPB ITS - Kalkulus 1, Fismek, Kimia 1 & 2 ✨ Seperti Baru 🤝 Nego 🚲 COD 📚 Buku & Alat Tulis Buku SKPB ITS - Kalkulus 1, Fismek, Kimia 1 & 2 Rp 85.000 Muhammad Iqbal Baiduri Yamani ♂️ 5026221103 (FTEIC - Sistem Informasi) Belum ada ulasan Diedit pada Rabu, 1 April 2026 pukul 11:14" [ref=e95] [cursor=pointer]:
+          - /url: /products/buku-skpb-its-kalkulus-1-fismek-kimia-1-2-5b4b6d36
+          - generic [ref=e96]:
+            - img "Buku SKPB ITS - Kalkulus 1, Fismek, Kimia 1 & 2" [ref=e97]
+            - button "Simpan ke wishlist" [ref=e98]:
+              - img [ref=e99]
+            - generic [ref=e101]:
+              - generic [ref=e102]: ✨ Seperti Baru
+              - generic [ref=e103]: 🤝 Nego
+              - generic [ref=e104]: 🚲 COD
+            - generic [ref=e105]: 📚 Buku & Alat Tulis
+          - generic [ref=e106]:
+            - paragraph [ref=e107]: Buku SKPB ITS - Kalkulus 1, Fismek, Kimia 1 & 2
+            - paragraph [ref=e108]: Rp 85.000
+            - separator [ref=e109]
+            - generic [ref=e110]:
+              - img [ref=e112]
+              - generic [ref=e113]:
+                - paragraph [ref=e114]: Muhammad Iqbal Baiduri Yamani ♂️
+                - paragraph [ref=e115]: 5026221103 (FTEIC - Sistem Informasi)
+                - generic [ref=e116]:
+                  - img [ref=e117]
+                  - generic [ref=e119]: Belum ada ulasan
+            - separator [ref=e120]
+            - paragraph [ref=e121]:
+              - text: Diedit pada
+              - text: Rabu, 1 April 2026 pukul 11:14
+  - contentinfo [ref=e122]:
+    - generic [ref=e123]:
+      - generic [ref=e124]:
+        - img "VivaThrift" [ref=e125]
+        - paragraph [ref=e126]:
+          - text: © 2026 VivaThrift.
+          - text: Marketplace Preloved Mahasiswa ITS.
+        - link "Institut Teknologi Sepuluh Nopember" [ref=e128] [cursor=pointer]:
+          - /url: https://www.its.ac.id/
+          - img "Institut Teknologi Sepuluh Nopember" [ref=e129]
+      - generic [ref=e130]:
+        - link "Tentang VivaThrift" [ref=e131] [cursor=pointer]:
+          - /url: /about
+        - link "Bantuan" [ref=e132] [cursor=pointer]:
+          - /url: "#"
+        - link "Syarat & Ketentuan" [ref=e133] [cursor=pointer]:
+          - /url: "#"

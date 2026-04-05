@@ -1,0 +1,110 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img [ref=e8]
+        - generic [ref=e11]: Dikirim ke
+        - link "Rumah" [ref=e88] [cursor=pointer]:
+          - /url: /profile/edit?tab=address
+          - text: Rumah
+          - img [ref=e13]
+      - generic [ref=e15]: "|"
+      - link "Tentang VivaThrift" [ref=e16] [cursor=pointer]:
+        - /url: /about
+      - generic [ref=e17]: "|"
+      - button "Mulai Berjualan" [ref=e18]
+    - generic [ref=e20]:
+      - link "VivaThrift Logo VivaThrift" [ref=e21] [cursor=pointer]:
+        - /url: /
+        - img "VivaThrift Logo" [ref=e22]
+        - generic [ref=e23]: VivaThrift
+      - button "Kategori" [ref=e25]:
+        - text: Kategori
+        - img [ref=e26]
+      - generic [ref=e29]:
+        - textbox "Cari di VivaThrift" [ref=e30]
+        - button [ref=e31]:
+          - img [ref=e32]
+      - link "Chat" [ref=e34] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e35]
+      - button "Notifikasi" [ref=e38]:
+        - img [ref=e39]
+      - link "Wishlist" [ref=e41] [cursor=pointer]:
+        - /url: /wishlist
+        - img [ref=e42]
+        - generic: "1"
+      - button "Keranjang" [ref=e44]:
+        - img [ref=e45]
+        - generic: "1"
+      - button "Profil" [ref=e48]:
+        - generic [ref=e89]: LI
+      - button "Aktifkan mode gelap" [ref=e50]:
+        - img [ref=e51]
+  - main [ref=e53]:
+    - generic [ref=e54]:
+      - generic [ref=e55]:
+        - link "Kembali" [ref=e56] [cursor=pointer]:
+          - /url: /
+          - img [ref=e57]
+          - text: Kembali
+        - heading "Keranjang Belanja" [level=1] [ref=e59]
+        - generic [ref=e90]: 1 item
+      - generic [ref=e91]:
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - img [ref=e96]
+            - generic [ref=e97]: Muhammad Iqbal Baiduri Yamani
+          - generic [ref=e99]:
+            - link "Buku SKPB ITS - Kalkulus 1, Fismek, Kimia 1 & 2" [ref=e100] [cursor=pointer]:
+              - /url: /products/buku-skpb-its-kalkulus-1-fismek-kimia-1-2-5b4b6d36
+              - img "Buku SKPB ITS - Kalkulus 1, Fismek, Kimia 1 & 2" [ref=e101]
+            - generic [ref=e102]:
+              - link "Buku SKPB ITS - Kalkulus 1, Fismek, Kimia 1 & 2" [ref=e103] [cursor=pointer]:
+                - /url: /products/buku-skpb-its-kalkulus-1-fismek-kimia-1-2-5b4b6d36
+                - paragraph [ref=e104]: Buku SKPB ITS - Kalkulus 1, Fismek, Kimia 1 & 2
+              - paragraph [ref=e105]: Rp 85.000 (1 × Rp 85.000)
+              - paragraph [ref=e106]: Sisa 1 unit
+              - generic [ref=e107]:
+                - button "−" [ref=e108]
+                - generic [ref=e109]: "1"
+                - button "+" [disabled] [ref=e110]
+                - button "Hapus" [ref=e111]:
+                  - img [ref=e112]
+                  - text: Hapus
+          - generic [ref=e114]:
+            - generic [ref=e115]: Subtotal penjual ini
+            - generic [ref=e116]: Rp 85.000
+        - generic [ref=e117]:
+          - heading "Ringkasan Pesanan" [level=2] [ref=e118]
+          - generic [ref=e119]:
+            - generic [ref=e120]:
+              - generic [ref=e121]: Total item
+              - generic [ref=e122]: 1 item
+            - generic [ref=e123]:
+              - generic [ref=e124]: Subtotal
+              - generic [ref=e125]: Rp 85.000
+            - paragraph [ref=e126]: Ongkir dihitung saat checkout berdasarkan metode pengiriman.
+          - generic [ref=e128]:
+            - generic [ref=e129]: Total
+            - generic [ref=e130]: Rp 85.000
+          - button "Lanjutkan ke Checkout" [ref=e131]:
+            - generic [ref=e132]: Lanjutkan ke Checkout
+          - button "Kosongkan keranjang" [ref=e133]
+  - contentinfo [ref=e76]:
+    - generic [ref=e77]:
+      - generic [ref=e78]:
+        - img "VivaThrift" [ref=e79]
+        - paragraph [ref=e80]:
+          - text: © 2026 VivaThrift.
+          - text: Marketplace Preloved Mahasiswa ITS.
+        - link "Institut Teknologi Sepuluh Nopember" [ref=e82] [cursor=pointer]:
+          - /url: https://www.its.ac.id/
+          - img "Institut Teknologi Sepuluh Nopember" [ref=e83]
+      - generic [ref=e84]:
+        - link "Tentang VivaThrift" [ref=e85] [cursor=pointer]:
+          - /url: /about
+        - link "Bantuan" [ref=e86] [cursor=pointer]:
+          - /url: "#"
+        - link "Syarat & Ketentuan" [ref=e87] [cursor=pointer]:
+          - /url: "#"

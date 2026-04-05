@@ -1,0 +1,31 @@
+- generic [ref=e3]:
+  - img
+  - button "Aktifkan mode gelap" [ref=e4]:
+    - img [ref=e5]
+  - link "Kembali ke Beranda" [ref=e8] [cursor=pointer]:
+    - /url: /
+    - img [ref=e9]
+    - text: Kembali ke Beranda
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - img "VivaThrift" [ref=e14]
+        - link "ITS" [ref=e16] [cursor=pointer]:
+          - /url: https://www.its.ac.id/
+          - img "ITS" [ref=e17]
+      - generic [ref=e18]: VivaThrift
+    - img [ref=e19]
+    - heading "Masuk" [level=1] [ref=e20]
+    - generic [ref=e21]:
+      - textbox "Email ITS" [ref=e23]
+      - generic [ref=e24]:
+        - textbox "Password" [ref=e25]
+        - button [ref=e26]:
+          - img [ref=e27]
+      - link "Lupa password?" [ref=e30] [cursor=pointer]:
+        - /url: /auth/forgot-password
+      - button "Lanjut" [ref=e32]
+  - paragraph [ref=e33]:
+    - text: Belum punya akun?
+    - link "Daftar" [ref=e34] [cursor=pointer]:
+      - /url: /auth/signup
