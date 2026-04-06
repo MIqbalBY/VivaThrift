@@ -5,7 +5,7 @@ const { settings: userSettings } = useUserSettings()
 const {
   notifications, notifUnreadCount, showNotifPanel,
   notifPanelRef, notifBellRef,
-  markAllRead, markOneRead, notifTimeAgo, getNotifIcon, getNotifProductImage,
+  markAllRead, markOneRead, notifTimeAgo, getNotifIcon, getNotifRoute, getNotifProductImage,
 } = useNavNotifications()
 const { navUid } = useNavChatBadge()
 
@@ -75,7 +75,7 @@ function handleOutsideClick(e: MouseEvent) {
           <NuxtLink
             v-for="n in notifications"
             :key="n.id"
-            :to="n.products?.slug ? `/products/${n.products.slug}` : (n.product_id ? `/products/${n.product_id}` : '#')"
+            :to="getNotifRoute(n)"
             @click="markOneRead(n); showNotifPanel = false"
             class="flex items-start gap-3 px-4 py-3 transition border-b"
             :class="[

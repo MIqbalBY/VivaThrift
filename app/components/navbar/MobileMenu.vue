@@ -136,6 +136,9 @@ const emit = defineEmits<{
               <NuxtLink to="/profile/edit?tab=notifications" @click="show = false" class="flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
                 ⚙️ Pengaturan
               </NuxtLink>
+              <NuxtLink to="/orders" @click="show = false" class="flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
+                📋 Pesanan
+              </NuxtLink>
               <NuxtLink to="/chat" @click="show = false" class="relative flex-1 text-center py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
                 💬 Chat
                 <span v-if="navUnreadCount > 0"

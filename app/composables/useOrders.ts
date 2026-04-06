@@ -1,0 +1,205 @@
+/**
+ * useOrders — composable untuk halaman /orders
+ * Fetch, filter, dan mutate order data untuk buyer dan seller.
+ */
+
+export type OrderRole   = 'buyer' | 'seller'
+export type OrderTabKey = 'pending_payment' | 'confirmed' | 'shipped' | 'completed' | 'cancelled'
+
+export const ORDER_TABS: { key: OrderTabKey; label: string; icon: string }[] = [
+  { key: 'pending_payment', label: 'Belum Bayar', icon: '⏳' },
+  { key: 'confirmed',       label: 'Dikemas',     icon: '📦' },
+  { key: 'shipped',         label: 'Dikirim',     icon: '🚚' },
+  { key: 'completed',       label: 'Selesai',     icon: '✅' },
+  { key: 'cancelled',       label: 'Dibatalkan',  icon: '❌' },
+]
+
+export function useOrders() {
+  const supabase = useSupabaseClient()
+  const user     = useSupabaseUser()
+
+  const orders      = ref<any[]>([])
+  const loading     = ref(false)
+  const fetchErr    = ref<string | null>(null)
+  const reviewedIds = ref<Set<string>>(new Set())
+
+  const role      = ref<OrderRole>('buyer')
+  const activeTab = ref<OrderTabKey>('pending_payment')
+
+  // ── Fetch ────────────────────────────────────────────────────────────────────
+  async function fetchOrders() {
+    if (!user.value?.id) return
+    loading.value  = true
+    fetchErr.value = null
+
+    const field = role.value === 'buyer' ? 'buyer_id' : 'seller_id'
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        id, status, total_amount,
+        tracking_number, courier_name, shipped_at, completed_at,
+        created_at, updated_at, payment_url, offer_id, disbursement_id,
+        order_items (
+          quantity, price_at_time,
+          product:products (
+            id, title, slug,
+            product_media ( media_url, media_type, is_primary, thumbnail_url )
+          )
+        ),
+        buyer:users!buyer_id   ( id, name, username, avatar_url ),
+        seller:users!seller_id ( id, name, username, avatar_url ),
+        offer:offers!offer_id  ( id, chat_id )
+      `)
+      .eq(field, user.value.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      fetchErr.value = error.message
+    } else {
+      orders.value = data ?? []
+    }
+
+    // Fetch which completed orders the user has already reviewed (buyer role only)
+    if (role.value === 'buyer') {
+      const completedIds = (orders.value ?? [])
+        .filter((o: any) => o.status === 'completed')
+        .map((o: any) => o.id)
+
+      if (completedIds.length) {
+        const { data: reviewed } = await supabase
+          .from('reviews')
+          .select('order_id')
+          .eq('reviewer_id', user.value.id)
+          .in('order_id', completedIds)
+        reviewedIds.value = new Set((reviewed ?? []).map((r: any) => r.order_id))
+      } else {
+        reviewedIds.value = new Set()
+      }
+    }
+
+    loading.value = false
+  }
+
+  function isReviewed(orderId: string) {
+    return reviewedIds.value.has(orderId)
+  }
+
+  function markReviewed(orderId: string) {
+    reviewedIds.value = new Set([...reviewedIds.value, orderId])
+  }
+
+  // ── Derived ──────────────────────────────────────────────────────────────────
+  const tabCounts = computed<Record<OrderTabKey, number>>(() => {
+    const all = orders.value
+    return {
+      pending_payment: all.filter(o => o.status === 'pending_payment').length,
+      confirmed:       all.filter(o => o.status === 'confirmed').length,
+      shipped:         all.filter(o => o.status === 'shipped').length,
+      completed:       all.filter(o => o.status === 'completed').length,
+      cancelled:       all.filter(o => ['cancelled', 'payment_failed'].includes(o.status)).length,
+    }
+  })
+
+  const filteredOrders = computed(() => {
+    const tab = activeTab.value
+    if (tab === 'cancelled') {
+      return orders.value.filter(o => ['cancelled', 'payment_failed'].includes(o.status))
+    }
+    return orders.value.filter(o => o.status === tab)
+  })
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function primaryMedia(order: any) {
+    const items = order.order_items ?? []
+    if (!items.length) return null
+    const media = items[0]?.product?.product_media ?? []
+    if (!media.length) return null
+    const primary = media.find((m: any) => m.is_primary) ?? media[0]
+    if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return primary.thumbnail_url
+    return primary.media_url ?? null
+  }
+
+  function productTitle(order: any) {
+    return order.order_items?.[0]?.product?.title ?? '—'
+  }
+
+  function productSlug(order: any) {
+    return order.order_items?.[0]?.product?.slug ?? order.order_items?.[0]?.product?.id ?? null
+  }
+
+  function chatId(order: any) {
+    return order.offer?.chat_id ?? null
+  }
+
+  function formatRp(amount: number) {
+    return new Intl.NumberFormat('id-ID', {
+      style:    'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
+  function sellerReceives(totalAmount: number) {
+    // 5% platform fee
+    return Math.round(totalAmount * 0.95)
+  }
+
+  // ── Mutations ─────────────────────────────────────────────────────────────────
+  const actionLoading = ref<Record<string, boolean>>({})
+  const actionErr     = ref<Record<string, string>>({})
+  const actionSuccess = ref<Record<string, boolean>>({})
+
+  async function shipOrder(orderId: string, trackingNumber: string, courierName: string) {
+    actionLoading.value[orderId] = true
+    actionErr.value[orderId]     = ''
+    actionSuccess.value[orderId] = false
+    try {
+      await $fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        body: { action: 'ship', tracking_number: trackingNumber, courier_name: courierName },
+      })
+      actionSuccess.value[orderId] = true
+      await fetchOrders()
+    } catch (e: any) {
+      actionErr.value[orderId] = e?.data?.statusMessage ?? e?.message ?? 'Gagal mengupdate pesanan.'
+    } finally {
+      actionLoading.value[orderId] = false
+    }
+  }
+
+  async function completeOrder(orderId: string) {
+    actionLoading.value[orderId] = true
+    actionErr.value[orderId]     = ''
+    actionSuccess.value[orderId] = false
+    try {
+      await $fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        body: { action: 'complete' },
+      })
+      actionSuccess.value[orderId] = true
+      await fetchOrders()
+    } catch (e: any) {
+      actionErr.value[orderId] = e?.data?.statusMessage ?? e?.message ?? 'Gagal mengkonfirmasi pesanan.'
+    } finally {
+      actionLoading.value[orderId] = false
+    }
+  }
+
+  // Refetch when role changes
+  watch(role, () => {
+    activeTab.value = 'pending_payment'
+    fetchOrders()
+  })
+
+  return {
+    orders, loading, fetchErr,
+    role, activeTab,
+    tabCounts, filteredOrders,
+    primaryMedia, productTitle, productSlug, chatId, formatRp, sellerReceives,
+    actionLoading, actionErr, actionSuccess,
+    fetchOrders, shipOrder, completeOrder,
+    isReviewed, markReviewed, reviewedIds,
+    ORDER_TABS,
+  }
+}

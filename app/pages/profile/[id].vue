@@ -85,6 +85,9 @@ const isFollowing = ref(false)
 const followLoading = ref(false)
 const isSelf = computed(() => !!currentUserId.value && currentUserId.value === resolvedId.value)
 
+// ── Report modal ────────────────────────────────────────────────────────────
+const showReportModal = ref(false)
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const profileInitials = computed(() => {
@@ -199,6 +202,15 @@ onMounted(async () => {
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                   </svg>
                   <template v-else>{{ isFollowing ? '✓ Mengikuti' : '+ Ikuti' }}</template>
+                </button>
+                <button
+                  @click="showReportModal = true"
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium transition"
+                  :style="isDark ? 'color: #f87171; border: 1px solid rgba(248,113,113,0.25); background: rgba(248,113,113,0.08);' : 'color: #dc2626; border: 1px solid rgba(220,38,38,0.20); background: rgba(254,242,242,0.80);'"
+                  title="Laporkan pengguna"
+                >
+                  <svg class="w-4 h-4 inline -mt-0.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5"/></svg>
+                  Laporkan
                 </button>
               </template>
               <NuxtLink
@@ -373,4 +385,14 @@ onMounted(async () => {
 
     </template>
   </div>
+
+  <!-- Report User Modal -->
+  <ReportModal
+    v-if="showReportModal && profile"
+    target-type="user"
+    :target-id="profile.id"
+    :target-label="profile.name ?? 'Pengguna'"
+    @close="showReportModal = false"
+    @submitted="showReportModal = false"
+  />
 </template>

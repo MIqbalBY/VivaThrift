@@ -13,7 +13,7 @@ export function useNavNotifications() {
       .from('notifications')
       .select(`
         id, type, title, body, is_read, created_at,
-        product_id,
+        product_id, reference_id,
         products ( slug, product_media ( media_url, media_type, thumbnail_url, is_primary ) ),
         actor:users!notifications_actor_id_fkey ( name, avatar_url )
       `)
@@ -61,11 +61,45 @@ export function useNavNotifications() {
     return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
   }
 
+  const NOTIF_ICONS: Record<string, string> = {
+    new_product:     '🛍️',
+    restock:         '📦',
+    out_of_stock:    '😔',
+    order_paid:      '💰',
+    order_shipped:   '🚚',
+    order_completed: '✅',
+    new_offer:       '🤝',
+    offer_accepted:  '🎉',
+    offer_rejected:  '😢',
+    new_review:      '⭐',
+  }
+
+  const ORDER_NOTIF_TYPES = new Set([
+    'order_paid', 'order_shipped', 'order_completed',
+  ])
+
+  const CHAT_NOTIF_TYPES = new Set([
+    'new_offer', 'offer_accepted', 'offer_rejected',
+  ])
+
   function getNotifIcon(type: string) {
-    if (type === 'new_product') return '🛍️'
-    if (type === 'restock') return '📦'
-    if (type === 'out_of_stock') return '😔'
-    return 'ℹ️'
+    return NOTIF_ICONS[type] ?? 'ℹ️'
+  }
+
+  function getNotifRoute(notif: any): string {
+    // Order notifs → /orders page
+    if (ORDER_NOTIF_TYPES.has(notif.type)) return '/orders'
+
+    // Offer/chat notifs → /chat/{reference_id}
+    if (CHAT_NOTIF_TYPES.has(notif.type) && notif.reference_id) {
+      return `/chat/${notif.reference_id}`
+    }
+
+    // Product notifs → product page
+    if (notif.products?.slug) return `/products/${notif.products.slug}`
+    if (notif.product_id) return `/products/${notif.product_id}`
+
+    return '#'
   }
 
   function getNotifProductImage(notif: any) {
@@ -92,6 +126,7 @@ export function useNavNotifications() {
     markOneRead,
     notifTimeAgo,
     getNotifIcon,
+    getNotifRoute,
     getNotifProductImage,
     cleanup,
   }

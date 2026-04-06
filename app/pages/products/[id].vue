@@ -91,6 +91,26 @@ useAsyncData(`seller-rating-${route.params.id}`, async () => {
   sellerRating.value = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
 })
 
+// Product rating + reviews list
+const productRating = ref(null)
+const productRatingCount = ref(0)
+const productReviews = ref([])
+useAsyncData(`product-reviews-${route.params.id}`, async () => {
+  const pid = product.value?.id
+  if (!pid) return
+  const { data } = await supabase
+    .from('reviews')
+    .select(`id, rating_product, rating_seller, comment, created_at,
+      reviewer:users!reviews_reviewer_id_fkey(id, name, username, avatar_url)`)
+    .eq('product_id', pid)
+    .order('created_at', { ascending: false })
+    .limit(20)
+  productReviews.value = data ?? []
+  const arr = (data ?? []).map(r => r.rating_product).filter(v => v != null)
+  productRatingCount.value = arr.length
+  productRating.value = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+})
+
 // Seller address + distance
 const sellerAddress = ref(null)
 const distanceKm = ref(null)
@@ -232,6 +252,9 @@ const currentUserId = computed(() => session?.user?.id ?? currentUser.value?.id 
 const isSeller = computed(() => !!currentUserId.value && currentUserId.value === product.value?.users?.id)
 const profileCardUserId = ref(null)
 
+// ── Report modal ────────────────────────────────────────────────
+const showReportModal = ref(false)
+
 // ── Seller: edit ─────────────────────────────────────────────────
 const editMode = ref(false)
 function onEditSaved(data) {
@@ -301,6 +324,11 @@ watch(currentUserId, (id, prevId) => {
           <button @click="shareProduct" class="flex-1 flex flex-col items-center gap-1 py-3 transition" :class="isDark ? 'text-gray-300 hover:bg-white/10' : 'text-gray-600 hover:bg-white/40'">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
             <span>Share</span>
+          </button>
+          <div class="vt-action-bar-divider w-px self-stretch" :style="isDark ? 'background: rgba(255,255,255,0.10)' : 'background: rgba(30,58,138,0.12)'"></div>
+          <button @click="showReportModal = true" class="flex-1 flex flex-col items-center gap-1 py-3 transition" :class="isDark ? 'text-red-400 hover:bg-red-900/20' : 'text-red-400 hover:bg-red-50'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5"/></svg>
+            <span>Laporkan</span>
           </button>
         </div>
         <!-- ── Aksi: Seller ── -->
@@ -421,6 +449,48 @@ watch(currentUserId, (id, prevId) => {
           </div>
         </div>
 
+        <!-- Ulasan Pembeli -->
+        <div v-if="productReviews.length" class="border-t border-gray-100 pt-4">
+          <div class="flex items-center gap-2 mb-3">
+            <p class="text-sm font-semibold text-gray-700">Ulasan Pembeli</p>
+            <div v-if="productRating != null" class="flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+              <span class="text-xs font-semibold" :class="isDark ? 'text-gray-200' : 'text-gray-700'">{{ productRating.toFixed(1) }}</span>
+              <span class="text-xs" :class="isDark ? 'text-gray-500' : 'text-gray-400'">({{ productRatingCount }})</span>
+            </div>
+          </div>
+          <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+            <div
+              v-for="review in productReviews"
+              :key="review.id"
+              class="rounded-xl p-3"
+              :style="isDark
+                ? 'background:rgba(30,41,59,0.50);border:1px solid rgba(255,255,255,0.06);'
+                : 'background:rgba(248,250,252,0.80);border:1px solid rgba(226,232,240,0.60);'"
+            >
+              <div class="flex items-center gap-2 mb-1.5">
+                <div class="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-bold text-white shrink-0"
+                  :style="isDark ? 'background:linear-gradient(135deg,#0ea5e9,#38bdf8);' : 'background:linear-gradient(135deg,#1e3a8a,#2563eb);'">
+                  <img v-if="review.reviewer?.avatar_url" :src="review.reviewer.avatar_url" class="w-full h-full object-cover" />
+                  <span v-else>{{ (review.reviewer?.name ?? '?')[0] }}</span>
+                </div>
+                <span class="text-xs font-semibold truncate" :class="isDark ? 'text-slate-200' : 'text-gray-700'">{{ review.reviewer?.name ?? 'Anonim' }}</span>
+                <span class="text-[10px] ml-auto shrink-0" :class="isDark ? 'text-slate-500' : 'text-gray-400'">
+                  {{ new Date(review.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) }}
+                </span>
+              </div>
+              <div class="flex items-center gap-0.5 mb-1">
+                <svg v-for="s in 5" :key="s" class="w-3 h-3" :class="s <= (review.rating_product ?? 0) ? 'text-yellow-400 fill-current' : isDark ? 'text-slate-600' : 'text-gray-300'" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+              </div>
+              <p v-if="review.comment" class="text-xs leading-relaxed" :class="isDark ? 'text-slate-300' : 'text-gray-600'">{{ review.comment }}</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Panel Beli (buyer) -->
         <ProductDetailBuyPanel
           v-if="!isSeller"
@@ -460,5 +530,15 @@ watch(currentUserId, (id, prevId) => {
     v-model:active-index="activeIndex"
     :product-title="cleanTitle"
     @close="lightboxOpen = false"
+  />
+
+  <!-- Report Modal -->
+  <ReportModal
+    v-if="showReportModal && product"
+    target-type="product"
+    :target-id="product.id"
+    :target-label="product.title"
+    @close="showReportModal = false"
+    @submitted="showReportModal = false"
   />
 </template>
