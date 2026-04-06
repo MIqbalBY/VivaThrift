@@ -175,7 +175,7 @@ export default defineEventHandler(async (event) => {
           success_redirect_url: `${siteUrl}/checkout/success?order_id=${orderId}`,
           failure_redirect_url: `${siteUrl}/checkout?offer_id=${offerId}&payment_failed=1`,
           currency:             'IDR',
-          invoice_duration:     86400, // 24 jam
+          invoice_duration:     900, // 15 menit
         },
       },
     )
