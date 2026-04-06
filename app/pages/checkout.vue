@@ -36,10 +36,19 @@ const { data: addrData } = await useAsyncData('buyer-address', async () => {
 // Derived as computed so it reacts when the client-side fetch resolves
 const buyerAddress = computed(() => addrData.value ?? null)
 
-// Auto-fill destPostal reactively once address data arrives
+// Auto-fill destPostal reactively once address data arrives, then auto-fetch rates
 watch(addrData, (addr) => {
-  if (addr?.postal_code) destPostal.value = addr.postal_code
+  if (addr?.postal_code) {
+    destPostal.value = addr.postal_code
+    // Auto-fetch ongkir if user has already selected shipping method
+    if (shippingMethod.value === 'shipping') fetchRates()
+  }
 }, { immediate: true })
+
+// Auto-fetch when user switches to shipping and postal is already filled
+watch(shippingMethod, (method) => {
+  if (method === 'shipping' && destPostal.value.trim().length >= 5) fetchRates()
+})
 
 const MEETUP_LOCATIONS = [
   { id: 'aula_asrama',     label: 'Aula Asrama ITS' },

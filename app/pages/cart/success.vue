@@ -4,9 +4,22 @@ useSeoMeta({ title: 'Pembayaran Berhasil — VivaThrift' })
 
 const { isDark } = useDarkMode()
 const { clearCart } = useCart()
+const route = useRoute()
 
-// Bersihkan keranjang setelah pembayaran sukses
-onMounted(() => clearCart())
+const orderId = computed(() => route.query.order_id as string | undefined)
+
+// Verify payment status from Xendit and update order on mount
+// (handles local dev where Xendit webhook can't reach localhost)
+onMounted(async () => {
+  clearCart()
+  if (orderId.value) {
+    try {
+      await $fetch(`/api/checkout/verify?order_id=${orderId.value}`)
+    } catch {
+      // Silently ignore — non-critical, webhook will handle in production
+    }
+  }
+})
 </script>
 
 <template>

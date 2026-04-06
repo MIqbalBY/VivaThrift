@@ -158,6 +158,11 @@ function relativeDate(isoString: string) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+// Payment link expires 15 min after order creation (matches Xendit invoice_duration: 900)
+function isPaymentExpired(order: any) {
+  return new Date(order.created_at).getTime() + 900_000 < Date.now()
+}
+
 // Fetch when user is hydrated (fixes race condition where auth session isn't
 // restored yet when onMounted fires) and re-fetch whenever role changes.
 const _ordersUser = useSupabaseUser()
@@ -300,8 +305,9 @@ onMounted(async () => {
               <template v-if="role === 'seller' && order.status !== 'cancelled' && order.status !== 'payment_failed'">
                 <span class="text-xs" :class="isDark ? 'text-slate-500' : 'text-gray-400'">→ kamu terima</span>
                 <span class="text-xs font-semibold" :class="isDark ? 'text-green-400' : 'text-green-600'">
-                  {{ formatRp(sellerReceives(order.total_amount)) }}
+                  {{ formatRp(sellerReceives(order.total_amount, order.shipping_cost ?? 0)) }}
                 </span>
+                <span class="text-[10px]" :class="isDark ? 'text-slate-600' : 'text-gray-400'">(setelah potongan 5% biaya layanan VivaThrift)</span>
               </template>
             </div>
           </div>
@@ -400,6 +406,18 @@ onMounted(async () => {
           <span>Dana tertahan — Lengkapi data rekening bank di <NuxtLink to="/profile/edit?tab=bank" class="underline font-semibold">Profil → Rekening</NuxtLink> agar pencairan dapat diproses.</span>
         </div>
 
+        <!-- Expired payment notice (pending_payment + 15 min passed) -->
+        <div
+          v-if="role === 'buyer' && order.status === 'pending_payment' && isPaymentExpired(order)"
+          class="mx-4 mb-3 flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs"
+          :class="isDark ? 'bg-red-900/25 border border-red-700/30 text-red-300' : 'bg-red-50 border border-red-200 text-red-700'"
+        >
+          <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-.75 3.75h1.5m-1.5 0v.375m0-.375a2.25 2.25 0 10-4.5 0 2.25 2.25 0 004.5 0zm0 0v-.375M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.364-6.364l-1.06 1.06M6.696 17.304l-1.06 1.06M17.304 17.304l-1.06-1.06M6.696 6.696l-1.06-1.06"/>
+          </svg>
+          <span>Link pembayaran sudah kadaluarsa (lewati 15 menit). <NuxtLink :to="chatId(order) ? `/chat/${chatId(order)}` : '#'" class="underline font-semibold">Chat penjual</NuxtLink> untuk negosiasi ulang jika perlu.</span>
+        </div>
+
         <!-- Action buttons -->
         <div class="px-4 pb-4 flex flex-wrap gap-2">
 
@@ -418,11 +436,11 @@ onMounted(async () => {
 
           <!-- Buyer: "Bayar Sekarang" if pending_payment -->
           <a
-            v-if="role === 'buyer' && order.status === 'pending_payment' && order.payment_url"
+            v-if="role === 'buyer' && order.status === 'pending_payment' && order.payment_url && !isPaymentExpired(order)"
             :href="order.payment_url"
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white transition hover:opacity-90"
+            class="vt-btn-primary flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white transition hover:opacity-90"
             style="background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);"
           >
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

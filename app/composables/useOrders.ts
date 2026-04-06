@@ -154,9 +154,9 @@ export function useOrders() {
     }).format(amount)
   }
 
-  function sellerReceives(totalAmount: number) {
-    // 5% platform fee
-    return Math.round(totalAmount * 0.95)
+  function sellerReceives(totalAmount: number, shippingCost: number = 0) {
+    // 5% platform fee applied only to item price, not ongkir
+    return Math.round((totalAmount - shippingCost) * 0.95)
   }
 
   // ── Mutations ─────────────────────────────────────────────────────────────────
