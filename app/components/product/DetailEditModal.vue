@@ -59,7 +59,7 @@ async function save() {
     .from('products')
     .update(payload)
     .eq('id', props.product.id)
-    .select('id, title, price, stock, status, is_negotiable, is_cod, description, condition, updated_at, created_at')
+    .select('id, title, slug, price, stock, status, is_negotiable, is_cod, description, condition, updated_at, created_at')
     .single()
   saving.value = false
   if (error) { saveError.value = 'Gagal menyimpan. Coba lagi.'; return }

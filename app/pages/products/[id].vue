@@ -28,7 +28,9 @@ const { data: product } = await useAsyncData(`product-${route.params.id}`, async
 }, {
   // Always fetch fresh from Supabase on client-side navigation.
   // SSR/hydration still uses the ISR payload for fast initial render.
-  getCachedData: (key, nuxtApp) => nuxtApp.isHydrating ? nuxtApp.payload.data[key] : null,
+  // IMPORTANT: must return `undefined` (not null) to trigger a refetch on SPA nav.
+  // Returning null in Nuxt 4 means "use null as the cache value" — no refetch.
+  getCachedData: (key, nuxtApp) => nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined,
 })
 
 const cleanTitle = computed(() => product.value?.title ? stripUrls(product.value.title) : '')
@@ -285,6 +287,11 @@ const editMode = ref(false)
 function onEditSaved(data) {
   Object.assign(product.value, data)
   editMode.value = false
+  // If title changed, slug also changed — navigate to the new URL so the page stays valid.
+  if (data.slug && data.slug !== route.params.id) {
+    clearNuxtData(`product-${route.params.id}`)
+    navigateTo(`/products/${data.slug}`)
+  }
 }
 
 // ── Recently viewed tracking ────────────────────────────────────
