@@ -19,7 +19,7 @@ const { data: product } = await useAsyncData(`product-${route.params.id}`, async
     .select(`
       id, title, description, price, condition, is_negotiable, is_cod, status, stock, created_at, updated_at,
       product_media ( media_url, media_type, is_primary, thumbnail_url ),
-      users ( id, name, nrp, faculty, department, avatar_url, gender ),
+      users!products_seller_id_fkey ( id, name, nrp, faculty, department, avatar_url, gender ),
       categories ( name )
     `)
     .eq(isUuid ? 'id' : 'slug', param)
@@ -89,6 +89,27 @@ useAsyncData(`seller-rating-${route.params.id}`, async () => {
   const arr = data?.map(r => r.rating_seller).filter(v => v != null) ?? []
   ratingCount.value = arr.length
   sellerRating.value = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+})
+
+// Similar products (same category, exclude self)
+const similarProducts = ref([])
+useAsyncData(`similar-${route.params.id}`, async () => {
+  const p = product.value
+  if (!p?.id) return
+  const catName = p.categories?.name ?? null
+  let q = supabase
+    .from('products')
+    .select(`id, slug, title, price, condition, is_negotiable, is_cod, seller_id, created_at,
+      product_media ( media_url, media_type, thumbnail_url, is_primary ),
+      users!products_seller_id_fkey ( id, name, avatar_url ),
+      categories ( name )`)
+    .eq('status', 'active')
+    .neq('id', p.id)
+    .order('created_at', { ascending: false })
+    .limit(4)
+  if (catName) q = q.eq('categories.name', catName)
+  const { data } = await q
+  similarProducts.value = data ?? []
 })
 
 // Product rating + reviews list
@@ -262,10 +283,15 @@ function onEditSaved(data) {
   editMode.value = false
 }
 
+// ── Recently viewed tracking ────────────────────────────────────
+const { trackView } = useRecentlyViewed()
+
 onMounted(() => {
   // Fetch immediately if session was already available at setup time
   fetchSellerAddressAndDistance(currentUserId.value)
   if (currentUserId.value) fetchWishlist()
+  // Track product view
+  if (product.value?.id) trackView(product.value.id)
 })
 
 // If auth state settles after mount (e.g. ISR-cached page + returning user),
@@ -509,6 +535,20 @@ watch(currentUserId, (id, prevId) => {
           :product-id="product.id"
           :current-user-id="currentUserId"
           :is-dark="isDark"
+        />
+      </div>
+    </div>
+
+    <!-- Produk Serupa -->
+    <div v-if="similarProducts.length" class="mt-8">
+      <h3 class="text-lg font-bold mb-4" :class="isDark ? 'text-white' : 'text-gray-800'">Produk Serupa</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <ProductCard
+          v-for="sp in similarProducts"
+          :key="sp.id"
+          :product="sp"
+          :show-seller="true"
+          @seller-click="(uid) => profileCardUserId = uid"
         />
       </div>
     </div>

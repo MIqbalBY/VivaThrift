@@ -31,14 +31,32 @@ const activeCondition  = computed(() => {
 const activeSort       = computed(() => route.query.sort   ? String(route.query.sort)   : 'newest')
 const activeNegotiable = computed(() => route.query.negotiable ? String(route.query.negotiable) : null)
 const activeCod        = computed(() => route.query.cod    ? String(route.query.cod)    : null)
+const activeMinPrice   = computed(() => route.query.min_price ? Number(route.query.min_price) : null)
+const activeMaxPrice   = computed(() => route.query.max_price ? Number(route.query.max_price) : null)
 
 const hasActiveFilter = computed(() =>
   activeCategory.value.length > 0 ||
   activeCondition.value.length  > 0 ||
   activeNegotiable.value !== null       ||
   activeCod.value  !== null       ||
+  activeMinPrice.value !== null ||
+  activeMaxPrice.value !== null ||
   activeSort.value !== 'newest'
 )
+
+// Local price inputs (not synced to URL until user clicks apply)
+const minPriceInput = ref('')
+const maxPriceInput = ref('')
+watch([activeMinPrice, activeMaxPrice], () => {
+  minPriceInput.value = activeMinPrice.value != null ? String(activeMinPrice.value) : ''
+  maxPriceInput.value = activeMaxPrice.value != null ? String(activeMaxPrice.value) : ''
+}, { immediate: true })
+
+function applyPriceFilter() {
+  const min = minPriceInput.value ? Number(minPriceInput.value) : undefined
+  const max = maxPriceInput.value ? Number(maxPriceInput.value) : undefined
+  updateQuery({ min_price: min && min > 0 ? min : undefined, max_price: max && max > 0 ? max : undefined })
+}
 
 // -- Dynamic categories from DB (reuse navbar composable) ---------
 const { dbCategories } = useNavCategories()
@@ -111,7 +129,23 @@ function scrollToCatalog() {
   document.getElementById('heading-catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-// -- Products query ------------------------------------------------
+// -- Feed mode: "Semua" vs "Dari yang Diikuti" --------------------
+const feedMode = ref('all') // 'all' | 'following'
+const followingIds = ref([])
+
+async function fetchFollowingIds() {
+  if (!user.value) return
+  const { data } = await supabase
+    .from('follows')
+    .select('following_id')
+    .eq('follower_id', user.value.id)
+  followingIds.value = (data ?? []).map(f => f.following_id)
+}
+
+// -- Recently viewed products --------------------------------------
+const { recentProducts, fetchRecentProducts } = useRecentlyViewed()
+
+// -- Cursor-based infinite scroll products query --------------------
 const SORT_MAP = {
   newest:     { col: 'created_at', asc: false },
   oldest:     { col: 'created_at', asc: true  },
@@ -119,93 +153,139 @@ const SORT_MAP = {
   price_desc: { col: 'price',      asc: false },
 }
 
-const { data: products } = useAsyncData(
-  () => `products-${activeCategory.value.join(',')}-${activeSearch.value ?? ''}-${activeCondition.value.join(',')}-${activeSort.value}-${activeNegotiable.value ?? ''}-${activeCod.value ?? ''}`,
-  async () => {
-    const hasCatFilter = activeCategory.value.length > 0
-    const selectStr = `id, slug, title, price, condition, is_negotiable, is_cod, seller_id, created_at, updated_at,
-      product_media ( media_url, media_type, thumbnail_url, is_primary ),
-      users ( id, name, nrp, faculty, department, avatar_url, gender ),
-      ${hasCatFilter ? 'categories!inner(name)' : 'categories(name)'}`
+const PAGE_SIZE = 12
+const products = ref([])
+const productsLoading = ref(false)
+const hasMore = ref(true)
+const cursor = ref(null) // last item's sort value for cursor pagination
 
-    const sort = SORT_MAP[activeSort.value] ?? SORT_MAP.newest
+function buildQuery() {
+  const hasCatFilter = activeCategory.value.length > 0
+  const selectStr = `id, slug, title, price, condition, is_negotiable, is_cod, seller_id, created_at, updated_at,
+    product_media ( media_url, media_type, thumbnail_url, is_primary ),
+    users!products_seller_id_fkey ( id, name, nrp, faculty, department, avatar_url, gender ),
+    ${hasCatFilter ? 'categories!inner(name)' : 'categories(name)'}`
 
-    let query = supabase
-      .from('products')
-      .select(selectStr)
-      .eq('status', 'active')
-      .order(sort.col, { ascending: sort.asc })
+  const sort = SORT_MAP[activeSort.value] ?? SORT_MAP.newest
 
-    if (hasCatFilter)                     query = query.in('categories.name', activeCategory.value)
-    if (activeCondition.value.length)     query = query.in('condition', activeCondition.value)
-    if (activeNegotiable.value === 'yes') query = query.eq('is_negotiable', true)
-    if (activeNegotiable.value === 'no')  query = query.eq('is_negotiable', false)
-    if (activeCod.value  === 'yes')       query = query.eq('is_cod', true)
-    if (activeCod.value  === 'no')        query = query.eq('is_cod', false)
-    if (activeSearch.value)           query = query.textSearch('search_vector', activeSearch.value, { type: 'websearch', config: 'indonesian' })
+  let query = supabase
+    .from('products')
+    .select(selectStr)
+    .eq('status', 'active')
+    .order(sort.col, { ascending: sort.asc })
+    .order('id', { ascending: true }) // tiebreaker for stable cursor
 
-    const isFiltered = hasCatFilter || activeSearch.value || activeCondition.value.length || activeNegotiable.value || activeCod.value
-    const { data, error } = await query.limit(isFiltered ? 50 : 12)
-    if (error) { console.error('[products]', error.message, error.details); return [] }
-    if (!data?.length) return []
+  if (hasCatFilter)                     query = query.in('categories.name', activeCategory.value)
+  if (activeCondition.value.length)     query = query.in('condition', activeCondition.value)
+  if (activeNegotiable.value === 'yes') query = query.eq('is_negotiable', true)
+  if (activeNegotiable.value === 'no')  query = query.eq('is_negotiable', false)
+  if (activeCod.value  === 'yes')       query = query.eq('is_cod', true)
+  if (activeCod.value  === 'no')        query = query.eq('is_cod', false)
+  if (activeSearch.value)               query = query.textSearch('search_vector', activeSearch.value, { type: 'websearch', config: 'indonesian' })
+  if (activeMinPrice.value != null)     query = query.gte('price', activeMinPrice.value)
+  if (activeMaxPrice.value != null)     query = query.lte('price', activeMaxPrice.value)
 
-    // Batch-fetch avg seller ratings from reviews table
-    const sellerIds = [...new Set(data.map(p => p.users?.id).filter(Boolean))]
-    const ratingsMap = {}
-    if (sellerIds.length) {
-      const { data: reviews } = await supabase
-        .from('reviews')
-        .select('reviewee_id, rating_seller')
-        .in('reviewee_id', sellerIds)
-      if (reviews) {
-        for (const r of reviews) {
-          if (!ratingsMap[r.reviewee_id]) ratingsMap[r.reviewee_id] = []
-          ratingsMap[r.reviewee_id].push(r.rating_seller)
-        }
+  return { query, sort }
+}
+
+async function enrichWithRatings(data) {
+  const sellerIds = [...new Set(data.map(p => p.users?.id).filter(Boolean))]
+  const ratingsMap = {}
+  if (sellerIds.length) {
+    const { data: reviews } = await supabase
+      .from('reviews')
+      .select('reviewee_id, rating_seller')
+      .in('reviewee_id', sellerIds)
+    if (reviews) {
+      for (const r of reviews) {
+        if (!ratingsMap[r.reviewee_id]) ratingsMap[r.reviewee_id] = []
+        ratingsMap[r.reviewee_id].push(r.rating_seller)
       }
     }
+  }
+  return data.map(p => {
+    const uid = p.users?.id
+    const arr = uid ? (ratingsMap[uid] ?? []) : []
+    const avgRating = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+    return { ...p, _sellerRating: avgRating, _ratingCount: arr.length }
+  })
+}
 
-    return data.map(p => {
-      const uid = p.users?.id
-      const arr = uid ? (ratingsMap[uid] ?? []) : []
-      const avgRating = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-      return { ...p, _sellerRating: avgRating, _ratingCount: arr.length }
-    })
-  },
-  { lazy: true, watch: [activeCategory, activeSearch, activeCondition, activeSort, activeNegotiable, activeCod] }
+async function fetchProducts(reset = true) {
+  if (productsLoading.value) return
+  productsLoading.value = true
+
+  if (reset) {
+    products.value = []
+    cursor.value = null
+    hasMore.value = true
+  }
+
+  const { query, sort } = buildQuery()
+  let q = query
+
+  // Cursor: skip past items we already have
+  if (cursor.value) {
+    const op = sort.asc ? 'gt' : 'lt'
+    q = q[op](sort.col, cursor.value)
+  }
+
+  const { data, error } = await q.limit(PAGE_SIZE)
+  if (error) { console.error('[products]', error.message); productsLoading.value = false; return }
+
+  if (!data?.length) {
+    hasMore.value = false
+    productsLoading.value = false
+    return
+  }
+
+  const enriched = await enrichWithRatings(data)
+
+  if (reset) {
+    products.value = enriched
+  } else {
+    products.value = [...products.value, ...enriched]
+  }
+
+  // Update cursor to last item's sort column value
+  const lastItem = data[data.length - 1]
+  cursor.value = lastItem[sort.col]
+  hasMore.value = data.length === PAGE_SIZE
+
+  productsLoading.value = false
+}
+
+// Re-fetch from scratch when filters change
+watch(
+  [activeCategory, activeSearch, activeCondition, activeSort, activeNegotiable, activeCod, activeMinPrice, activeMaxPrice],
+  () => fetchProducts(true),
 )
 
-// -- Show more -----------------------------------------------------
-const showAll = ref(false)
+// -- Infinite scroll via IntersectionObserver -----------------------
+const sentinelRef = ref(null)
+let observer = null
 
-const gridCols = ref(4)
-function updateGridCols() {
-  const w = window.innerWidth
-  if (w >= 1536) gridCols.value = 6
-  else if (w >= 1280) gridCols.value = 5
-  else if (w >= 1024) gridCols.value = 4
-  else if (w >= 768)  gridCols.value = 3
-  else if (w >= 640)  gridCols.value = 2
-  else gridCols.value = 1
+function setupObserver() {
+  if (observer) observer.disconnect()
+  if (!sentinelRef.value) return
+  observer = new IntersectionObserver(
+    (entries) => { if (entries[0]?.isIntersecting && hasMore.value && !productsLoading.value) fetchProducts(false) },
+    { rootMargin: '200px' }
+  )
+  observer.observe(sentinelRef.value)
 }
+
 const { fetchWishlist } = useWishlist()
 onMounted(() => {
-  updateGridCols()
-  window.addEventListener('resize', updateGridCols)
+  fetchProducts(true)
+  window.addEventListener('resize', () => {}) // keep layout responsive
   if (user.value) fetchWishlist()
+  nextTick(setupObserver)
 })
-onUnmounted(() => window.removeEventListener('resize', updateGridCols))
+onUnmounted(() => { if (observer) observer.disconnect() })
 
-const maxVisible = computed(() => gridCols.value * 4)
-
-const visibleProducts = computed(() => {
-  const list = products.value ?? []
-  return showAll.value ? list : list.slice(0, maxVisible.value)
-})
-
-watch([activeCategory, activeSearch, activeCondition, activeSort, activeNegotiable, activeCod], () => {
-  showAll.value = false
-})
+// Re-setup observer when sentinel element re-renders
+watch(sentinelRef, () => nextTick(setupObserver))
 </script>
 
 <template>
@@ -419,34 +499,69 @@ watch([activeCategory, activeSearch, activeCondition, activeSort, activeNegotiab
           >🚧 Non COD</button>
         </div>
 
+        <!-- Harga -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span :class="['vt-filter-label text-xs font-semibold uppercase tracking-wide w-20 shrink-0', isDark ? 'text-slate-400' : 'text-gray-500']">Harga</span>
+          <div class="flex items-center gap-2">
+            <input
+              v-model="minPriceInput"
+              type="number"
+              min="0"
+              placeholder="Min"
+              class="w-28 px-3 py-1 rounded-full text-sm border transition focus:outline-none focus:ring-1"
+              :class="isDark
+                ? 'bg-slate-800/80 border-slate-600 text-white placeholder-slate-500 focus:ring-sky-400/40 focus:border-sky-400'
+                : 'bg-white/70 border-gray-200 text-gray-700 placeholder-gray-400 focus:ring-blue-400/40 focus:border-blue-400'"
+              @keyup.enter="applyPriceFilter"
+            />
+            <span class="text-xs" :class="isDark ? 'text-slate-500' : 'text-gray-400'">—</span>
+            <input
+              v-model="maxPriceInput"
+              type="number"
+              min="0"
+              placeholder="Max"
+              class="w-28 px-3 py-1 rounded-full text-sm border transition focus:outline-none focus:ring-1"
+              :class="isDark
+                ? 'bg-slate-800/80 border-slate-600 text-white placeholder-slate-500 focus:ring-sky-400/40 focus:border-sky-400'
+                : 'bg-white/70 border-gray-200 text-gray-700 placeholder-gray-400 focus:ring-blue-400/40 focus:border-blue-400'"
+              @keyup.enter="applyPriceFilter"
+            />
+            <button
+              @click="applyPriceFilter"
+              class="px-3 py-1 rounded-full text-xs font-bold text-white transition hover:opacity-90"
+              style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);"
+            >Terapkan</button>
+          </div>
+        </div>
+
       </div>
 
       <!-- Product Grid -->
       <div :ref="reveal" class="vt-stagger-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
         <ProductCard
-          v-for="product in visibleProducts"
+          v-for="product in products"
           :key="product.id"
           :product="product"
           :show-seller="true"
           @seller-click="(uid) => profileCardUserId = uid"
         />
 
-        <div v-if="!products || products.length === 0" class="col-span-full flex flex-col items-center justify-center py-20 gap-3">
+        <div v-if="!productsLoading && products.length === 0" class="col-span-full flex flex-col items-center justify-center py-20 gap-3">
           <img src="/img/illustrations/empty-cart.svg" alt="Belum ada produk" width="208" height="208" loading="lazy" class="w-52 h-auto opacity-80" />
           <p class="text-gray-500 dark:text-gray-400 font-semibold text-lg mt-2">Belum ada produk tersedia</p>
           <p class="text-gray-400 dark:text-gray-500 text-sm">Jadilah yang pertama menjual barang di sini!</p>
         </div>
       </div>
 
-      <!-- Tampilkan lebih banyak -->
-      <div v-if="(products?.length ?? 0) > maxVisible && !showAll" class="flex justify-center mt-6">
-        <button
-          @click="showAll = true"
-          class="vt-btn-show-more px-8 py-2.5 rounded-full border-2 font-semibold text-sm transition hover:bg-blue-50"
-          :style="isDark ? 'border-color: #38bdf8; color: #7dd3fc;' : 'border-color: #1e3a8a; color: #1e3a8a;'"
-        >
-          Tampilkan lebih banyak ({{ (products?.length ?? 0) - maxVisible }} produk lagi)
-        </button>
+      <!-- Infinite scroll sentinel + loading indicator -->
+      <div ref="sentinelRef" class="flex justify-center py-8">
+        <div v-if="productsLoading" class="flex items-center gap-2">
+          <div class="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" :class="isDark ? 'border-sky-400' : 'border-blue-800'"></div>
+          <span class="text-sm" :class="isDark ? 'text-slate-400' : 'text-gray-400'">Memuat produk…</span>
+        </div>
+        <p v-else-if="!hasMore && products.length > 0" class="text-xs" :class="isDark ? 'text-slate-500' : 'text-gray-400'">
+          Semua produk sudah ditampilkan ({{ products.length }} item)
+        </p>
       </div>
 
     </section>
