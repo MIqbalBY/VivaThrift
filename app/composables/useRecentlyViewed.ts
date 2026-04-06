@@ -44,7 +44,7 @@ export function useRecentlyViewed() {
     loading.value = true
     const { data } = await supabase
       .from('products')
-      .select(`id, slug, title, price, condition, is_negotiable, is_cod, seller_id, status, stock, created_at,
+      .select(`id, slug, title, price, condition, is_negotiable, is_cod, seller_id, status, stock, created_at, updated_at,
         product_media ( media_url, media_type, thumbnail_url, is_primary ),
         users!products_seller_id_fkey ( id, name, nrp, faculty, department, avatar_url, gender ),
         categories ( name )`)
