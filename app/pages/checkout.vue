@@ -18,8 +18,30 @@ const orderDone     = ref(false)
 const orderErr      = ref('')
 const stockDepleted = ref(false)
 
-// ── Shipping state ────────────────────────────────────────────────────────────
-const destPostal = ref<string>('')
+// ── Shipping / meetup state (declared before watchers to avoid TDZ) ──────────
+const destPostal           = ref<string>('')
+const shippingMethod       = ref<'cod' | 'shipping'>('cod')
+const meetupLocation       = ref<string>('rektorat')
+const customMeetupLocation = ref<string>('')
+const rates                = ref<any[]>([])
+const selectedRate         = ref<any | null>(null)
+const ratesLoading         = ref(false)
+const ratesErr             = ref('')
+
+const MEETUP_LOCATIONS = [
+  { id: 'aula_asrama',     label: 'Aula Asrama ITS' },
+  { id: 'gedung_robotika', label: 'Gedung Robotika ITS' },
+  { id: 'kantin_pusat',    label: 'Kantin Pusat ITS' },
+  { id: 'masjid_manarul',  label: 'Masjid Manarul Ilmi ITS' },
+  { id: 'rektorat',        label: 'Rektorat ITS' },
+  { id: 'research_center', label: 'Research Center ITS' },
+  { id: 'taman_alumni',    label: 'Taman Alumni ITS' },
+  { id: 'taman_infinits',  label: 'Taman Infinits' },
+  { id: 'tower_1',         label: 'Tower 1 ITS' },
+  { id: 'tower_2',         label: 'Tower 2 ITS' },
+  { id: 'tower_3',         label: 'Tower 3 ITS' },
+  { id: 'other',           label: '✏️ Lainnya (isi manual)' },
+] as const
 
 // ── Buyer shipping address (always fresh, no SSR cache) ──────────────────────
 const { data: addrData } = await useAsyncData('buyer-address', async () => {
@@ -49,29 +71,6 @@ watch(addrData, (addr) => {
 watch(shippingMethod, (method) => {
   if (method === 'shipping' && destPostal.value.trim().length >= 5) fetchRates()
 })
-
-const MEETUP_LOCATIONS = [
-  { id: 'aula_asrama',     label: 'Aula Asrama ITS' },
-  { id: 'gedung_robotika', label: 'Gedung Robotika ITS' },
-  { id: 'kantin_pusat',    label: 'Kantin Pusat ITS' },
-  { id: 'masjid_manarul',  label: 'Masjid Manarul Ilmi ITS' },
-  { id: 'rektorat',        label: 'Rektorat ITS' },
-  { id: 'research_center', label: 'Research Center ITS' },
-  { id: 'taman_alumni',    label: 'Taman Alumni ITS' },
-  { id: 'taman_infinits',  label: 'Taman Infinits' },
-  { id: 'tower_1',         label: 'Tower 1 ITS' },
-  { id: 'tower_2',         label: 'Tower 2 ITS' },
-  { id: 'tower_3',         label: 'Tower 3 ITS' },
-  { id: 'other',           label: '✏️ Lainnya (isi manual)' },
-] as const
-
-const shippingMethod       = ref<'cod' | 'shipping'>('cod')
-const meetupLocation       = ref<string>('rektorat')
-const customMeetupLocation = ref<string>('')
-const rates           = ref<any[]>([])
-const selectedRate    = ref<any | null>(null)
-const ratesLoading    = ref(false)
-const ratesErr        = ref('')
 
 // ── Load Offer + check for existing order in one round-trip ───────
 const { data: checkoutData, pending, error: loadError } = await useAsyncData(`checkout-${offerId}`, async () => {

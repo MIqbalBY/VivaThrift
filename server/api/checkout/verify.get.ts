@@ -43,19 +43,26 @@ export default defineEventHandler(async (event) => {
     )
 
     if (invoice.status === 'PAID') {
-      await supabaseAdmin
+      const { error: updErr } = await supabaseAdmin
         .from('orders')
         .update({ status: 'confirmed', updated_at: new Date().toISOString() })
         .eq('id', order.id)
+      if (updErr) {
+        console.error('[verify] Failed to update order to confirmed:', updErr)
+        throw createError({ statusCode: 500, statusMessage: `DB update gagal: ${updErr.message}` })
+      }
       return { status: 'confirmed', updated: true }
     }
 
     if (invoice.status === 'EXPIRED' || invoice.status === 'FAILED') {
-      await supabaseAdmin
+      const { error: updErr } = await supabaseAdmin
         .from('orders')
         .update({ status: 'payment_failed', updated_at: new Date().toISOString() })
         .eq('id', order.id)
-      return { status: 'payment_failed', updated: true }
+      if (updErr) {
+        console.error('[verify] Failed to update order to payment_failed:', updErr)
+      }
+      return { status: 'payment_failed', updated: !updErr }
     }
 
     return { status: order.status, updated: false }
