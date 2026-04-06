@@ -10,6 +10,54 @@ const placing      = ref(false)
 const errorMsg     = ref('')
 const paymentFailed = computed(() => !!route.query.payment_failed)
 
+// ── Shipping state ──────────────────────────────────────────────────────────
+const MEETUP_LOCATIONS = [
+  { id: 'rektorat',     label: 'Depan Rektorat ITS' },
+  { id: 'taman_alumni', label: 'Taman Alumni ITS' },
+  { id: 'kantin_pusat', label: 'Kantin Pusat ITS' },
+] as const
+
+const shippingMethod  = ref<'cod' | 'shipping'>('cod')
+const meetupLocation  = ref<string>('rektorat')
+const destPostal      = ref<string>('')
+const rates           = ref<any[]>([])
+const selectedRate    = ref<any | null>(null)
+const ratesLoading    = ref(false)
+const ratesErr        = ref('')
+
+const ongkirAmount = computed(() =>
+  shippingMethod.value === 'shipping' ? (selectedRate.value?.price ?? 0) : 0
+)
+const grandTotal = computed(() => cartTotal.value + ongkirAmount.value)
+
+async function fetchRates() {
+  if (!destPostal.value.trim()) {
+    ratesErr.value = 'Masukkan kode pos tujuan.'
+    return
+  }
+  ratesLoading.value = true
+  ratesErr.value     = ''
+  selectedRate.value = null
+  rates.value        = []
+  try {
+    const res = await $fetch<{ rates: any[] }>('/api/shipping/rates', {
+      method: 'POST',
+      body: {
+        origin_postal_code:      '60111',
+        destination_postal_code: destPostal.value.trim(),
+        items: [{ weight: 500 }],
+        couriers: 'jne,jnt',
+      },
+    })
+    rates.value = res.rates ?? []
+    if (!rates.value.length) ratesErr.value = 'Tidak ada layanan pengiriman tersedia untuk kode pos ini.'
+  } catch (e: any) {
+    ratesErr.value = e?.data?.statusMessage ?? e?.message ?? 'Gagal mengambil tarif pengiriman.'
+  } finally {
+    ratesLoading.value = false
+  }
+}
+
 // Pastikan cart terisi sebelum render
 onMounted(async () => {
   if (cartItems.value.length === 0) await fetchCart()
@@ -42,10 +90,21 @@ function getImage(item: any) {
 
 async function handleCheckout() {
   if (placing.value) return
+  if (shippingMethod.value === 'shipping' && !selectedRate.value) {
+    errorMsg.value = 'Pilih layanan pengiriman terlebih dahulu.'
+    return
+  }
   placing.value = true
   errorMsg.value = ''
   try {
-    const result = await $fetch<{ paymentUrl: string }>('/api/checkout/cart', { method: 'POST' })
+    const body: any = { shippingMethod: shippingMethod.value }
+    if (shippingMethod.value === 'cod') {
+      body.meetupLocation = meetupLocation.value
+    } else {
+      body.shippingCost = selectedRate.value!.price
+      body.courierCode  = selectedRate.value!.courier_code
+    }
+    const result = await $fetch<{ paymentUrl: string }>('/api/checkout/cart', { method: 'POST', body })
     if (result.paymentUrl) {
       await navigateTo(result.paymentUrl, { external: true })
     }
@@ -128,6 +187,124 @@ async function handleCheckout() {
           </div>
         </div>
 
+        <!-- ── Metode Pengiriman ── -->
+        <div
+          class="rounded-xl border p-5"
+          :class="isDark ? 'border-white/10 bg-slate-900/50' : 'border-gray-200 bg-white'"
+        >
+          <p class="text-sm font-semibold mb-3" :class="isDark ? 'text-white' : 'text-gray-700'">Metode Pengiriman</p>
+          <div class="grid grid-cols-2 gap-3">
+            <!-- COD -->
+            <button
+              @click="shippingMethod = 'cod'; selectedRate = null; rates = []"
+              class="flex flex-col items-center gap-1.5 rounded-xl py-3 px-2 text-sm font-semibold border-2 transition"
+              :class="shippingMethod === 'cod'
+                ? (isDark ? 'border-sky-500 bg-sky-900/40 text-sky-300' : 'border-blue-600 bg-blue-50 text-blue-700')
+                : (isDark ? 'border-white/10 text-gray-400 hover:border-white/20' : 'border-gray-200 text-gray-500 hover:border-gray-300')"
+            >
+              <span class="text-xl">🤝</span>
+              <span>COD / Meetup</span>
+              <span class="text-xs font-normal opacity-70">Ketemu di kampus</span>
+            </button>
+            <!-- Shipping -->
+            <button
+              @click="shippingMethod = 'shipping'"
+              class="flex flex-col items-center gap-1.5 rounded-xl py-3 px-2 text-sm font-semibold border-2 transition"
+              :class="shippingMethod === 'shipping'
+                ? (isDark ? 'border-sky-500 bg-sky-900/40 text-sky-300' : 'border-blue-600 bg-blue-50 text-blue-700')
+                : (isDark ? 'border-white/10 text-gray-400 hover:border-white/20' : 'border-gray-200 text-gray-500 hover:border-gray-300')"
+            >
+              <span class="text-xl">🚚</span>
+              <span>Kirim Paket</span>
+              <span class="text-xs font-normal opacity-70">JNE / J&T</span>
+            </button>
+          </div>
+
+          <!-- COD: Meetup location picker -->
+          <div v-if="shippingMethod === 'cod'" class="mt-4">
+            <p class="text-xs font-semibold mb-2" :class="isDark ? 'text-gray-400' : 'text-gray-500'">LOKASI MEETUP</p>
+            <div class="space-y-2">
+              <label
+                v-for="loc in MEETUP_LOCATIONS"
+                :key="loc.id"
+                class="flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition"
+                :class="meetupLocation === loc.id
+                  ? (isDark ? 'border-sky-500 bg-sky-900/30' : 'border-blue-500 bg-blue-50')
+                  : (isDark ? 'border-white/10 hover:border-white/20' : 'border-gray-200 hover:border-gray-300')"
+              >
+                <input
+                  type="radio"
+                  name="meetupLocation"
+                  :value="loc.id"
+                  v-model="meetupLocation"
+                  class="accent-blue-600"
+                />
+                <p class="text-sm font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">{{ loc.label }}</p>
+              </label>
+            </div>
+          </div>
+
+          <!-- Shipping: Ongkir calculator -->
+          <div v-if="shippingMethod === 'shipping'" class="mt-4">
+            <p class="text-xs font-semibold mb-2" :class="isDark ? 'text-gray-400' : 'text-gray-500'">KALKULASI ONGKIR</p>
+            <p class="text-xs mb-2" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Dari: Kampus ITS Surabaya (60111)</p>
+            <div class="flex gap-2">
+              <input
+                v-model="destPostal"
+                type="text"
+                inputmode="numeric"
+                maxlength="5"
+                placeholder="Kode pos tujuan"
+                class="flex-1 rounded-xl px-3 py-2 text-sm border outline-none transition"
+                :class="isDark
+                  ? 'bg-slate-800 border-white/10 text-white placeholder-gray-500 focus:border-sky-500'
+                  : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400 focus:border-blue-500'"
+                @keydown.enter="fetchRates"
+              />
+              <button
+                @click="fetchRates"
+                :disabled="ratesLoading"
+                class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60"
+                style="background:linear-gradient(to right,#1e3a8a,#1e40af);"
+              >
+                {{ ratesLoading ? '…' : 'Cek' }}
+              </button>
+            </div>
+            <p v-if="ratesErr" class="text-xs text-red-500 mt-1.5">{{ ratesErr }}</p>
+
+            <!-- Rate options -->
+            <div v-if="rates.length" class="mt-3 space-y-2">
+              <label
+                v-for="rate in rates"
+                :key="`${rate.courier_code}-${rate.service}`"
+                class="flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition"
+                :class="selectedRate === rate
+                  ? (isDark ? 'border-sky-500 bg-sky-900/30' : 'border-blue-500 bg-blue-50')
+                  : (isDark ? 'border-white/10 hover:border-white/20' : 'border-gray-200 hover:border-gray-300')"
+              >
+                <input
+                  type="radio"
+                  name="shippingRate"
+                  :value="rate"
+                  v-model="selectedRate"
+                  class="accent-blue-600"
+                />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">
+                    {{ rate.courier_name }} — {{ rate.description }}
+                  </p>
+                  <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                    Estimasi {{ rate.etd }}
+                  </p>
+                </div>
+                <span class="text-sm font-bold shrink-0" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
+                  Rp {{ rate.price.toLocaleString('id-ID') }}
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <!-- Xendit info banner -->
         <div class="flex items-start gap-2.5 rounded-xl px-4 py-3 text-xs" :class="isDark ? 'bg-sky-900/30 border border-sky-700/40 text-sky-300' : 'bg-blue-50 border border-blue-100 text-blue-700'">
           <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -150,12 +327,25 @@ async function handleCheckout() {
             <span>Subtotal</span>
             <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ cartTotal.toLocaleString('id-ID') }}</span>
           </div>
+          <div class="flex justify-between">
+            <span>Ongkos Kirim</span>
+            <span
+              class="font-medium"
+              :class="shippingMethod === 'cod'
+                ? (isDark ? 'text-green-400' : 'text-green-600')
+                : selectedRate
+                  ? (isDark ? 'text-slate-200' : 'text-gray-700')
+                  : (isDark ? 'text-slate-500' : 'text-gray-400')"
+            >
+              {{ shippingMethod === 'cod' ? 'Gratis (COD)' : selectedRate ? `Rp ${selectedRate.price.toLocaleString('id-ID')}` : '—' }}
+            </span>
+          </div>
         </div>
 
         <div class="border-t pt-3" :class="isDark ? 'border-white/10' : 'border-gray-100'">
           <div class="flex justify-between items-center mb-4">
             <span class="font-bold" :class="isDark ? 'text-slate-100' : 'text-gray-900'">Total</span>
-            <span class="text-xl font-bold" :style="isDark ? 'color:#7dd3fc' : 'color:#1e3a8a'">Rp {{ cartTotal.toLocaleString('id-ID') }}</span>
+            <span class="text-xl font-bold" :style="isDark ? 'color:#7dd3fc' : 'color:#1e3a8a'">Rp {{ grandTotal.toLocaleString('id-ID') }}</span>
           </div>
 
           <p v-if="errorMsg" class="text-red-500 text-xs mb-3 p-2.5 rounded-lg bg-red-50 border border-red-100">{{ errorMsg }}</p>
