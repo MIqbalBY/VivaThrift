@@ -41,7 +41,7 @@ const { data: addrData } = await useAsyncData('buyer-address', async () => {
     .eq('address_type', 'shipping')
     .maybeSingle()
   return data ?? null
-})
+}, { getCachedData: () => null })
 
 buyerAddress.value = addrData.value ?? null
 // Auto-fill destPostal from profile address
