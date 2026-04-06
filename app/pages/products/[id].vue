@@ -427,10 +427,12 @@ watch(currentUserId, (id, prevId) => {
           <div class="flex-1 min-w-0">
             <p class="text-xs font-semibold text-gray-800 truncate">
               {{ product.users.name }}
-              <span v-if="product.users.gender === 'Laki-laki'" title="Laki-laki">♂️</span>
-              <span v-else-if="product.users.gender === 'Perempuan'" title="Perempuan">♀️</span>
+              <template v-if="currentUser">
+                <span v-if="product.users.gender === 'Laki-laki'" title="Laki-laki">♂️</span>
+                <span v-else-if="product.users.gender === 'Perempuan'" title="Perempuan">♀️</span>
+              </template>
             </p>
-            <p class="text-xs text-gray-500 truncate">
+            <p v-if="currentUser" class="text-xs text-gray-500 truncate">
               {{ product.users.nrp ?? '-' }}
               <template v-if="product.users.faculty || product.users.department">
                 ({{ [facultyAcronym(product.users.faculty), product.users.department].filter(Boolean).join(' - ') }})

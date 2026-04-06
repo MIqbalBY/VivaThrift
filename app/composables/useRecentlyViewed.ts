@@ -46,7 +46,7 @@ export function useRecentlyViewed() {
       .from('products')
       .select(`id, slug, title, price, condition, is_negotiable, is_cod, seller_id, status, stock, created_at,
         product_media ( media_url, media_type, thumbnail_url, is_primary ),
-        users!products_seller_id_fkey ( id, name, avatar_url ),
+        users!products_seller_id_fkey ( id, name, nrp, faculty, department, avatar_url, gender ),
         categories ( name )`)
       .in('id', recentIds.value)
       .eq('status', 'active')

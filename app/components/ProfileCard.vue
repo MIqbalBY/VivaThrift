@@ -157,18 +157,22 @@ onUnmounted(() => {
           <div class="text-center">
             <p class="font-bold text-lg leading-tight" :class="isDark ? 'text-white' : 'text-gray-900'">
               {{ userProfile.name }}
-              <span v-if="userProfile.gender === 'Laki-laki'" title="Laki-laki" class="text-base">♂️</span>
-              <span v-else-if="userProfile.gender === 'Perempuan'" title="Perempuan" class="text-base">♀️</span>
+              <template v-if="currentUser">
+                <span v-if="userProfile.gender === 'Laki-laki'" title="Laki-laki" class="text-base">♂️</span>
+                <span v-else-if="userProfile.gender === 'Perempuan'" title="Perempuan" class="text-base">♀️</span>
+              </template>
             </p>
             <p v-if="userProfile.username" class="text-xs mt-0.5" :class="isDark ? 'text-sky-400' : 'text-blue-600'">
               @{{ userProfile.username }}
             </p>
-            <p class="text-xs mt-0.5" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
-              {{ userProfile.nrp ?? '-' }}
-            </p>
-            <p v-if="userProfile.faculty || userProfile.department" class="text-xs mt-0.5" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-              {{ [facultyAcronym(userProfile.faculty), userProfile.department].filter(Boolean).join(' · ') }}
-            </p>
+            <template v-if="currentUser">
+              <p class="text-xs mt-0.5" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
+                {{ userProfile.nrp ?? '-' }}
+              </p>
+              <p v-if="userProfile.faculty || userProfile.department" class="text-xs mt-0.5" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                {{ [facultyAcronym(userProfile.faculty), userProfile.department].filter(Boolean).join(' · ') }}
+              </p>
+            </template>
           </div>
 
           <!-- Rating -->
