@@ -74,7 +74,8 @@ function onAvatarInputChange(e) {
   }
 }
 
-function onConfirmCrop() {
+function onConfirmCrop(cropperInstance: any) {
+  cropperRef.value = cropperInstance
   confirmCrop(avatarUrl, _userId.value, avatarMsgCallback)
 }
 

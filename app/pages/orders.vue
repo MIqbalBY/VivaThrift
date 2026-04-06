@@ -2,6 +2,7 @@
 definePageMeta({ middleware: 'auth' })
 useSeoMeta({ title: 'Pesanan Saya — VivaThrift' })
 
+const route      = useRoute()
 const { isDark } = useDarkMode()
 const { reveal } = useScrollReveal()
 
@@ -130,8 +131,25 @@ function relativeDate(isoString: string) {
 // Fetch when user is hydrated (fixes race condition where auth session isn't
 // restored yet when onMounted fires) and re-fetch whenever role changes.
 const _ordersUser = useSupabaseUser()
-watch(_ordersUser, (u) => { if (u?.id) fetchOrders() }, { immediate: true })
-watch(role, () => { if (_ordersUser.value?.id) fetchOrders() })
+
+// Apply ?tab= query param on first load
+const _validTabKeys = ORDER_TABS.map(t => t.key)
+if (route.query.tab && _validTabKeys.includes(route.query.tab as any)) {
+  activeTab.value = route.query.tab as OrderTabKey
+}
+
+async function fetchAndAutoTab() {
+  if (!_ordersUser.value?.id) return
+  await fetchOrders()
+  // If the current tab is empty, auto-switch to the first non-empty tab
+  if (tabCounts.value[activeTab.value] === 0) {
+    const firstNonEmpty = ORDER_TABS.find(t => tabCounts.value[t.key] > 0)
+    if (firstNonEmpty) activeTab.value = firstNonEmpty.key
+  }
+}
+
+watch(_ordersUser, (u) => { if (u?.id) fetchAndAutoTab() }, { immediate: true })
+watch(role, () => { if (_ordersUser.value?.id) fetchAndAutoTab() })
 </script>
 
 <template>
@@ -159,7 +177,7 @@ watch(role, () => { if (_ordersUser.value?.id) fetchOrders() })
         :class="role === r.key
           ? isDark ? 'text-white shadow-sm' : 'text-white shadow-sm'
           : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 hover:text-gray-700'"
-        :style="role === r.key ? 'background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);' : ''"
+        :style="role === r.key ? (isDark ? 'background:linear-gradient(to right,#0369a1,#0ea5e9,#38bdf8);' : 'background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);') : ''"
       >{{ r.label }}</button>
     </div>
 
@@ -175,7 +193,7 @@ watch(role, () => { if (_ordersUser.value?.id) fetchOrders() })
           : isDark
             ? 'text-slate-400 border-slate-700 hover:border-sky-500 hover:text-sky-300'
             : 'text-gray-500 border-gray-200 hover:border-blue-400 hover:text-blue-700'"
-        :style="activeTab === tab.key ? 'background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);' : isDark ? 'background:rgba(15,23,42,0.50);' : 'background:rgba(255,255,255,0.80);'"
+        :style="activeTab === tab.key ? (isDark ? 'background:linear-gradient(to right,#0369a1,#0ea5e9,#38bdf8);' : 'background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);') : isDark ? 'background:rgba(15,23,42,0.50);' : 'background:rgba(255,255,255,0.80);'"
       >
         {{ tab.icon }} {{ tab.label }}
         <span

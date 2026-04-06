@@ -31,7 +31,7 @@ onMounted(() => clearCart())
 
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
       <NuxtLink
-        to="/orders"
+        to="/orders?tab=confirmed"
         class="vt-btn-primary inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm hover:opacity-90 transition"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
