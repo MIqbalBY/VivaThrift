@@ -51,8 +51,31 @@ export function useRecentlyViewed() {
       .in('id', recentIds.value)
       .eq('status', 'active')
 
+    // Enrich with seller ratings
+    const rows = data ?? []
+    const sellerIds = [...new Set(rows.map((p: any) => p.users?.id).filter(Boolean))]
+    const ratingsMap: Record<string, number[]> = {}
+    if (sellerIds.length) {
+      const { data: reviews } = await supabase
+        .from('reviews')
+        .select('reviewee_id, rating_seller')
+        .in('reviewee_id', sellerIds)
+      if (reviews) {
+        for (const r of reviews) {
+          if (!ratingsMap[r.reviewee_id]) ratingsMap[r.reviewee_id] = []
+          ratingsMap[r.reviewee_id].push(r.rating_seller)
+        }
+      }
+    }
+    const enriched = rows.map((p: any) => {
+      const uid = p.users?.id
+      const arr = uid ? (ratingsMap[uid] ?? []) : []
+      const avgRating = arr.length ? arr.reduce((a: number, b: number) => a + b, 0) / arr.length : null
+      return { ...p, _sellerRating: avgRating, _ratingCount: arr.length }
+    })
+
     // Preserve the order from recentIds (most recent first)
-    const map = new Map((data ?? []).map(p => [p.id, p]))
+    const map = new Map(enriched.map((p: any) => [p.id, p]))
     recentProducts.value = recentIds.value
       .map(id => map.get(id))
       .filter(Boolean)

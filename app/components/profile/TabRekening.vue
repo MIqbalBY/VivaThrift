@@ -124,3 +124,18 @@ const localBankAccountName = computed({
     </button>
   </div>
 </template>
+
+<style scoped>
+.vt-card { background: #ffffff; border: 1px solid rgba(0,0,0,0.07); border-radius: 1rem; }
+.dark .vt-card { background: #0d1829; border-color: rgba(255,255,255,0.07); }
+.vt-text-primary { color: #0f172a; }
+.dark .vt-text-primary { color: #f1f5f9; }
+.vt-label { color: #374151; }
+.dark .vt-label { color: #cbd5e1; }
+.vt-input { width: 100%; padding: 0.6rem 0.875rem; border: 1px solid rgba(0,0,0,0.15); border-radius: 0.6rem; font-size: 0.875rem; background: #fff; color: #0f172a; transition: border-color 0.15s; outline: none; }
+.vt-input:focus { border-color: #1e3a8a; box-shadow: 0 0 0 3px rgba(30,58,138,0.10); }
+.dark .vt-input { background: #0f172a; border-color: rgba(255,255,255,0.12); color: #f1f5f9; }
+.dark .vt-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.12); }
+.vt-btn-primary { background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af); }
+.dark .vt-btn-primary { background: linear-gradient(to right, #0284c7, #0ea5e9, #38bdf8); }
+</style>

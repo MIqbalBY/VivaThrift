@@ -231,15 +231,6 @@ watch(user, (u) => {
         >
           🏦 Rekening
         </button>
-        <button
-          @click="requestLogout"
-          class="ml-auto px-4 py-3.5 text-sm font-semibold transition flex items-center gap-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-        >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
-          </svg>
-          Keluar
-        </button>
       </div>
     </div>
 
@@ -265,6 +256,19 @@ watch(user, (u) => {
           @open-avatar-input="avatarInput?.click()"
           @delete-avatar="deleteAvatar(avatarUrl)"
         />
+
+        <!-- Keluar -->
+        <div class="flex justify-end pt-2">
+          <button
+            @click="requestLogout"
+            class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold border transition text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/60 hover:bg-red-50 dark:hover:bg-red-900/20"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
+            </svg>
+            Keluar dari VivaThrift
+          </button>
+        </div>
       </template>
 
       <!-- ══ TAB: ALAMAT ═══════════════════════════════════════════════════ -->
