@@ -28,6 +28,10 @@ const buyerAddress = ref<{
   lng: number | null
 } | null>(null)
 
+// ── Shipping state ────────────────────────────────────────────────────────────
+// destPostal declared here (before useAsyncData) so auto-fill below can access it
+const destPostal      = ref<string>('')
+
 const { data: addrData } = await useAsyncData('buyer-address', async () => {
   if (!myId.value) return null
   const { data } = await supabase
@@ -45,7 +49,6 @@ if (buyerAddress.value?.postal_code) {
   destPostal.value = buyerAddress.value.postal_code
 }
 
-// ── Shipping state ────────────────────────────────────────────────────────────
 const MEETUP_LOCATIONS = [
   { id: 'aula_asrama',     label: 'Aula Asrama ITS' },
   { id: 'gedung_robotika', label: 'Gedung Robotika ITS' },
@@ -64,7 +67,6 @@ const MEETUP_LOCATIONS = [
 const shippingMethod       = ref<'cod' | 'shipping'>('cod')
 const meetupLocation       = ref<string>('rektorat')
 const customMeetupLocation = ref<string>('')
-const destPostal      = ref<string>('')
 const rates           = ref<any[]>([])
 const selectedRate    = ref<any | null>(null)
 const ratesLoading    = ref(false)

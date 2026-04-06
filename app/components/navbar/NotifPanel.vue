@@ -7,7 +7,6 @@ const {
   notifPanelRef, notifBellRef,
   markAllRead, markOneRead, notifTimeAgo, getNotifIcon, getNotifRoute, getNotifProductImage,
 } = useNavNotifications()
-const { navUid } = useNavChatBadge()
 
 onMounted(() => document.addEventListener('click', handleOutsideClick))
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
@@ -62,7 +61,7 @@ function handleOutsideClick(e: MouseEvent) {
           <h3 class="text-sm font-bold" :class="isDark ? 'text-slate-100' : 'text-gray-800'">Notifikasi</h3>
           <button
             v-if="notifUnreadCount > 0"
-            @click="markAllRead(navUid!)"
+            @click="markAllRead(user?.id)"
             class="text-xs font-medium transition"
             :class="isDark ? 'text-sky-400 hover:text-sky-300' : 'text-blue-600 hover:text-blue-800'"
           >
