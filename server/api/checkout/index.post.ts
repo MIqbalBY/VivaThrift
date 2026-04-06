@@ -172,7 +172,7 @@ export default defineEventHandler(async (event) => {
             given_names: user.fullName ?? user.email?.split('@')[0] ?? 'Pembeli',
             email:       user.email,
           },
-          success_redirect_url: `${siteUrl}/checkout/success?order_id=${orderId}`,
+          success_redirect_url: `${siteUrl}/cart/success?order_id=${orderId}`,
           failure_redirect_url: `${siteUrl}/checkout?offer_id=${offerId}&payment_failed=1`,
           currency:             'IDR',
           invoice_duration:     900, // 15 menit
@@ -193,10 +193,10 @@ export default defineEventHandler(async (event) => {
     .update({ xendit_invoice_id: xenditInvoiceId, payment_url: paymentUrl })
     .eq('id', orderId)
 
-  // ── 8. Mark offer as expired (cannot be checked out again) ───────────────
+  // ── 8. Mark offer as completed (checkout done) ───────────────────────────
   await supabaseAdmin
     .from('offers')
-    .update({ status: 'expired', updated_at: new Date().toISOString() })
+    .update({ status: 'completed', updated_at: new Date().toISOString() })
     .eq('id', offerId)
 
   return { orderId, paymentUrl, alreadyExisted: false }

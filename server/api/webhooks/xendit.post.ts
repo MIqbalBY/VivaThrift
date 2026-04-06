@@ -68,47 +68,11 @@ export default defineEventHandler(async (event) => {
     return { received: true, action: 'no_orders_found' }
   }
 
-  // ── Ensure stock decremented for each order_item (safety net) ─────────────
-  // Offer-based & cart-based checkout should decrement stock optimistically,
-  // but if for any reason it was skipped, we fix it here.
-  for (const order of updatedOrders) {
-    const { data: orderItems } = await supabaseAdmin
-      .from('order_items')
-      .select('product_id, quantity')
-      .eq('order_id', order.id)
-
-    if (!orderItems?.length) continue
-
-    for (const oi of orderItems) {
-      const { data: prod } = await supabaseAdmin
-        .from('products')
-        .select('stock, status')
-        .eq('id', oi.product_id)
-        .single()
-
-      if (!prod || prod.stock === null || prod.stock === undefined) continue
-
-      const newStock = Math.max(0, prod.stock - oi.quantity)
-      // Only decrement if stock hasn't been adjusted yet (still >= quantity)
-      if (prod.stock >= oi.quantity) {
-        const stockUpdate: Record<string, unknown> = { stock: newStock }
-        if (newStock === 0) stockUpdate.status = 'sold'
-        await supabaseAdmin
-          .from('products')
-          .update(stockUpdate)
-          .eq('id', oi.product_id)
-
-        // Expire all remaining pending/accepted offers when stock is exhausted
-        if (newStock === 0) {
-          await supabaseAdmin
-            .from('offers')
-            .update({ status: 'expired' })
-            .eq('product_id', oi.product_id)
-            .in('status', ['pending', 'accepted'])
-        }
-      }
-    }
-  }
+  // ── Stock note ────────────────────────────────────────────────────────────
+  // Stock decrement is handled optimistically at checkout time (cart.post.ts
+  // and index.post.ts). We do NOT decrement again here to avoid double-
+  // decrement bugs. If checkout crashed before decrementing, an admin can
+  // reconcile manually or a scheduled job can fix the mismatch.
 
   // ── Clear cart items for buyer (best-effort) ──────────────────────────────
   // Find buyer from first order, then remove their purchased cart items.
