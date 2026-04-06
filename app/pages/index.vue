@@ -185,6 +185,11 @@ function buildQuery() {
   if (activeMinPrice.value != null)     query = query.gte('price', activeMinPrice.value)
   if (activeMaxPrice.value != null)     query = query.lte('price', activeMaxPrice.value)
 
+  // Feed mode: filter to only sellers the user follows
+  if (feedMode.value === 'following' && followingIds.value.length > 0) {
+    query = query.in('seller_id', followingIds.value)
+  }
+
   return { query, sort }
 }
 
@@ -257,7 +262,7 @@ async function fetchProducts(reset = true) {
 
 // Re-fetch from scratch when filters change
 watch(
-  [activeCategory, activeSearch, activeCondition, activeSort, activeNegotiable, activeCod, activeMinPrice, activeMaxPrice],
+  [activeCategory, activeSearch, activeCondition, activeSort, activeNegotiable, activeCod, activeMinPrice, activeMaxPrice, feedMode],
   () => fetchProducts(true),
 )
 
@@ -276,10 +281,14 @@ function setupObserver() {
 }
 
 const { fetchWishlist } = useWishlist()
-onMounted(() => {
+onMounted(async () => {
   fetchProducts(true)
   window.addEventListener('resize', () => {}) // keep layout responsive
-  if (user.value) fetchWishlist()
+  if (user.value) {
+    fetchWishlist()
+    fetchFollowingIds()
+  }
+  fetchRecentProducts()
   nextTick(setupObserver)
 })
 onUnmounted(() => { if (observer) observer.disconnect() })
@@ -357,6 +366,22 @@ watch(sentinelRef, () => nextTick(setupObserver))
       </div>
     </section>
 
+    <!-- Baru Saja Dilihat -->
+    <section v-if="recentProducts.length" class="w-full px-4 sm:px-6 md:px-10 pt-10 pb-2">
+      <h2 :ref="reveal" class="text-xl font-bold mb-4" :class="isDark ? 'text-white' : 'text-[#1e3a8a]'">
+        🕐 Baru Saja Dilihat
+      </h2>
+      <div class="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+        <div v-for="rp in recentProducts" :key="rp.id" class="w-48 shrink-0">
+          <ProductCard
+            :product="rp"
+            :show-seller="true"
+            @seller-click="(uid) => profileCardUserId = uid"
+          />
+        </div>
+      </div>
+    </section>
+
     <!-- Katalog -->
     <section id="katalog" class="w-full px-4 sm:px-6 md:px-10 py-12">
 
@@ -389,6 +414,36 @@ watch(sentinelRef, () => nextTick(setupObserver))
             <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
+      </div>
+
+      <!-- Feed Mode Toggle -->
+      <div v-if="user" class="flex items-center gap-1 mb-5 border-b" :class="isDark ? 'border-white/10' : 'border-gray-200'">
+        <button
+          @click="feedMode = 'all'"
+          class="px-4 py-2.5 text-sm font-semibold transition border-b-2 -mb-px"
+          :class="feedMode === 'all'
+            ? (isDark ? 'border-sky-400 text-sky-400' : 'border-blue-800 text-blue-800')
+            : (isDark ? 'border-transparent text-gray-500 hover:text-gray-300' : 'border-transparent text-gray-400 hover:text-gray-600')"
+        >
+          Semua
+        </button>
+        <button
+          @click="feedMode = 'following'"
+          class="px-4 py-2.5 text-sm font-semibold transition border-b-2 -mb-px flex items-center gap-1.5"
+          :class="feedMode === 'following'
+            ? (isDark ? 'border-sky-400 text-sky-400' : 'border-blue-800 text-blue-800')
+            : (isDark ? 'border-transparent text-gray-500 hover:text-gray-300' : 'border-transparent text-gray-400 hover:text-gray-600')"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Dari yang Diikuti
+        </button>
+      </div>
+
+      <!-- Empty following state -->
+      <div v-if="feedMode === 'following' && !productsLoading && products.length === 0 && followingIds.length === 0" class="flex flex-col items-center py-16 gap-3 mb-8">
+        <img src="/img/illustrations/empty-cart.svg" alt="Belum mengikuti" width="176" height="176" loading="lazy" class="w-44 h-auto opacity-80" />
+        <p class="text-gray-500 dark:text-gray-400 font-semibold text-lg">Belum mengikuti siapapun</p>
+        <p class="text-gray-400 dark:text-gray-500 text-sm">Ikuti penjual untuk melihat barang mereka di sini.</p>
       </div>
 
       <!-- Filter Panel -->

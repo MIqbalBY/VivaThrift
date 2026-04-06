@@ -9,15 +9,16 @@
 // ── Order State Machine ────────────────────────────────────────────────────────
 
 const ORDER_TRANSITIONS: Record<string, string[]> = {
-  pending_payment: ['confirmed', 'cancelled', 'payment_failed'],
-  confirmed:       ['shipped', 'cancelled'],
-  shipped:         ['completed', 'disputed'],
-  completed:       [],  // terminal
-  cancelled:       [],  // terminal
-  payment_failed:  [],  // terminal
-  disputed:        ['resolved_refund', 'resolved_release'],
-  resolved_refund: [],  // terminal
-  resolved_release:[],  // terminal
+  pending_payment:  ['confirmed', 'cancelled', 'payment_failed'],
+  confirmed:        ['shipped', 'awaiting_meetup', 'cancelled'],
+  awaiting_meetup:  ['completed', 'cancelled', 'disputed'],
+  shipped:          ['completed', 'disputed'],
+  completed:        [],  // terminal
+  cancelled:        [],  // terminal
+  payment_failed:   [],  // terminal
+  disputed:         ['resolved_refund', 'resolved_release'],
+  resolved_refund:  [],  // terminal
+  resolved_release: [],  // terminal
 }
 
 // ── Offer State Machine ────────────────────────────────────────────────────────

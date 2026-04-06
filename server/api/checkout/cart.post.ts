@@ -1,6 +1,11 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { resolveServerUser } from '../../utils/resolve-server-uid'
 import { supabaseAdmin } from '../../utils/supabase-admin'
+import {
+  isValidMeetupLocation,
+  generateMeetupOTP,
+} from '../../utils/domain-rules'
+import type { ShippingMethod } from '../../utils/domain-rules'
 
 // POST /api/checkout/cart
 //
@@ -8,18 +13,45 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 // Semua item di keranjang diproses sekaligus menjadi satu Xendit Invoice.
 // Satu invoice bisa mencakup banyak order (satu per seller).
 //
+// Body (NEW):
+//   shippingMethod: 'cod' | 'shipping'
+//   meetupLocation?: string  ← required when COD
+//   shippingCost?: number    ← total ongkir for shipping
+//   courierCode?: string     ← courier identifier
+//
 // Flow:
 //   1. Auth check
 //   2. Fetch cart + items
 //   3. Validasi stok semua item
 //   4. Idempotency: kalau sudah ada pending invoice → return URL lama
-//   5. Buat orders per seller
-//   6. Buat satu Xendit Invoice untuk total keseluruhan
+//   5. Buat orders per seller (with shipping info + OTP if COD)
+//   6. Buat satu Xendit Invoice untuk total keseluruhan (incl ongkir)
 //   7. Update semua orders dengan xendit_invoice_id + payment_url
 //   8. Return { paymentUrl, orderIds, grandTotal }
 
 export default defineEventHandler(async (event) => {
   const user = await resolveServerUser(event)
+
+  const body = await readBody(event)
+
+  // ── Shipping method validation ──────────────────────────────────────────
+  const shippingMethod: ShippingMethod | undefined = body?.shippingMethod
+  if (!shippingMethod || !['cod', 'shipping'].includes(shippingMethod)) {
+    throw createError({ statusCode: 400, statusMessage: 'shippingMethod harus "cod" atau "shipping".' })
+  }
+
+  let meetupLocation: string | null = null
+  let shippingCost: number = 0
+  const courierCode: string | null = body?.courierCode ?? null
+
+  if (shippingMethod === 'cod') {
+    meetupLocation = body?.meetupLocation
+    if (!meetupLocation || !isValidMeetupLocation(meetupLocation)) {
+      throw createError({ statusCode: 400, statusMessage: 'Lokasi meetup tidak valid.' })
+    }
+  } else {
+    shippingCost = Math.max(0, Math.round(Number(body?.shippingCost) || 0))
+  }
 
   const supabase = await serverSupabaseClient(event)
 
@@ -109,23 +141,33 @@ export default defineEventHandler(async (event) => {
     group.total += (p.price ?? 0) * item.quantity
   }
 
-  const grandTotal = [...sellerMap.values()].reduce((sum, g) => sum + g.total, 0)
+  const grandTotal = [...sellerMap.values()].reduce((sum, g) => sum + g.total, 0) + shippingCost
 
   // ── 6. Buat orders per seller ─────────────────────────────────────────────
   const orderIds: string[] = []
 
+  // Split shippingCost evenly across seller groups (first group absorbs remainder)
+  const sellerCount = sellerMap.size
+  const costPerSeller = Math.floor(shippingCost / sellerCount)
+  let remainderCost = shippingCost - costPerSeller * sellerCount
+  let sellerIndex = 0
+
   for (const [sellerId, group] of sellerMap.entries()) {
-    // Admin client: buyer cannot INSERT orders that reference other sellers via
-    // user-JWT + RLS alone because the orders_buyer_insert policy only checks
-    // buyer_id = auth.uid() but auth.uid() can be null on Vercel serverless.
-    // Business rules (buyer ≠ seller, stock, self-purchase) are already validated above.
+    const orderShippingCost = costPerSeller + (sellerIndex === 0 ? remainderCost : 0)
+    const meetupOtp = shippingMethod === 'cod' ? generateMeetupOTP() : null
+
     const { data: order, error: ordErr } = await supabaseAdmin
       .from('orders')
       .insert({
-        buyer_id:     user.id,
-        seller_id:    sellerId,
-        total_amount: group.total,
-        status:       'pending_payment',
+        buyer_id:        user.id,
+        seller_id:       sellerId,
+        total_amount:    group.total + orderShippingCost,
+        status:          'pending_payment',
+        shipping_method: shippingMethod,
+        shipping_cost:   orderShippingCost,
+        meetup_location: meetupLocation,
+        meetup_otp:      meetupOtp,
+        courier_code:    courierCode,
       })
       .select('id')
       .single()
@@ -143,6 +185,7 @@ export default defineEventHandler(async (event) => {
     if (itemErr) throw createError({ statusCode: 500, statusMessage: itemErr.message })
 
     orderIds.push(order.id)
+    sellerIndex++
   }
 
   // ── 6b. Decrement stock per product (optimistic) ──────────────────────────

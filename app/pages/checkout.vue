@@ -18,6 +18,21 @@ const orderDone     = ref(false)
 const orderErr      = ref('')
 const stockDepleted = ref(false)
 
+// ── Shipping state ────────────────────────────────────────────────────────────
+const MEETUP_LOCATIONS = [
+  { id: 'rektorat',     label: 'Depan Rektorat ITS' },
+  { id: 'taman_alumni', label: 'Taman Alumni ITS' },
+  { id: 'kantin_pusat', label: 'Kantin Pusat ITS' },
+] as const
+
+const shippingMethod  = ref<'cod' | 'shipping'>('cod')
+const meetupLocation  = ref<string>('rektorat')
+const destPostal      = ref<string>('')
+const rates           = ref<any[]>([])
+const selectedRate    = ref<any | null>(null)
+const ratesLoading    = ref(false)
+const ratesErr        = ref('')
+
 // ── Load Offer + check for existing order in one round-trip ───────
 const { data: checkoutData, pending, error: loadError } = await useAsyncData(`checkout-${offerId}`, async () => {
   if (!offerId || !myId.value) return null
@@ -78,26 +93,83 @@ if (checkoutData.value?.alreadyOrdered) {
 const productCover = computed(() => {
   const media = offer.value?.product?.product_media
   if (!media?.length) return null
-  const primary = media.find(m => m.is_primary) ?? media[0]
+  const primary = media.find((m: any) => m.is_primary) ?? media[0]
   if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return primary.thumbnail_url
   return primary.media_url
 })
 
-const total = computed(() =>
+const subtotal = computed(() =>
   (offer.value?.offered_price ?? 0) * (offer.value?.quantity ?? 1)
 )
+
+const ongkirAmount = computed(() =>
+  shippingMethod.value === 'shipping' ? (selectedRate.value?.price ?? 0) : 0
+)
+
+const total = computed(() => subtotal.value + ongkirAmount.value)
+
+// ── Ongkir calculator ─────────────────────────────────────────────────────────
+async function fetchRates() {
+  if (!destPostal.value.trim()) {
+    ratesErr.value = 'Masukkan kode pos tujuan.'
+    return
+  }
+  ratesLoading.value = true
+  ratesErr.value     = ''
+  selectedRate.value = null
+  rates.value        = []
+
+  try {
+    const res = await $fetch<{ rates: any[] }>('/api/shipping/rates', {
+      method: 'POST',
+      body: {
+        origin_postal_code:      '60111',          // ITS Surabaya - Sukolilo
+        destination_postal_code: destPostal.value.trim(),
+        items: [{ weight: 500 }],                  // default 500g per item
+        couriers: 'jne,jnt',
+      },
+    })
+    rates.value = res.rates ?? []
+    if (!rates.value.length) ratesErr.value = 'Tidak ada layanan pengiriman tersedia untuk kode pos ini.'
+  } catch (e: any) {
+    ratesErr.value = e?.data?.statusMessage ?? e?.message ?? 'Gagal mengambil tarif pengiriman.'
+  } finally {
+    ratesLoading.value = false
+  }
+}
 
 // ── Checkout via Xendit Payment Gateway ──────────────────────────
 async function placeOrder() {
   if (placing.value || orderDone.value) return
+
+  // Validate shipping selection
+  if (shippingMethod.value === 'shipping' && !selectedRate.value) {
+    orderErr.value = 'Pilih layanan pengiriman terlebih dahulu.'
+    return
+  }
+  if (shippingMethod.value === 'cod' && !meetupLocation.value) {
+    orderErr.value = 'Pilih lokasi meetup.'
+    return
+  }
+
   placing.value = true
   orderErr.value = ''
   try {
+    const body: any = {
+      offerId:        offer.value!.id,
+      shippingMethod: shippingMethod.value,
+    }
+    if (shippingMethod.value === 'cod') {
+      body.meetupLocation = meetupLocation.value
+    } else {
+      body.shippingCost = selectedRate.value!.price
+      body.courierCode  = selectedRate.value!.courier_code
+    }
+
     const result = await $fetch<{ orderId: string; paymentUrl: string }>('/api/checkout', {
       method: 'POST',
-      body: { offerId: offer.value.id },
+      body,
     })
-    // Redirect ke halaman invoice Xendit (rekening bersama)
     if (result.paymentUrl) {
       await navigateTo(result.paymentUrl, { external: true })
     }
@@ -129,7 +201,7 @@ async function placeOrder() {
     <div v-if="orderDone" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">
       <img src="/img/illustrations/order-confirmed.svg" alt="Pesanan berhasil" width="192" height="192" loading="lazy" class="w-48 h-auto mx-auto mb-4 opacity-90" />
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Pesanan Berhasil!</h2>
-      <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Silakan hubungi penjual untuk mengatur pengiriman / COD.</p>
+      <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Pembayaran sedang diproses. Cek halaman Pesanan untuk memantau status.</p>
       <NuxtLink
         :to="`/chat/${offer?.chat?.id}`"
         class="vt-btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm hover:opacity-90 transition"
@@ -155,6 +227,7 @@ async function placeOrder() {
     <template v-else>
       <h1 class="vt-hero-enter vt-hero-enter-d2 font-heading text-2xl font-bold mb-6" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">⚡ Checkout Tawaran</h1>
 
+      <!-- Product card -->
       <div
         class="vt-glass rounded-2xl p-5 mb-5"
         :style="isDark
@@ -185,11 +258,143 @@ async function placeOrder() {
             <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Jumlah</span>
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">× {{ offer?.quantity }}</span>
           </div>
+          <div v-if="shippingMethod === 'shipping'" class="flex justify-between">
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Ongkos Kirim</span>
+            <span class="font-medium" :class="selectedRate ? (isDark ? 'text-green-400' : 'text-green-600') : (isDark ? 'text-gray-500' : 'text-gray-400')">
+              {{ selectedRate ? `Rp ${selectedRate.price.toLocaleString('id-ID')}` : '—' }}
+            </span>
+          </div>
+          <div v-if="shippingMethod === 'cod'" class="flex justify-between">
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Ongkos Kirim</span>
+            <span class="font-semibold" :class="isDark ? 'text-green-400' : 'text-green-600'">Gratis (COD)</span>
+          </div>
           <div class="flex justify-between pt-3 mt-1" :class="isDark ? 'border-t border-white/10' : 'border-t border-gray-100'">
             <span class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-700'">Total</span>
             <span class="text-lg font-bold" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">
               Rp {{ total.toLocaleString('id-ID') }}
             </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Shipping Method Toggle ── -->
+      <div
+        class="rounded-2xl p-5 mb-5"
+        :style="isDark
+          ? 'background:rgba(15,25,50,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.10);'
+          : 'background:rgba(255,255,255,0.70);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.5);box-shadow:0 4px 20px rgba(30,58,138,0.10);'"
+      >
+        <p class="text-sm font-semibold mb-3" :class="isDark ? 'text-white' : 'text-gray-700'">Metode Pengiriman</p>
+        <div class="grid grid-cols-2 gap-3">
+          <!-- COD -->
+          <button
+            @click="shippingMethod = 'cod'; selectedRate = null; rates = []"
+            class="flex flex-col items-center gap-1.5 rounded-xl py-3 px-2 text-sm font-semibold border-2 transition"
+            :class="shippingMethod === 'cod'
+              ? (isDark ? 'border-sky-500 bg-sky-900/40 text-sky-300' : 'border-blue-600 bg-blue-50 text-blue-700')
+              : (isDark ? 'border-white/10 text-gray-400 hover:border-white/20' : 'border-gray-200 text-gray-500 hover:border-gray-300')"
+          >
+            <span class="text-xl">🤝</span>
+            <span>COD / Meetup</span>
+            <span class="text-xs font-normal opacity-70">Ketemu di kampus</span>
+          </button>
+          <!-- Shipping -->
+          <button
+            @click="shippingMethod = 'shipping'"
+            class="flex flex-col items-center gap-1.5 rounded-xl py-3 px-2 text-sm font-semibold border-2 transition"
+            :class="shippingMethod === 'shipping'
+              ? (isDark ? 'border-sky-500 bg-sky-900/40 text-sky-300' : 'border-blue-600 bg-blue-50 text-blue-700')
+              : (isDark ? 'border-white/10 text-gray-400 hover:border-white/20' : 'border-gray-200 text-gray-500 hover:border-gray-300')"
+          >
+            <span class="text-xl">🚚</span>
+            <span>Kirim Paket</span>
+            <span class="text-xs font-normal opacity-70">JNE / J&T</span>
+          </button>
+        </div>
+
+        <!-- COD: Meetup location picker -->
+        <div v-if="shippingMethod === 'cod'" class="mt-4">
+          <p class="text-xs font-semibold mb-2" :class="isDark ? 'text-gray-400' : 'text-gray-500'">LOKASI MEETUP</p>
+          <div class="space-y-2">
+            <label
+              v-for="loc in MEETUP_LOCATIONS"
+              :key="loc.id"
+              class="flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition"
+              :class="meetupLocation === loc.id
+                ? (isDark ? 'border-sky-500 bg-sky-900/30' : 'border-blue-500 bg-blue-50')
+                : (isDark ? 'border-white/10 hover:border-white/20' : 'border-gray-200 hover:border-gray-300')"
+            >
+              <input
+                type="radio"
+                name="meetupLocation"
+                :value="loc.id"
+                v-model="meetupLocation"
+                class="accent-blue-600"
+              />
+              <div>
+                <p class="text-sm font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">{{ loc.label }}</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Shipping: Ongkir calculator -->
+        <div v-if="shippingMethod === 'shipping'" class="mt-4">
+          <p class="text-xs font-semibold mb-2" :class="isDark ? 'text-gray-400' : 'text-gray-500'">KALKULASI ONGKIR</p>
+          <p class="text-xs mb-2" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Dari: Kampus ITS Surabaya (60111)</p>
+          <div class="flex gap-2">
+            <input
+              v-model="destPostal"
+              type="text"
+              inputmode="numeric"
+              maxlength="5"
+              placeholder="Kode pos tujuan"
+              class="flex-1 rounded-xl px-3 py-2 text-sm border outline-none transition"
+              :class="isDark
+                ? 'bg-slate-800 border-white/10 text-white placeholder-gray-500 focus:border-sky-500'
+                : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400 focus:border-blue-500'"
+              @keydown.enter="fetchRates"
+            />
+            <button
+              @click="fetchRates"
+              :disabled="ratesLoading"
+              class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60"
+              style="background:linear-gradient(to right,#1e3a8a,#1e40af);"
+            >
+              {{ ratesLoading ? '…' : 'Cek' }}
+            </button>
+          </div>
+          <p v-if="ratesErr" class="text-xs text-red-500 mt-1.5">{{ ratesErr }}</p>
+
+          <!-- Rate options -->
+          <div v-if="rates.length" class="mt-3 space-y-2">
+            <label
+              v-for="rate in rates"
+              :key="`${rate.courier_code}-${rate.service}`"
+              class="flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition"
+              :class="selectedRate === rate
+                ? (isDark ? 'border-sky-500 bg-sky-900/30' : 'border-blue-500 bg-blue-50')
+                : (isDark ? 'border-white/10 hover:border-white/20' : 'border-gray-200 hover:border-gray-300')"
+            >
+              <input
+                type="radio"
+                name="shippingRate"
+                :value="rate"
+                v-model="selectedRate"
+                class="accent-blue-600"
+              />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">
+                  {{ rate.courier_name }} — {{ rate.description }}
+                </p>
+                <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                  Estimasi {{ rate.etd }}
+                </p>
+              </div>
+              <span class="text-sm font-bold shrink-0" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
+                Rp {{ rate.price.toLocaleString('id-ID') }}
+              </span>
+            </label>
           </div>
         </div>
       </div>

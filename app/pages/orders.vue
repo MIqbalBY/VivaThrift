@@ -11,7 +11,7 @@ const {
   tabCounts, filteredOrders,
   primaryMedia, productTitle, productSlug, chatId, formatRp, sellerReceives,
   actionLoading, actionErr, actionSuccess,
-  fetchOrders, shipOrder, completeOrder,
+  fetchOrders, shipOrder, completeOrder, startMeetup, confirmMeetup,
   isReviewed, markReviewed,
   ORDER_TABS,
 } = useOrders()
@@ -64,6 +64,25 @@ async function handleShip(orderId: string) {
   if (actionSuccess.value[orderId]) form.open = false
 }
 
+// Meetup OTP state (per order)
+const meetupOtpInputs = ref<Record<string, string>>({})
+
+const MEETUP_LOCATION_LABELS: Record<string, string> = {
+  rektorat:     'Depan Rektorat ITS',
+  taman_alumni: 'Taman Alumni ITS',
+  kantin_pusat: 'Kantin Pusat ITS',
+}
+
+async function handleStartMeetup(orderId: string) {
+  await startMeetup(orderId)
+}
+
+async function handleConfirmMeetup(orderId: string) {
+  const otp = meetupOtpInputs.value[orderId] ?? ''
+  await confirmMeetup(orderId, otp)
+  if (actionSuccess.value[orderId]) meetupOtpInputs.value[orderId] = ''
+}
+
 // Confirm dialog before "Pesanan Diterima"
 const confirmCompleteId = ref<string | null>(null)
 
@@ -74,12 +93,13 @@ async function handleComplete(orderId: string) {
 
 // Status badge helpers
 const STATUS_META: Record<string, { label: string; light: string; dark: string }> = {
-  pending_payment: { label: 'Belum Bayar',  light: 'bg-amber-100 text-amber-700 border-amber-200',        dark: 'bg-amber-900/30 text-amber-300 border-amber-700/40' },
-  confirmed:       { label: 'Dikemas',      light: 'bg-blue-100 text-blue-700 border-blue-200',           dark: 'bg-blue-900/30 text-sky-300 border-blue-700/40' },
-  shipped:         { label: 'Dikirim',      light: 'bg-indigo-100 text-indigo-700 border-indigo-200',     dark: 'bg-indigo-900/30 text-indigo-300 border-indigo-700/40' },
-  completed:       { label: 'Selesai',      light: 'bg-green-100 text-green-700 border-green-200',        dark: 'bg-green-900/30 text-green-300 border-green-700/40' },
-  cancelled:       { label: 'Dibatalkan',   light: 'bg-red-100 text-red-600 border-red-200',              dark: 'bg-red-900/30 text-red-300 border-red-700/40' },
-  payment_failed:  { label: 'Bayar Gagal',  light: 'bg-red-100 text-red-600 border-red-200',              dark: 'bg-red-900/30 text-red-300 border-red-700/40' },
+  pending_payment: { label: 'Belum Bayar',      light: 'bg-amber-100 text-amber-700 border-amber-200',        dark: 'bg-amber-900/30 text-amber-300 border-amber-700/40' },
+  confirmed:       { label: 'Dikemas',          light: 'bg-blue-100 text-blue-700 border-blue-200',           dark: 'bg-blue-900/30 text-sky-300 border-blue-700/40' },
+  awaiting_meetup: { label: 'Menunggu Meetup',  light: 'bg-teal-100 text-teal-700 border-teal-200',           dark: 'bg-teal-900/30 text-teal-300 border-teal-700/40' },
+  shipped:         { label: 'Dikirim',          light: 'bg-indigo-100 text-indigo-700 border-indigo-200',     dark: 'bg-indigo-900/30 text-indigo-300 border-indigo-700/40' },
+  completed:       { label: 'Selesai',          light: 'bg-green-100 text-green-700 border-green-200',        dark: 'bg-green-900/30 text-green-300 border-green-700/40' },
+  cancelled:       { label: 'Dibatalkan',       light: 'bg-red-100 text-red-600 border-red-200',              dark: 'bg-red-900/30 text-red-300 border-red-700/40' },
+  payment_failed:  { label: 'Bayar Gagal',      light: 'bg-red-100 text-red-600 border-red-200',              dark: 'bg-red-900/30 text-red-300 border-red-700/40' },
 }
 
 function statusMeta(status: string) {
@@ -242,6 +262,63 @@ onMounted(fetchOrders)
           </span>
         </div>
 
+        <!-- Meetup location info (COD orders — confirmed or awaiting_meetup) -->
+        <div
+          v-if="order.shipping_method === 'cod' && order.meetup_location && (order.status === 'confirmed' || order.status === 'awaiting_meetup')"
+          class="mx-4 mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs"
+          :class="isDark ? 'bg-teal-900/25 border border-teal-700/30 text-teal-300' : 'bg-teal-50 border border-teal-100 text-teal-700'"
+        >
+          📍 <span>Lokasi meetup: <strong>{{ MEETUP_LOCATION_LABELS[order.meetup_location] ?? order.meetup_location }}</strong></span>
+        </div>
+
+        <!-- Buyer: OTP display for awaiting_meetup -->
+        <div
+          v-if="role === 'buyer' && order.status === 'awaiting_meetup' && order.meetup_otp"
+          class="mx-4 mb-3 rounded-xl p-4 text-center"
+          :class="isDark ? 'bg-teal-900/30 border border-teal-700/40' : 'bg-teal-50 border border-teal-200'"
+        >
+          <p class="text-xs font-semibold mb-2" :class="isDark ? 'text-teal-300' : 'text-teal-700'">Kode OTP — Tunjukkan ke penjual saat bertemu</p>
+          <div class="font-mono text-4xl font-bold tracking-widest my-2" :class="isDark ? 'text-white' : 'text-gray-900'">
+            {{ order.meetup_otp }}
+          </div>
+          <p class="text-xs opacity-60" :class="isDark ? 'text-teal-300' : 'text-teal-700'">Jangan bagikan kepada pihak lain</p>
+        </div>
+
+        <!-- Seller: OTP input for awaiting_meetup -->
+        <div
+          v-if="role === 'seller' && order.status === 'awaiting_meetup'"
+          class="mx-4 mb-3 rounded-xl p-4"
+          :style="isDark ? 'background:rgba(13,68,41,0.25);border:1px solid rgba(20,184,166,0.25);' : 'background:rgba(240,253,250,0.90);border:1px solid rgba(153,246,228,0.60);'"
+        >
+          <p class="text-xs font-semibold mb-3" :class="isDark ? 'text-teal-300' : 'text-teal-700'">Masukkan kode OTP dari pembeli untuk konfirmasi serah terima:</p>
+          <div class="flex gap-2">
+            <input
+              v-model="meetupOtpInputs[order.id]"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="6 digit OTP"
+              class="flex-1 text-sm font-mono rounded-lg px-3 py-2 border focus:outline-none focus:ring-2 transition"
+              :class="isDark
+                ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-500 focus:ring-teal-400/30 focus:border-teal-400'
+                : 'bg-white border-gray-200 text-gray-700 placeholder-gray-400 focus:ring-teal-200 focus:border-teal-400'"
+            />
+            <button
+              @click="handleConfirmMeetup(order.id)"
+              :disabled="actionLoading[order.id] || !(meetupOtpInputs[order.id] ?? '').trim()"
+              class="px-4 py-2 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50 shrink-0"
+              style="background:linear-gradient(to right,#0d4429,#0f766e,#14b8a6);"
+            >
+              <span v-if="actionLoading[order.id]" class="flex items-center gap-1">
+                <span class="w-3 h-3 rounded-full border border-t-transparent animate-spin border-white/50 border-t-white"></span>
+                Memproses…
+              </span>
+              <span v-else>✅ Konfirmasi Meetup</span>
+            </button>
+          </div>
+          <p v-if="actionErr[order.id]" class="text-xs text-red-500 mt-2">{{ actionErr[order.id] }}</p>
+        </div>
+
         <!-- Disbursement note for seller (completed, no disbursement_id → bank belum diisi) -->
         <div
           v-if="role === 'seller' && order.status === 'completed' && !order.disbursement_id"
@@ -324,9 +401,24 @@ onMounted(fetchOrders)
             Sudah Diulas
           </span>
 
-          <!-- Seller: "Kirim Barang" toggle if confirmed -->
+          <!-- Seller: COD — "Mulai Meetup" button if confirmed -->
           <button
-            v-if="role === 'seller' && order.status === 'confirmed'"
+            v-if="role === 'seller' && order.status === 'confirmed' && order.shipping_method === 'cod'"
+            @click="handleStartMeetup(order.id)"
+            :disabled="actionLoading[order.id]"
+            class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-60"
+            style="background:linear-gradient(to right,#0d4429,#0f766e,#14b8a6);"
+          >
+            <span v-if="actionLoading[order.id]" class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded-full border border-t-transparent animate-spin border-white/50 border-t-white"></span>
+              Memproses…
+            </span>
+            <span v-else>🤝 Mulai Meetup</span>
+          </button>
+
+          <!-- Seller: Shipping — "Kirim Barang" toggle if confirmed -->
+          <button
+            v-if="role === 'seller' && order.status === 'confirmed' && order.shipping_method !== 'cod'"
             @click="toggleShipForm(order.id)"
             class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white transition hover:opacity-90"
             style="background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);"
@@ -334,7 +426,7 @@ onMounted(fetchOrders)
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
             </svg>
-            Kirim Barang
+            🚚 Kirim Barang
           </button>
 
           <!-- Action error -->
@@ -351,7 +443,7 @@ onMounted(fetchOrders)
           leave-to-class="opacity-0 -translate-y-1"
         >
           <div
-            v-if="role === 'seller' && order.status === 'confirmed' && getShipForm(order.id).open"
+            v-if="role === 'seller' && order.status === 'confirmed' && order.shipping_method !== 'cod' && getShipForm(order.id).open"
             class="mx-4 mb-4 rounded-xl p-4 space-y-3"
             :style="isDark ? 'background:rgba(30,58,138,0.15);border:1px solid rgba(56,189,248,0.15);' : 'background:rgba(239,246,255,0.80);border:1px solid rgba(147,197,253,0.50);'"
           >

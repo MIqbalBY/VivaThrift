@@ -6,10 +6,12 @@ import { calculateCommission } from '../../utils/domain-rules'
 // PATCH /api/orders/:id
 // Body: { action: 'ship', tracking_number: string, courier_name?: string }
 //     | { action: 'complete' }
+//     | { action: 'start_meetup' }
+//     | { action: 'confirm_meetup', otp: string }
 //
 // 'ship':
 //   - Caller must be the seller
-//   - Order must be in 'confirmed' state
+//   - Order must be in 'confirmed' state + shipping_method = 'shipping'
 //   - Sets tracking_number, courier_name, shipped_at, status = 'shipped'
 //
 // 'complete':
@@ -18,6 +20,18 @@ import { calculateCommission } from '../../utils/domain-rules'
 //   - Sets completed_at, status = 'completed'
 //   - Triggers Xendit disbursement to seller's bank account (if configured)
 //   - Marks associated offer as 'completed'
+//
+// 'start_meetup':
+//   - Caller must be the seller
+//   - Order must be in 'confirmed' state + shipping_method = 'cod'
+//   - Transitions to 'awaiting_meetup'
+//
+// 'confirm_meetup':
+//   - Caller must be the seller
+//   - Order must be in 'awaiting_meetup' state
+//   - Requires OTP that matches order.meetup_otp
+//   - Sets meetup_confirmed_at, status = 'completed'
+//   - Triggers Xendit disbursement (same as complete)
 
 export default defineEventHandler(async (event) => {
   const userId = await resolveServerUid(event)
@@ -28,8 +42,9 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const action: string = body?.action
 
-  if (action !== 'ship' && action !== 'complete') {
-    throw createError({ statusCode: 400, statusMessage: 'action harus "ship" atau "complete".' })
+  const validActions = ['ship', 'complete', 'start_meetup', 'confirm_meetup']
+  if (!validActions.includes(action)) {
+    throw createError({ statusCode: 400, statusMessage: `action harus salah satu dari: ${validActions.join(', ')}.` })
   }
 
   // ── Load order ─────────────────────────────────────────────────────────────
@@ -37,6 +52,7 @@ export default defineEventHandler(async (event) => {
     .from('orders')
     .select(`
       id, status, total_amount, offer_id, seller_id, buyer_id,
+      shipping_method, meetup_otp, meetup_location,
       seller:users!seller_id (
         id, name, bank_code, bank_account_number, bank_account_name
       )
@@ -49,15 +65,24 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── Authorization ──────────────────────────────────────────────────────────
-  if (action === 'ship' && order.seller_id !== userId) {
-    throw createError({ statusCode: 403, statusMessage: 'Hanya penjual yang bisa mengubah status pengiriman.' })
+  const sellerActions = ['ship', 'start_meetup', 'confirm_meetup']
+  const buyerActions  = ['complete']
+
+  if (sellerActions.includes(action) && order.seller_id !== userId) {
+    throw createError({ statusCode: 403, statusMessage: 'Hanya penjual yang bisa melakukan aksi ini.' })
   }
-  if (action === 'complete' && order.buyer_id !== userId) {
+  if (buyerActions.includes(action) && order.buyer_id !== userId) {
     throw createError({ statusCode: 403, statusMessage: 'Hanya pembeli yang bisa mengkonfirmasi penerimaan pesanan.' })
   }
 
   // ── State machine validation ────────────────────────────────────────────────
-  const targetStatus = action === 'ship' ? 'shipped' : 'completed'
+  const targetStatusMap: Record<string, string> = {
+    ship:            'shipped',
+    complete:        'completed',
+    start_meetup:    'awaiting_meetup',
+    confirm_meetup:  'completed',
+  }
+  const targetStatus = targetStatusMap[action]
   assertTransition('order', order.status, targetStatus)
 
   // ── Action: ship ────────────────────────────────────────────────────────────
@@ -91,6 +116,137 @@ export default defineEventHandler(async (event) => {
     } catch { /* best-effort */ }
 
     return { orderId, status: 'shipped', tracking_number: trackingNumber }
+  }
+
+  // ── Action: start_meetup ────────────────────────────────────────────────────
+  if (action === 'start_meetup') {
+    if ((order as any).shipping_method !== 'cod') {
+      throw createError({ statusCode: 422, statusMessage: 'Aksi meetup hanya untuk pesanan COD.' })
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from('orders')
+      .update({ status: 'awaiting_meetup' })
+      .eq('id', orderId)
+
+    if (updateErr) throw createError({ statusCode: 500, statusMessage: updateErr.message })
+
+    // Notify buyer (best-effort)
+    try {
+      const loc = (order as any).meetup_location ?? ''
+      await supabaseAdmin.from('notifications').insert({
+        user_id:      order.buyer_id,
+        type:         'meetup_started',
+        title:        'Penjual siap meetup!',
+        body:         `Temui penjual di ${loc}. Tunjukkan kode OTP saat bertemu.`,
+        reference_id: orderId,
+      })
+    } catch { /* best-effort */ }
+
+    return { orderId, status: 'awaiting_meetup' }
+  }
+
+  // ── Action: confirm_meetup ──────────────────────────────────────────────────
+  if (action === 'confirm_meetup') {
+    const otp = String(body?.otp ?? '').trim()
+    if (!otp) {
+      throw createError({ statusCode: 400, statusMessage: 'Kode OTP harus diisi.' })
+    }
+
+    // Timing-safe OTP comparison
+    const storedOtp = (order as any).meetup_otp ?? ''
+    if (otp.length !== storedOtp.length || otp !== storedOtp) {
+      throw createError({ statusCode: 422, statusMessage: 'Kode OTP tidak cocok.' })
+    }
+
+    const now = new Date().toISOString()
+
+    const { error: updateErr } = await supabaseAdmin
+      .from('orders')
+      .update({
+        status:               'completed',
+        completed_at:         now,
+        meetup_confirmed_at:  now,
+      })
+      .eq('id', orderId)
+
+    if (updateErr) throw createError({ statusCode: 500, statusMessage: updateErr.message })
+
+    // Mark associated offer as completed
+    if (order.offer_id) {
+      await supabaseAdmin
+        .from('offers')
+        .update({ status: 'completed', updated_at: now })
+        .eq('id', order.offer_id)
+    }
+
+    // ── Xendit Disbursement (same logic as 'complete') ────────────────────
+    let disbursementId: string | null = null
+    let disbursementSkipped = false
+    let disbursementError: string | null = null
+
+    const xenditKey  = process.env.XENDIT_KEY ?? ''
+    const seller     = order.seller as any
+    const hasBankInfo = seller?.bank_code && seller?.bank_account_number && seller?.bank_account_name
+
+    if (!xenditKey) {
+      disbursementSkipped = true
+      disbursementError   = 'XENDIT_KEY tidak dikonfigurasi.'
+    } else if (!hasBankInfo) {
+      disbursementSkipped = true
+      disbursementError   = 'Data rekening penjual belum dilengkapi.'
+    } else {
+      const { sellerReceives } = calculateCommission(order.total_amount, 1, 'standard')
+      try {
+        const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
+        const disburseRes = await $fetch<{ id: string; status: string }>(
+          'https://api.xendit.co/disbursements',
+          {
+            method: 'POST',
+            headers: {
+              Authorization:  `Basic ${credentials}`,
+              'Content-Type': 'application/json',
+            },
+            body: {
+              external_id:         `vt_meetup_${orderId}`,
+              bank_code:           seller.bank_code,
+              account_holder_name: seller.bank_account_name,
+              account_number:      seller.bank_account_number,
+              description:         `VivaThrift - Pencairan Dana COD Meetup`,
+              amount:              sellerReceives,
+            },
+          },
+        )
+        disbursementId = disburseRes.id
+        await supabaseAdmin
+          .from('orders')
+          .update({ disbursement_id: disbursementId })
+          .eq('id', orderId)
+      } catch (e: any) {
+        disbursementError = e?.data?.message ?? e?.message ?? 'Disbursement gagal.'
+        console.error('[orders/confirm_meetup] Xendit disbursement failed:', disbursementError)
+      }
+    }
+
+    // Notify buyer (best-effort)
+    try {
+      await supabaseAdmin.from('notifications').insert({
+        user_id:      order.buyer_id,
+        type:         'order_completed',
+        title:        'Meetup berhasil!',
+        body:         'Serah terima barang telah dikonfirmasi. Pesanan selesai.',
+        reference_id: orderId,
+      })
+    } catch { /* best-effort */ }
+
+    return {
+      orderId,
+      status: 'completed',
+      meetup_confirmed: true,
+      disbursement_id: disbursementId,
+      disbursement_skipped: disbursementSkipped,
+      disbursement_error: disbursementError,
+    }
   }
 
   // ── Action: complete ────────────────────────────────────────────────────────

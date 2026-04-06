@@ -36,3 +36,6 @@ playwright-report/
 test-results/
 .playwright/
 .playwright-mcp/
+
+# Supabase local CLI temp files (contains project ref, access tokens)
+supabase/.temp/

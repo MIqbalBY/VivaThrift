@@ -178,8 +178,10 @@ onMounted(async () => {
           <div class="flex flex-wrap items-center gap-3 mb-1">
             <h1 class="text-lg sm:text-xl font-bold truncate" :class="isDark ? 'text-white' : 'text-gray-900'">
               {{ profile.name }}
-              <span v-if="profile.gender === 'Laki-laki'" title="Laki-laki" class="text-base">♂️</span>
-              <span v-else-if="profile.gender === 'Perempuan'" title="Perempuan" class="text-base">♀️</span>
+              <template v-if="currentUser">
+                <span v-if="profile.gender === 'Laki-laki'" title="Laki-laki" class="text-base">♂️</span>
+                <span v-else-if="profile.gender === 'Perempuan'" title="Perempuan" class="text-base">♀️</span>
+              </template>
             </h1>
           </div>
           <!-- Username -->
@@ -231,18 +233,18 @@ onMounted(async () => {
               <span class="font-bold" :class="isDark ? 'text-white' : 'text-gray-900'">{{ products?.length ?? 0 }}</span>
               <span class="ml-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">postingan</span>
             </div>
-            <div>
+            <component :is="isSelf ? 'NuxtLink' : 'div'" :to="isSelf ? '/followers' : undefined" class="hover:opacity-70 transition-opacity">
               <span class="font-bold" :class="isDark ? 'text-white' : 'text-gray-900'">{{ followersCount }}</span>
               <span class="ml-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">pengikut</span>
-            </div>
-            <div>
+            </component>
+            <component :is="isSelf ? 'NuxtLink' : 'div'" :to="isSelf ? '/following' : undefined" class="hover:opacity-70 transition-opacity">
               <span class="font-bold" :class="isDark ? 'text-white' : 'text-gray-900'">{{ followingCount }}</span>
               <span class="ml-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">mengikuti</span>
-            </div>
+            </component>
           </div>
 
           <!-- NRP + Faculty (desktop) -->
-          <div class="hidden sm:block">
+          <div v-if="currentUser" class="hidden sm:block">
             <p class="text-sm font-semibold" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
               {{ profile.nrp ?? '-' }}
             </p>
@@ -256,7 +258,7 @@ onMounted(async () => {
       <!-- ── Bio & Info section (below avatar row) ─────────────────────────── -->
       <div class="mb-5 px-1">
         <!-- NRP + Faculty (mobile only) -->
-        <div class="sm:hidden mb-2">
+        <div v-if="currentUser" class="sm:hidden mb-2">
           <p class="text-sm font-semibold" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
             {{ profile.nrp ?? '-' }}
           </p>
@@ -298,15 +300,15 @@ onMounted(async () => {
           <div class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">postingan</div>
         </div>
         <div class="w-px h-8" :class="isDark ? 'bg-white/10' : 'bg-gray-200'"></div>
-        <div class="flex-1 text-center">
+        <component :is="isSelf ? 'NuxtLink' : 'div'" :to="isSelf ? '/followers' : undefined" class="flex-1 text-center hover:opacity-70 transition-opacity">
           <div class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-gray-900'">{{ followersCount }}</div>
           <div class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">pengikut</div>
-        </div>
+        </component>
         <div class="w-px h-8" :class="isDark ? 'bg-white/10' : 'bg-gray-200'"></div>
-        <div class="flex-1 text-center">
+        <component :is="isSelf ? 'NuxtLink' : 'div'" :to="isSelf ? '/following' : undefined" class="flex-1 text-center hover:opacity-70 transition-opacity">
           <div class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-gray-900'">{{ followingCount }}</div>
           <div class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">mengikuti</div>
-        </div>
+        </component>
       </div>
 
       <!-- ── Mobile action buttons ─────────────────────────────────────────── -->

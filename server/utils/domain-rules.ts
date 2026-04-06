@@ -64,6 +64,7 @@ export function validateOfferPrice(
 export type OrderStatus =
   | 'pending_payment'
   | 'confirmed'
+  | 'awaiting_meetup'
   | 'shipped'
   | 'completed'
   | 'cancelled'
@@ -76,8 +77,45 @@ export type OrderStatus =
 export const ORDER_SLA_HOURS: Partial<Record<OrderStatus, number>> = {
   pending_payment: 1,    // auto-cancel + release offer
   confirmed: 72,         // reminder to seller
+  awaiting_meetup: 48,   // COD meetup SLA — auto-escalate if no meetup
   shipped: 168,          // 7 days → auto-complete
   disputed: 336,         // 14 days → escalate
+}
+
+// ── Shipping & COD ────────────────────────────────────────────────────────────
+
+export type ShippingMethod = 'cod' | 'shipping'
+
+/** Campus meetup locations for COD handover */
+export const MEETUP_LOCATIONS = [
+  { id: 'rektorat',     label: 'Depan Rektorat ITS' },
+  { id: 'taman_alumni', label: 'Taman Alumni ITS' },
+  { id: 'kantin_pusat', label: 'Kantin Pusat ITS' },
+] as const
+
+export type MeetupLocationId = typeof MEETUP_LOCATIONS[number]['id']
+
+/** OTP configuration for COD meetup handover */
+export const MEETUP_OTP = {
+  length: 6,
+  /** OTP valid for the lifetime of the order (no expiry separate from order SLA) */
+} as const
+
+/** Validates meetup location ID */
+export function isValidMeetupLocation(id: string): boolean {
+  return MEETUP_LOCATIONS.some(loc => loc.id === id)
+}
+
+/** Generates a numeric OTP of the configured length */
+export function generateMeetupOTP(): string {
+  const { length } = MEETUP_OTP
+  const digits: string[] = []
+  const randomValues = new Uint8Array(length)
+  crypto.getRandomValues(randomValues)
+  for (let i = 0; i < length; i++) {
+    digits.push(String(randomValues[i] % 10))
+  }
+  return digits.join('')
 }
 
 // ── Commission ────────────────────────────────────────────────────────────────

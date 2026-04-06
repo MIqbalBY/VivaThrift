@@ -4,14 +4,15 @@
  */
 
 export type OrderRole   = 'buyer' | 'seller'
-export type OrderTabKey = 'pending_payment' | 'confirmed' | 'shipped' | 'completed' | 'cancelled'
+export type OrderTabKey = 'pending_payment' | 'confirmed' | 'awaiting_meetup' | 'shipped' | 'completed' | 'cancelled'
 
 export const ORDER_TABS: { key: OrderTabKey; label: string; icon: string }[] = [
-  { key: 'pending_payment', label: 'Belum Bayar', icon: '⏳' },
-  { key: 'confirmed',       label: 'Dikemas',     icon: '📦' },
-  { key: 'shipped',         label: 'Dikirim',     icon: '🚚' },
-  { key: 'completed',       label: 'Selesai',     icon: '✅' },
-  { key: 'cancelled',       label: 'Dibatalkan',  icon: '❌' },
+  { key: 'pending_payment',  label: 'Belum Bayar', icon: '⏳' },
+  { key: 'confirmed',        label: 'Dikemas',     icon: '📦' },
+  { key: 'awaiting_meetup',  label: 'Meetup',      icon: '🤝' },
+  { key: 'shipped',          label: 'Dikirim',     icon: '🚚' },
+  { key: 'completed',        label: 'Selesai',     icon: '✅' },
+  { key: 'cancelled',        label: 'Dibatalkan',  icon: '❌' },
 ]
 
 export function useOrders() {
@@ -39,6 +40,7 @@ export function useOrders() {
       .select(`
         id, status, total_amount,
         tracking_number, courier_name, shipped_at, completed_at,
+        shipping_method, shipping_cost, meetup_location, meetup_otp, meetup_confirmed_at, courier_code,
         created_at, updated_at, payment_url, offer_id, disbursement_id,
         order_items (
           quantity, price_at_time,
@@ -93,11 +95,12 @@ export function useOrders() {
   const tabCounts = computed<Record<OrderTabKey, number>>(() => {
     const all = orders.value
     return {
-      pending_payment: all.filter(o => o.status === 'pending_payment').length,
-      confirmed:       all.filter(o => o.status === 'confirmed').length,
-      shipped:         all.filter(o => o.status === 'shipped').length,
-      completed:       all.filter(o => o.status === 'completed').length,
-      cancelled:       all.filter(o => ['cancelled', 'payment_failed'].includes(o.status)).length,
+      pending_payment:  all.filter(o => o.status === 'pending_payment').length,
+      confirmed:        all.filter(o => o.status === 'confirmed').length,
+      awaiting_meetup:  all.filter(o => o.status === 'awaiting_meetup').length,
+      shipped:          all.filter(o => o.status === 'shipped').length,
+      completed:        all.filter(o => o.status === 'completed').length,
+      cancelled:        all.filter(o => ['cancelled', 'payment_failed'].includes(o.status)).length,
     }
   })
 
@@ -105,6 +108,9 @@ export function useOrders() {
     const tab = activeTab.value
     if (tab === 'cancelled') {
       return orders.value.filter(o => ['cancelled', 'payment_failed'].includes(o.status))
+    }
+    if (tab === 'awaiting_meetup') {
+      return orders.value.filter(o => o.status === 'awaiting_meetup')
     }
     return orders.value.filter(o => o.status === tab)
   })
@@ -186,6 +192,42 @@ export function useOrders() {
     }
   }
 
+  async function startMeetup(orderId: string) {
+    actionLoading.value[orderId] = true
+    actionErr.value[orderId]     = ''
+    actionSuccess.value[orderId] = false
+    try {
+      await $fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        body: { action: 'start_meetup' },
+      })
+      actionSuccess.value[orderId] = true
+      await fetchOrders()
+    } catch (e: any) {
+      actionErr.value[orderId] = e?.data?.statusMessage ?? e?.message ?? 'Gagal memulai meetup.'
+    } finally {
+      actionLoading.value[orderId] = false
+    }
+  }
+
+  async function confirmMeetup(orderId: string, otp: string) {
+    actionLoading.value[orderId] = true
+    actionErr.value[orderId]     = ''
+    actionSuccess.value[orderId] = false
+    try {
+      await $fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        body: { action: 'confirm_meetup', otp },
+      })
+      actionSuccess.value[orderId] = true
+      await fetchOrders()
+    } catch (e: any) {
+      actionErr.value[orderId] = e?.data?.statusMessage ?? e?.message ?? 'Gagal konfirmasi meetup.'
+    } finally {
+      actionLoading.value[orderId] = false
+    }
+  }
+
   // Refetch when role changes
   watch(role, () => {
     activeTab.value = 'pending_payment'
@@ -198,7 +240,7 @@ export function useOrders() {
     tabCounts, filteredOrders,
     primaryMedia, productTitle, productSlug, chatId, formatRp, sellerReceives,
     actionLoading, actionErr, actionSuccess,
-    fetchOrders, shipOrder, completeOrder,
+    fetchOrders, shipOrder, completeOrder, startMeetup, confirmMeetup,
     isReviewed, markReviewed, reviewedIds,
     ORDER_TABS,
   }

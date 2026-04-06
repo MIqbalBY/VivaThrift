@@ -1,18 +1,29 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { resolveServerUser } from '../../utils/resolve-server-uid'
 import { supabaseAdmin } from '../../utils/supabase-admin'
-import { PRODUCT_UNAVAILABLE_STATUSES } from '../../utils/domain-rules'
+import {
+  PRODUCT_UNAVAILABLE_STATUSES,
+  isValidMeetupLocation,
+  generateMeetupOTP,
+} from '../../utils/domain-rules'
+import type { ShippingMethod } from '../../utils/domain-rules'
 
 // POST /api/checkout
-// Body: { offerId: string }
+// Body: {
+//   offerId: string,
+//   shippingMethod: 'cod' | 'shipping',       ← NEW
+//   meetupLocation?: string,                   ← required when COD
+//   shippingCost?: number,                     ← required when shipping
+//   courierCode?: string,                      ← optional courier identifier
+// }
 //
 // Flow (Xendit Escrow / Rekening Bersama):
 //   1. Validate offer belongs to caller and is accepted
 //   2. Idempotency: return existing payment_url if order already has one
 //   3. Real-time stock re-check (TOCTOU prevention)
-//   4. INSERT order + order_items
+//   4. INSERT order + order_items (with shipping info + OTP if COD)
 //   5. Decrement product stock
-//   6. Call Xendit API → create Invoice
+//   6. Call Xendit API → create Invoice (amount includes shipping_cost)
 //   7. Persist xendit_invoice_id + payment_url to order
 //   8. Mark offer as expired
 //   9. Return { orderId, paymentUrl }
@@ -24,6 +35,27 @@ export default defineEventHandler(async (event) => {
   const offerId: string | undefined = body?.offerId
   if (!offerId || typeof offerId !== 'string') {
     throw createError({ statusCode: 400, statusMessage: 'offerId harus diisi.' })
+  }
+
+  // ── Shipping method validation ──────────────────────────────────────────
+  const shippingMethod: ShippingMethod | undefined = body?.shippingMethod
+  if (!shippingMethod || !['cod', 'shipping'].includes(shippingMethod)) {
+    throw createError({ statusCode: 400, statusMessage: 'shippingMethod harus "cod" atau "shipping".' })
+  }
+
+  let meetupLocation: string | null = null
+  let meetupOtp: string | null = null
+  let shippingCost: number = 0
+  const courierCode: string | null = body?.courierCode ?? null
+
+  if (shippingMethod === 'cod') {
+    meetupLocation = body?.meetupLocation
+    if (!meetupLocation || !isValidMeetupLocation(meetupLocation)) {
+      throw createError({ statusCode: 400, statusMessage: 'Lokasi meetup tidak valid.' })
+    }
+    meetupOtp = generateMeetupOTP()
+  } else {
+    shippingCost = Math.max(0, Math.round(Number(body?.shippingCost) || 0))
   }
 
   const supabase = await serverSupabaseClient(event)
@@ -89,7 +121,8 @@ export default defineEventHandler(async (event) => {
   const product = offer.product as any
   const chat = offer.chat as any
   const sellerId: string = chat?.seller_id ?? product?.seller_id
-  const totalAmount: number = offer.offered_price * offer.quantity
+  const subtotal: number = offer.offered_price * offer.quantity
+  const totalAmount: number = subtotal + shippingCost
 
   // ── 5. INSERT order ───────────────────────────────────────────────────────
   let orderId: string
@@ -101,11 +134,16 @@ export default defineEventHandler(async (event) => {
     const { data: order, error: ordErr } = await supabaseAdmin
       .from('orders')
       .insert({
-        buyer_id:     user.id,
-        seller_id:    sellerId,
-        total_amount: totalAmount,
-        status:       'pending_payment',
-        offer_id:     offerId,
+        buyer_id:        user.id,
+        seller_id:       sellerId,
+        total_amount:    totalAmount,
+        status:          'pending_payment',
+        offer_id:        offerId,
+        shipping_method: shippingMethod,
+        shipping_cost:   shippingCost,
+        meetup_location: meetupLocation,
+        meetup_otp:      meetupOtp,
+        courier_code:    courierCode,
       })
       .select('id')
       .single()
