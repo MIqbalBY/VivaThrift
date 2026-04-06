@@ -145,7 +145,15 @@ const ongkirAmount = computed(() =>
   shippingMethod.value === 'shipping' ? (selectedRate.value?.price ?? 0) : 0
 )
 
-const total = computed(() => subtotal.value + ongkirAmount.value)
+// Mirror platform fee tiers from server/utils/domain-rules.ts
+function calcPlatformFee(sub: number): number {
+  if (sub <= 100_000) return 1_000
+  if (sub <= 500_000) return 2_000
+  return Math.round(sub * 0.005)
+}
+const platformFee = computed(() => calcPlatformFee(subtotal.value))
+
+const total = computed(() => subtotal.value + ongkirAmount.value + platformFee.value)
 
 // ── Ongkir calculator ─────────────────────────────────────────────────────────
 async function fetchRates() {
@@ -325,6 +333,10 @@ async function placeOrder() {
           <div v-if="shippingMethod === 'cod'" class="flex justify-between">
             <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Ongkos Kirim</span>
             <span class="font-semibold" :class="isDark ? 'text-green-400' : 'text-green-600'">Gratis (COD)</span>
+          </div>
+          <div class="flex justify-between">
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Layanan</span>
+            <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ platformFee.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between pt-3 mt-1" :class="isDark ? 'border-t border-white/10' : 'border-t border-gray-100'">
             <span class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-700'">Total</span>

@@ -44,7 +44,15 @@ const buyerAddressLoading = ref(false)
 const ongkirAmount = computed(() =>
   shippingMethod.value === 'shipping' ? (selectedRate.value?.price ?? 0) : 0
 )
-const grandTotal = computed(() => cartTotal.value + ongkirAmount.value)
+
+// Mirror platform fee tiers from server/utils/domain-rules.ts
+function calcPlatformFee(subtotal: number): number {
+  if (subtotal <= 100_000) return 1_000
+  if (subtotal <= 500_000) return 2_000
+  return Math.round(subtotal * 0.005)
+}
+const platformFee = computed(() => calcPlatformFee(cartTotal.value))
+const grandTotal = computed(() => cartTotal.value + ongkirAmount.value + platformFee.value)
 
 async function fetchRates() {
   if (!destPostal.value.trim()) {
@@ -407,6 +415,10 @@ async function handleCheckout() {
             >
               {{ shippingMethod === 'cod' ? 'Gratis (COD)' : selectedRate ? `Rp ${selectedRate.price.toLocaleString('id-ID')}` : '—' }}
             </span>
+          </div>
+          <div class="flex justify-between">
+            <span>Biaya Layanan</span>
+            <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ platformFee.toLocaleString('id-ID') }}</span>
           </div>
         </div>
 

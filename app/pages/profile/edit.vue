@@ -14,7 +14,7 @@ watchEffect(() => {
 
 // ─── Tabs ───────────────────────────────────────────────────────────────────
 const route = useRoute()
-const TABS = ['profile', 'address', 'security', 'notifications']
+const TABS = ['profile', 'address', 'security', 'notifications', 'rekening']
 const activeTab = ref(TABS.includes(route.query.tab) ? route.query.tab : 'profile')
 watch(() => route.query.tab, (val) => {
   activeTab.value = TABS.includes(val) ? val : 'profile'
@@ -58,6 +58,51 @@ const {
 const { myRating, myRatingCount, fetchMyRating } = useMyRating()
 
 const { settings: userSettings, fetchSettings: fetchUserSettings, updateSetting } = useUserSettings()
+
+// ─── Rekening state ──────────────────────────────────────────────────────────
+const bankCode          = ref('')
+const bankAccountNumber = ref('')
+const bankAccountName   = ref('')
+const rekeningLoading   = ref(false)
+const rekeningMsg       = ref('')
+const rekeningMsgType   = ref('')
+
+async function fetchRekening(uid) {
+  const { data } = await supabase
+    .from('users')
+    .select('bank_code, bank_account_number, bank_account_name')
+    .eq('id', uid)
+    .maybeSingle()
+  if (data) {
+    bankCode.value          = data.bank_code ?? ''
+    bankAccountNumber.value = data.bank_account_number ?? ''
+    bankAccountName.value   = data.bank_account_name ?? ''
+  }
+}
+
+async function saveRekening() {
+  const uid = user.value?.id ?? _userId.value
+  if (!uid) return
+  rekeningLoading.value = true
+  rekeningMsg.value     = ''
+  const { error } = await supabase
+    .from('users')
+    .update({
+      bank_code:           bankCode.value || null,
+      bank_account_number: bankAccountNumber.value || null,
+      bank_account_name:   bankAccountName.value || null,
+    })
+    .eq('id', uid)
+  rekeningLoading.value = false
+  if (error) {
+    rekeningMsg.value     = 'Gagal menyimpan rekening.'
+    rekeningMsgType.value = 'err'
+  } else {
+    rekeningMsg.value     = 'Rekening berhasil disimpan.'
+    rekeningMsgType.value = 'ok'
+    setTimeout(() => { rekeningMsg.value = '' }, 3000)
+  }
+}
 
 // ─── Avatar flow msg callback ────────────────────────────────────────────────
 function avatarMsgCallback(msg, type) {
@@ -112,6 +157,7 @@ onMounted(async () => {
     fetchAddresses(session.user.id)
     fetchMyRating(session.user.id)
     fetchUserSettings(session.user.id)
+    fetchRekening(session.user.id)
   }
 })
 
@@ -122,6 +168,7 @@ watch(user, (u) => {
     fetchAddresses(u.id)
     fetchMyRating(u.id)
     fetchUserSettings(u.id)
+    fetchRekening(u.id)
   }
 }, { immediate: true })
 </script>
@@ -176,6 +223,13 @@ watch(user, (u) => {
           :class="activeTab === 'notifications' ? 'vt-tab-active' : 'vt-tab-inactive'"
         >
           🔔 Notifikasi
+        </button>
+        <button
+          @click="activeTab = 'rekening'"
+          class="vt-tab-btn px-6 py-3.5 text-sm font-semibold transition border-b-2"
+          :class="activeTab === 'rekening' ? 'vt-tab-active' : 'vt-tab-inactive'"
+        >
+          🏦 Rekening
         </button>
         <button
           @click="requestLogout"
@@ -259,6 +313,22 @@ watch(user, (u) => {
           :userSettings="userSettings"
           :isDark="isDark"
           @toggle-setting="toggleSetting"
+        />
+      </template>
+
+      <!-- ══ TAB: REKENING ════════════════════════════════════════════════ -->
+      <template v-else-if="activeTab === 'rekening'">
+        <ProfileTabRekening
+          :bankCode="bankCode"
+          :bankAccountNumber="bankAccountNumber"
+          :bankAccountName="bankAccountName"
+          :rekeningLoading="rekeningLoading"
+          :rekeningMsg="rekeningMsg"
+          :rekeningMsgType="rekeningMsgType"
+          @update:bankCode="bankCode = $event"
+          @update:bankAccountNumber="bankAccountNumber = $event"
+          @update:bankAccountName="bankAccountName = $event"
+          @save-rekening="saveRekening"
         />
       </template>
 

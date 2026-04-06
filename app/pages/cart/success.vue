@@ -6,15 +6,22 @@ const { isDark } = useDarkMode()
 const { clearCart } = useCart()
 const route = useRoute()
 
-const orderId = computed(() => route.query.order_id as string | undefined)
+const orderId      = computed(() => route.query.order_id as string | undefined)
+const orderIdsParam = computed(() => route.query.order_ids as string | undefined)
 
 // Verify payment status from Xendit and update order on mount
 // (handles local dev where Xendit webhook can't reach localhost)
 onMounted(async () => {
   clearCart()
-  if (orderId.value) {
+  // Handle both single order (offer checkout: ?order_id=...) and
+  // multi-order cart checkout (?order_ids=uuid1,uuid2,...)
+  const idsToVerify = orderIdsParam.value
+    ? orderIdsParam.value.split(',').filter(Boolean)
+    : orderId.value ? [orderId.value] : []
+
+  for (const id of idsToVerify) {
     try {
-      await $fetch(`/api/checkout/verify?order_id=${orderId.value}`)
+      await $fetch(`/api/checkout/verify?order_id=${encodeURIComponent(id)}`)
     } catch {
       // Silently ignore — non-critical, webhook will handle in production
     }

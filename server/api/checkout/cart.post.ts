@@ -194,27 +194,25 @@ export default defineEventHandler(async (event) => {
     sellerIndex++
   }
 
-  // ── 6b. Decrement stock per product (optimistic) ──────────────────────────
+  // ── 6b. Decrement stock & mark sold per product (optimistic) ─────────────
   for (const item of items) {
     const p = item.product as any
+    // Always mark sold (secondhand = each item is unique); only update stock if tracked
+    const stockUpdate: Record<string, unknown> = { status: 'sold' }
     if (p.stock !== null && p.stock !== undefined) {
-      const newStock = Math.max(0, p.stock - item.quantity)
-      const stockUpdate: Record<string, unknown> = { stock: newStock }
-      if (newStock === 0) stockUpdate.status = 'sold'
-      await supabaseAdmin
-        .from('products')
-        .update(stockUpdate)
-        .eq('id', item.product_id)
-
-      // Expire all remaining pending/accepted offers when stock is exhausted
-      if (newStock === 0) {
-        await supabaseAdmin
-          .from('offers')
-          .update({ status: 'expired' })
-          .eq('product_id', item.product_id)
-          .in('status', ['pending', 'accepted'])
-      }
+      stockUpdate.stock = Math.max(0, p.stock - item.quantity)
     }
+    await supabaseAdmin
+      .from('products')
+      .update(stockUpdate)
+      .eq('id', item.product_id)
+
+    // Expire all remaining pending/accepted offers
+    await supabaseAdmin
+      .from('offers')
+      .update({ status: 'expired' })
+      .eq('product_id', item.product_id)
+      .in('status', ['pending', 'accepted'])
   }
 
   // ── 7. Buat satu Xendit Invoice untuk total keseluruhan ───────────────────
@@ -259,12 +257,14 @@ export default defineEventHandler(async (event) => {
     await supabaseAdmin.from('orders').delete().in('id', orderIds)
     for (const item of items) {
       const p = item.product as any
+      const restoreUpdate: Record<string, unknown> = { status: p.status }
       if (p.stock !== null && p.stock !== undefined) {
-        await supabaseAdmin
-          .from('products')
-          .update({ stock: p.stock, status: p.status })
-          .eq('id', item.product_id)
+        restoreUpdate.stock = p.stock
       }
+      await supabaseAdmin
+        .from('products')
+        .update(restoreUpdate)
+        .eq('id', item.product_id)
     }
     throw createError({ statusCode: 502, statusMessage: e?.data?.message ?? 'Gagal membuat invoice Xendit.' })
   }

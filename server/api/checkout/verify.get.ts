@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   // ── Load order (caller must be buyer) ────────────────────────────────────
   const { data: order } = await supabaseAdmin
     .from('orders')
-    .select('id, status, xendit_invoice_id, buyer_id')
+    .select('id, status, xendit_invoice_id, buyer_id, shipping_method')
     .eq('id', orderId)
     .eq('buyer_id', userId)
     .maybeSingle()
@@ -43,15 +43,17 @@ export default defineEventHandler(async (event) => {
     )
 
     if (invoice.status === 'PAID') {
+      // COD orders skip the "confirmed/Dikemas" stage — go directly to awaiting_meetup
+      const nextStatus = (order as any).shipping_method === 'cod' ? 'awaiting_meetup' : 'confirmed'
       const { error: updErr } = await supabaseAdmin
         .from('orders')
-        .update({ status: 'confirmed', updated_at: new Date().toISOString() })
+        .update({ status: nextStatus, updated_at: new Date().toISOString() })
         .eq('id', order.id)
       if (updErr) {
         console.error('[verify] Failed to update order to confirmed:', updErr)
         throw createError({ statusCode: 500, statusMessage: `DB update gagal: ${updErr.message}` })
       }
-      return { status: 'confirmed', updated: true }
+      return { status: nextStatus, updated: true }
     }
 
     if (invoice.status === 'EXPIRED' || invoice.status === 'FAILED') {

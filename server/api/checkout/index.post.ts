@@ -167,25 +167,23 @@ export default defineEventHandler(async (event) => {
 
     if (itemErr) throw createError({ statusCode: 500, statusMessage: itemErr.message })
 
-    // Decrement stock (optimistic — webhook will not change stock)
+    // Decrement stock & mark sold (optimistic — webhook will not change stock)
+    // Always mark sold (secondhand = each item is unique); only update stock if tracked
+    const stockUpdate: Record<string, unknown> = { status: 'sold' }
     if (currentProduct.stock !== null && currentProduct.stock !== undefined) {
-      const newStock = Math.max(0, currentProduct.stock - offer.quantity)
-      const stockUpdate: Record<string, unknown> = { stock: newStock }
-      if (newStock === 0) stockUpdate.status = 'sold'
-      await supabaseAdmin
-        .from('products')
-        .update(stockUpdate)
-        .eq('id', offer.product_id as string)
-
-      // Expire all remaining pending/accepted offers when stock is exhausted
-      if (newStock === 0) {
-        await supabaseAdmin
-          .from('offers')
-          .update({ status: 'expired' })
-          .eq('product_id', offer.product_id as string)
-          .in('status', ['pending', 'accepted'])
-      }
+      stockUpdate.stock = Math.max(0, currentProduct.stock - offer.quantity)
     }
+    await supabaseAdmin
+      .from('products')
+      .update(stockUpdate)
+      .eq('id', offer.product_id as string)
+
+    // Expire all remaining pending/accepted offers
+    await supabaseAdmin
+      .from('offers')
+      .update({ status: 'expired' })
+      .eq('product_id', offer.product_id as string)
+      .in('status', ['pending', 'accepted'])
 
     orderId = order.id
   }
