@@ -69,7 +69,7 @@ export default defineNuxtConfig({
   $production: {
     routeRules: {
       '/': { isr: 3600 },
-      '/products/**': { isr: 1800 },
+      '/products/**': { isr: 60 },
       '/profile/**': { isr: 1200 },
     },
   },
