@@ -25,6 +25,10 @@ const { data: product } = await useAsyncData(`product-${route.params.id}`, async
     .eq(isUuid ? 'id' : 'slug', param)
     .single()
   return data
+}, {
+  // Always fetch fresh from Supabase on client-side navigation.
+  // SSR/hydration still uses the ISR payload for fast initial render.
+  getCachedData: (key, nuxtApp) => nuxtApp.isHydrating ? nuxtApp.payload.data[key] : null,
 })
 
 const cleanTitle = computed(() => product.value?.title ? stripUrls(product.value.title) : '')
