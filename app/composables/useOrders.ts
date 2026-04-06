@@ -29,7 +29,14 @@ export function useOrders() {
 
   // ── Fetch ────────────────────────────────────────────────────────────────────
   async function fetchOrders() {
-    if (!user.value?.id) return
+    // Fallback: useSupabaseUser() can be null on full-page reload from an external
+    // redirect (INITIAL_SESSION timing issue with @nuxtjs/supabase v2).
+    let uid = user.value?.id
+    if (!uid) {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      uid = authUser?.id ?? null
+    }
+    if (!uid) return
     loading.value  = true
     fetchErr.value = null
 
@@ -53,7 +60,7 @@ export function useOrders() {
         seller:users!seller_id ( id, name, username, avatar_url ),
         offer:offers!offer_id  ( id, chat_id )
       `)
-      .eq(field, user.value.id)
+      .eq(field, uid)
       .order('created_at', { ascending: false })
 
     if (error) {

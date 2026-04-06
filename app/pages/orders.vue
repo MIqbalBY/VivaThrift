@@ -139,7 +139,6 @@ if (route.query.tab && _validTabKeys.includes(route.query.tab as any)) {
 }
 
 async function fetchAndAutoTab() {
-  if (!_ordersUser.value?.id) return
   await fetchOrders()
   // If the current tab is empty, auto-switch to the first non-empty tab
   if (tabCounts.value[activeTab.value] === 0) {
@@ -149,7 +148,17 @@ async function fetchAndAutoTab() {
 }
 
 watch(_ordersUser, (u) => { if (u?.id) fetchAndAutoTab() }, { immediate: true })
-watch(role, () => { if (_ordersUser.value?.id) fetchAndAutoTab() })
+watch(role, () => fetchAndAutoTab())
+
+// Extra fallback: if INITIAL_SESSION fired before @nuxtjs/supabase updated
+// its reactive state (race condition on full-page load from external redirect),
+// the watch above fires immediately with u=null and never fires again.
+// onMounted triggers after hydration and fetches via auth.getUser() in the composable.
+onMounted(async () => {
+  if (!_ordersUser.value?.id) {
+    await fetchAndAutoTab()
+  }
+})
 </script>
 
 <template>

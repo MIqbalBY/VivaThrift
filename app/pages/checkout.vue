@@ -18,20 +18,10 @@ const orderDone     = ref(false)
 const orderErr      = ref('')
 const stockDepleted = ref(false)
 
-// ── Buyer shipping address ────────────────────────────────────────────────────
-const buyerAddress = ref<{
-  label: string | null
-  full_address: string | null
-  city: string | null
-  postal_code: string | null
-  lat: number | null
-  lng: number | null
-} | null>(null)
-
 // ── Shipping state ────────────────────────────────────────────────────────────
-// destPostal declared here (before useAsyncData) so auto-fill below can access it
-const destPostal      = ref<string>('')
+const destPostal = ref<string>('')
 
+// ── Buyer shipping address (always fresh, no SSR cache) ──────────────────────
 const { data: addrData } = await useAsyncData('buyer-address', async () => {
   if (!myId.value) return null
   const { data } = await supabase
@@ -41,13 +31,15 @@ const { data: addrData } = await useAsyncData('buyer-address', async () => {
     .eq('address_type', 'shipping')
     .maybeSingle()
   return data ?? null
-}, { getCachedData: () => null })
+}, { server: false })
 
-buyerAddress.value = addrData.value ?? null
-// Auto-fill destPostal from profile address
-if (buyerAddress.value?.postal_code) {
-  destPostal.value = buyerAddress.value.postal_code
-}
+// Derived as computed so it reacts when the client-side fetch resolves
+const buyerAddress = computed(() => addrData.value ?? null)
+
+// Auto-fill destPostal reactively once address data arrives
+watch(addrData, (addr) => {
+  if (addr?.postal_code) destPostal.value = addr.postal_code
+}, { immediate: true })
 
 const MEETUP_LOCATIONS = [
   { id: 'aula_asrama',     label: 'Aula Asrama ITS' },

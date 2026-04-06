@@ -34,9 +34,14 @@ export function useNavNotifications() {
       .subscribe()
   }
 
-  async function markAllRead(uid: string) {
-    if (!uid || notifUnreadCount.value === 0) return
-    await supabase.from('notifications').update({ is_read: true }).eq('user_id', uid).eq('is_read', false)
+  async function markAllRead(uid?: string) {
+    let resolvedUid = uid
+    if (!resolvedUid) {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      resolvedUid = authUser?.id ?? undefined
+    }
+    if (!resolvedUid || notifUnreadCount.value === 0) return
+    await supabase.from('notifications').update({ is_read: true }).eq('user_id', resolvedUid).eq('is_read', false)
     notifications.value = notifications.value.map((n: any) => ({ ...n, is_read: true }))
     notifUnreadCount.value = 0
   }

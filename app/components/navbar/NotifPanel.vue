@@ -1,5 +1,4 @@
 <script setup lang="ts">
-const user = useSupabaseUser()
 const { isDark } = useDarkMode()
 const { settings: userSettings } = useUserSettings()
 const {
@@ -8,7 +7,16 @@ const {
   markAllRead, markOneRead, notifTimeAgo, getNotifIcon, getNotifRoute, getNotifProductImage,
 } = useNavNotifications()
 
-onMounted(() => document.addEventListener('click', handleOutsideClick))
+// UID for conditional render: fall back to auth session for race condition
+const supabase = useSupabaseClient()
+const notifUid = ref<string | null>(useSupabaseUser().value?.id ?? null)
+onMounted(async () => {
+  if (!notifUid.value) {
+    const { data: { session } } = await supabase.auth.getSession()
+    notifUid.value = session?.user?.id ?? null
+  }
+  document.addEventListener('click', handleOutsideClick)
+})
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 function handleOutsideClick(e: MouseEvent) {
@@ -22,7 +30,7 @@ function handleOutsideClick(e: MouseEvent) {
 </script>
 
 <template>
-  <div v-if="user" class="relative shrink-0 hidden md:flex items-center">
+  <div v-if="notifUid" class="relative shrink-0 hidden md:flex items-center">
     <button
       ref="notifBellRef"
       @click="showNotifPanel = !showNotifPanel"
@@ -61,7 +69,7 @@ function handleOutsideClick(e: MouseEvent) {
           <h3 class="text-sm font-bold" :class="isDark ? 'text-slate-100' : 'text-gray-800'">Notifikasi</h3>
           <button
             v-if="notifUnreadCount > 0"
-            @click="markAllRead(user?.id)"
+            @click="markAllRead()"
             class="text-xs font-medium transition"
             :class="isDark ? 'text-sky-400 hover:text-sky-300' : 'text-blue-600 hover:text-blue-800'"
           >
