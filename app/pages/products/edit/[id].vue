@@ -223,16 +223,17 @@ async function deleteProduct() {
 
 <template>
   <div class="w-full px-4 sm:px-10 py-12 max-w-2xl mx-auto">
-    <div class="flex items-center gap-3 mb-8">
-      <NuxtLink :to="`/products/${param}`" class="text-gray-400 hover:text-blue-700 transition">
+    <div class="vt-hero-enter vt-hero-enter-d1 flex items-center gap-3 mb-8">
+      <NuxtLink :to="`/products/${param}`" class="vt-back-btn text-gray-400 hover:text-blue-700 transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </NuxtLink>
       <h1 class="vt-detail-title font-heading text-3xl font-bold" :style="isDark ? 'color: #7dd3fc' : 'color: #1e3a8a'">Edit Produk</h1>
+      <img src="/img/illustrations/shopping-app.svg" alt="" width="112" height="112" loading="lazy" class="hidden md:block w-28 h-auto opacity-70 ml-auto" aria-hidden="true" />
     </div>
 
-    <div class="vt-glass rounded-2xl p-6 sm:p-8" :style="isDark
+    <div class="vt-hero-enter vt-hero-enter-d2 vt-glass rounded-2xl p-8" :style="isDark
       ? 'background: rgba(15,23,42,0.80); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 24px rgba(0,0,0,0.3);'
       : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px rgba(30,58,138,0.10);'">
 
@@ -244,7 +245,11 @@ async function deleteProduct() {
 
       <form @submit.prevent="saveEdits" class="space-y-6">
 
-        <ProductFormFields :form="form" :categories="categories ?? []" :disabled="isSubmitting" />
+        <ProductFormFields :form="form" :categories="categories ?? []" :disabled="isSubmitting" :description-rows="10">
+          <template #stock-help>
+            <p class="text-xs text-gray-400 mt-1">Atur stok &gt; 0 untuk mengaktifkan kembali produk yang habis</p>
+          </template>
+        </ProductFormFields>
 
         <!-- Upload Media -->
         <ProductMediaGrid
