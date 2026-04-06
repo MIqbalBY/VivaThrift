@@ -29,8 +29,8 @@ export default defineEventHandler(async (event) => {
     weight: item.weight ?? 500,
   }))
 
-  // Default couriers: JNE and J&T
-  const courierList = couriers ?? 'jne,jnt'
+  // Default: all available couriers (Biteship wildcard)
+  const courierList = couriers ?? '*'
 
   try {
     const result = await $fetch<any>('https://api.biteship.com/v1/rates/couriers', {

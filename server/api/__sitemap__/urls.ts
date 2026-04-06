@@ -1,8 +1,7 @@
-import { defineSitemapEventHandler } from '#imports'
 import { serverSupabaseClient } from '#supabase/server'
 import type { SitemapUrlInput } from '#sitemap/types'
 
-export default defineSitemapEventHandler(async (event) => {
+export default defineEventHandler(async (event) => {
   try {
     const supabase = await serverSupabaseClient(event)
 
@@ -17,21 +16,25 @@ export default defineSitemapEventHandler(async (event) => {
         .not('username', 'is', null),
     ])
 
-    const productUrls = (products ?? []).map((p: { slug: string; updated_at: string }) => ({
-      loc: `/products/${p.slug}`,
-      lastmod: p.updated_at,
-      changefreq: 'daily' as const,
-      priority: 0.8,
-    }))
+    const productUrls = (products ?? [])
+      .filter((p): p is { slug: string; updated_at: string } => !!p.slug && !!p.updated_at)
+      .map((p) => ({
+        loc: `/products/${p.slug}`,
+        lastmod: p.updated_at,
+        changefreq: 'daily' as const,
+        priority: 0.8,
+      }))
 
-    const profileUrls = (users ?? []).map((u: { username: string; created_at: string }) => ({
-      loc: `/profile/${u.username}`,
-      lastmod: u.created_at,
-      changefreq: 'weekly' as const,
-      priority: 0.5,
-    }))
+    const profileUrls = (users ?? [])
+      .filter((u): u is { username: string; created_at: string } => !!u.username && !!u.created_at)
+      .map((u) => ({
+        loc: `/profile/${u.username}`,
+        lastmod: u.created_at,
+        changefreq: 'weekly' as const,
+        priority: 0.5,
+      }))
 
-    return [...productUrls, ...profileUrls] satisfies SitemapUrlInput[]
+    return [...productUrls, ...profileUrls] as SitemapUrlInput[]
   } catch (e) {
     console.error('[sitemap] Failed to fetch dynamic URLs:', e)
     return []

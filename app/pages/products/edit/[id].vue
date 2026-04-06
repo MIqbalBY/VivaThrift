@@ -28,12 +28,14 @@ if (!product.value) {
   await navigateTo('/')
 }
 
-const currentUserId = ref(null)
-onMounted(async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  currentUserId.value = session?.user?.id ?? currentUser.value?.id ?? null
+// Resolve user ID at setup time — same pattern as products/[id].vue to avoid
+// the race condition where onMounted fires before the client session is ready.
+const { data: { session } } = await supabase.auth.getSession()
+const currentUserId = computed(() => session?.user?.id ?? currentUser.value?.id ?? null)
+
+onMounted(() => {
   if (!currentUserId.value || currentUserId.value !== product.value?.seller_id) {
-    await navigateTo(`/products/${param}`)
+    navigateTo(`/products/${param}`)
   }
 })
 

@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
   const { data: firstOrder } = await supabaseAdmin
     .from('orders')
     .select('buyer_id')
-    .eq('id', updatedOrders[0].id)
+    .eq('id', updatedOrders[0]!.id)
     .single()
 
   if (firstOrder) {

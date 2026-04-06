@@ -10,7 +10,7 @@ const { isDark }  = useDarkMode()
 const { data: { session } } = await supabase.auth.getSession()
 const myId = computed(() => session?.user?.id ?? currentUser.value?.id ?? null)
 
-const offerId = route.query.offer_id
+const offerId = typeof route.query.offer_id === 'string' ? route.query.offer_id : undefined
 
 // ── Order state (declared early so the alreadyOrdered guard below can set it) ──
 const placing       = ref(false)
@@ -93,7 +93,7 @@ if (checkoutData.value?.alreadyOrdered) {
 const productCover = computed(() => {
   const media = offer.value?.product?.product_media
   if (!media?.length) return null
-  const primary = media.find((m: any) => m.is_primary) ?? media[0]
+  const primary = media.find((m: any) => m.is_primary) ?? media[0]!
   if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return primary.thumbnail_url
   return primary.media_url
 })

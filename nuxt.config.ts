@@ -27,7 +27,7 @@ export default defineNuxtConfig({
     '@nuxtjs/robots',
   ],
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss() as any],
   },
   supabase: {
     redirect: false

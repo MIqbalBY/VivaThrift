@@ -86,14 +86,22 @@ export const ORDER_SLA_HOURS: Partial<Record<OrderStatus, number>> = {
 
 export type ShippingMethod = 'cod' | 'shipping'
 
-/** Campus meetup locations for COD handover */
+/** Campus meetup locations for COD handover (sorted alphabetically) */
 export const MEETUP_LOCATIONS = [
-  { id: 'rektorat',     label: 'Depan Rektorat ITS' },
-  { id: 'taman_alumni', label: 'Taman Alumni ITS' },
-  { id: 'kantin_pusat', label: 'Kantin Pusat ITS' },
+  { id: 'aula_asrama',     label: 'Aula Asrama ITS' },
+  { id: 'rektorat',        label: 'Depan Rektorat ITS' },
+  { id: 'gedung_robotika', label: 'Gedung Robotika ITS' },
+  { id: 'kantin_pusat',    label: 'Kantin Pusat ITS' },
+  { id: 'masjid_manarul',  label: 'Masjid Manarul Ilmi ITS' },
+  { id: 'research_center', label: 'Research Center ITS' },
+  { id: 'taman_alumni',    label: 'Taman Alumni ITS' },
+  { id: 'taman_infinits',  label: 'Taman Infinits' },
+  { id: 'tower_1',         label: 'Tower 1 ITS' },
+  { id: 'tower_2',         label: 'Tower 2 ITS' },
+  { id: 'tower_3',         label: 'Tower 3 ITS' },
 ] as const
 
-export type MeetupLocationId = typeof MEETUP_LOCATIONS[number]['id']
+export type MeetupLocationId = typeof MEETUP_LOCATIONS[number]['id'] | 'other'
 
 /** OTP configuration for COD meetup handover */
 export const MEETUP_OTP = {
@@ -101,9 +109,12 @@ export const MEETUP_OTP = {
   /** OTP valid for the lifetime of the order (no expiry separate from order SLA) */
 } as const
 
-/** Validates meetup location ID */
+/** Validates meetup location: accepts known IDs or any custom text (>= 2 chars) from "Lainnya" option */
 export function isValidMeetupLocation(id: string): boolean {
-  return MEETUP_LOCATIONS.some(loc => loc.id === id)
+  if (!id || !id.trim()) return false
+  if (MEETUP_LOCATIONS.some(loc => loc.id === id)) return true
+  // Custom text entered via "Lainnya" option must be at least 2 characters
+  return id.trim().length >= 2
 }
 
 /** Generates a numeric OTP of the configured length */
@@ -113,7 +124,7 @@ export function generateMeetupOTP(): string {
   const randomValues = new Uint8Array(length)
   crypto.getRandomValues(randomValues)
   for (let i = 0; i < length; i++) {
-    digits.push(String(randomValues[i] % 10))
+    digits.push(String(randomValues[i]! % 10))
   }
   return digits.join('')
 }

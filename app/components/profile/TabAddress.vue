@@ -121,6 +121,10 @@ const emit = defineEmits([
             <input v-model="shippingForm.city" type="text" placeholder="Surabaya" class="vt-input" maxlength="80" />
           </div>
           <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold vt-label">Kode Pos</label>
+            <input v-model="shippingForm.postal_code" type="text" inputmode="numeric" placeholder="60111" class="vt-input" maxlength="10" />
+          </div>
+          <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold vt-label">Catatan Pengiriman</label>
             <input v-model="shippingForm.notes" type="text" placeholder="Contoh: Lantai 2, kamar paling kiri" class="vt-input" maxlength="150" />
           </div>
@@ -240,6 +244,10 @@ const emit = defineEmits([
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold vt-label">Kota / Kabupaten</label>
             <input v-model="sellerForm.city" type="text" placeholder="Surabaya" class="vt-input" maxlength="80" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold vt-label">Kode Pos</label>
+            <input v-model="sellerForm.postal_code" type="text" inputmode="numeric" placeholder="60111" class="vt-input" maxlength="10" />
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold vt-label">Catatan</label>

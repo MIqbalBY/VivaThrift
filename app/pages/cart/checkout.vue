@@ -4,7 +4,9 @@ useSeoMeta({ title: 'Checkout Keranjang — VivaThrift' })
 
 const { isDark } = useDarkMode()
 const { cartItems, cartTotal, cartCount, fetchCart } = useCart()
-const route = useRoute()
+const route    = useRoute()
+const supabase = useSupabaseClient()
+const user     = useSupabaseUser()
 
 const placing      = ref(false)
 const errorMsg     = ref('')
@@ -12,18 +14,32 @@ const paymentFailed = computed(() => !!route.query.payment_failed)
 
 // ── Shipping state ──────────────────────────────────────────────────────────
 const MEETUP_LOCATIONS = [
-  { id: 'rektorat',     label: 'Depan Rektorat ITS' },
-  { id: 'taman_alumni', label: 'Taman Alumni ITS' },
-  { id: 'kantin_pusat', label: 'Kantin Pusat ITS' },
+  { id: 'aula_asrama',     label: 'Aula Asrama ITS' },
+  { id: 'rektorat',        label: 'Depan Rektorat ITS' },
+  { id: 'gedung_robotika', label: 'Gedung Robotika ITS' },
+  { id: 'kantin_pusat',    label: 'Kantin Pusat ITS' },
+  { id: 'masjid_manarul',  label: 'Masjid Manarul Ilmi ITS' },
+  { id: 'research_center', label: 'Research Center ITS' },
+  { id: 'taman_alumni',    label: 'Taman Alumni ITS' },
+  { id: 'taman_infinits',  label: 'Taman Infinits' },
+  { id: 'tower_1',         label: 'Tower 1 ITS' },
+  { id: 'tower_2',         label: 'Tower 2 ITS' },
+  { id: 'tower_3',         label: 'Tower 3 ITS' },
+  { id: 'other',           label: 'Lainnya' },
 ] as const
 
 const shippingMethod  = ref<'cod' | 'shipping'>('cod')
 const meetupLocation  = ref<string>('rektorat')
+const meetupCustom    = ref<string>('')
 const destPostal      = ref<string>('')
 const rates           = ref<any[]>([])
 const selectedRate    = ref<any | null>(null)
 const ratesLoading    = ref(false)
 const ratesErr        = ref('')
+
+// ── Buyer address (auto-fetched from profile) ───────────────────────────────
+const buyerAddress        = ref<any>(null)
+const buyerAddressLoading = ref(false)
 
 const ongkirAmount = computed(() =>
   shippingMethod.value === 'shipping' ? (selectedRate.value?.price ?? 0) : 0
@@ -46,7 +62,6 @@ async function fetchRates() {
         origin_postal_code:      '60111',
         destination_postal_code: destPostal.value.trim(),
         items: [{ weight: 500 }],
-        couriers: 'jne,jnt',
       },
     })
     rates.value = res.rates ?? []
@@ -58,10 +73,24 @@ async function fetchRates() {
   }
 }
 
-// Pastikan cart terisi sebelum render
+// Pastikan cart terisi sebelum render, dan fetch alamat pembeli dari profil
 onMounted(async () => {
   if (cartItems.value.length === 0) await fetchCart()
   if (cartItems.value.length === 0) await navigateTo('/cart')
+
+  const uid = user.value?.id
+  if (uid) {
+    buyerAddressLoading.value = true
+    const { data } = await supabase
+      .from('addresses')
+      .select('label, full_address, city, postal_code, lat, lng')
+      .eq('user_id', uid)
+      .eq('address_type', 'shipping')
+      .maybeSingle()
+    buyerAddress.value = data ?? null
+    if (data?.postal_code) destPostal.value = data.postal_code
+    buyerAddressLoading.value = false
+  }
 })
 
 // Kelompok per penjual (untuk tampilan summary)
@@ -99,7 +128,15 @@ async function handleCheckout() {
   try {
     const body: any = { shippingMethod: shippingMethod.value }
     if (shippingMethod.value === 'cod') {
-      body.meetupLocation = meetupLocation.value
+      const loc = meetupLocation.value === 'other'
+        ? meetupCustom.value.trim()
+        : meetupLocation.value
+      if (!loc) {
+        errorMsg.value = 'Masukkan nama lokasi meetup.'
+        placing.value = false
+        return
+      }
+      body.meetupLocation = loc
     } else {
       body.shippingCost = selectedRate.value!.price
       body.courierCode  = selectedRate.value!.courier_code
@@ -216,7 +253,7 @@ async function handleCheckout() {
             >
               <span class="text-xl">🚚</span>
               <span>Kirim Paket</span>
-              <span class="text-xs font-normal opacity-70">JNE / J&T</span>
+              <span class="text-xs font-normal opacity-70">Semua Kurir</span>
             </button>
           </div>
 
@@ -241,6 +278,37 @@ async function handleCheckout() {
                 />
                 <p class="text-sm font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">{{ loc.label }}</p>
               </label>
+            </div>
+            <!-- Custom location input for "Lainnya" -->
+            <div v-if="meetupLocation === 'other'" class="mt-2">
+              <input
+                v-model="meetupCustom"
+                type="text"
+                maxlength="100"
+                placeholder="Ketik nama lokasi meetup..."
+                class="w-full rounded-xl px-3 py-2 text-sm border outline-none transition"
+                :class="isDark
+                  ? 'bg-slate-800 border-sky-500/60 text-white placeholder-gray-500 focus:border-sky-500'
+                  : 'bg-white border-blue-400 text-gray-800 placeholder-gray-400 focus:border-blue-600'"
+              />
+            </div>
+          </div>
+
+          <!-- Shipping: Alamat Pengiriman (dari profil) -->
+          <div v-if="shippingMethod === 'shipping'" class="mt-4">
+            <p class="text-xs font-semibold mb-2" :class="isDark ? 'text-gray-400' : 'text-gray-500'">ALAMAT PENGIRIMAN</p>
+            <div v-if="buyerAddressLoading" class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Memuat alamat…</div>
+            <div v-else-if="buyerAddress" class="rounded-xl border p-3 text-sm" :class="isDark ? 'border-white/10 bg-slate-800/50' : 'border-gray-200 bg-gray-50'">
+              <p v-if="buyerAddress.label" class="text-xs font-semibold uppercase tracking-wide mb-1" :class="isDark ? 'text-sky-400' : 'text-blue-700'">{{ buyerAddress.label }}</p>
+              <p :class="isDark ? 'text-slate-200' : 'text-gray-800'">{{ buyerAddress.full_address }}</p>
+              <p v-if="buyerAddress.city" class="text-xs mt-0.5" :class="isDark ? 'text-slate-400' : 'text-gray-500'">
+                {{ buyerAddress.city }}<template v-if="buyerAddress.postal_code"> · {{ buyerAddress.postal_code }}</template>
+              </p>
+              <NuxtLink to="/profile/edit?tab=address" class="text-xs mt-1 inline-block text-blue-500 hover:underline">Ganti alamat</NuxtLink>
+            </div>
+            <div v-else class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800" :class="isDark ? 'border-amber-700/40 bg-amber-900/20 text-amber-300' : ''">
+              ⚠️ Belum ada alamat pengiriman.
+              <NuxtLink to="/profile/edit?tab=address" class="font-semibold underline ml-1">Isi di profil</NuxtLink> sebelum checkout.
             </div>
           </div>
 

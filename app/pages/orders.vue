@@ -68,9 +68,17 @@ async function handleShip(orderId: string) {
 const meetupOtpInputs = ref<Record<string, string>>({})
 
 const MEETUP_LOCATION_LABELS: Record<string, string> = {
-  rektorat:     'Depan Rektorat ITS',
-  taman_alumni: 'Taman Alumni ITS',
-  kantin_pusat: 'Kantin Pusat ITS',
+  aula_asrama:     'Aula Asrama ITS',
+  rektorat:        'Depan Rektorat ITS',
+  gedung_robotika: 'Gedung Robotika ITS',
+  kantin_pusat:    'Kantin Pusat ITS',
+  masjid_manarul:  'Masjid Manarul Ilmi ITS',
+  research_center: 'Research Center ITS',
+  taman_alumni:    'Taman Alumni ITS',
+  taman_infinits:  'Taman Infinits',
+  tower_1:         'Tower 1 ITS',
+  tower_2:         'Tower 2 ITS',
+  tower_3:         'Tower 3 ITS',
 }
 
 async function handleStartMeetup(orderId: string) {
@@ -119,7 +127,11 @@ function relativeDate(isoString: string) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-onMounted(fetchOrders)
+// Fetch when user is hydrated (fixes race condition where auth session isn't
+// restored yet when onMounted fires) and re-fetch whenever role changes.
+const _ordersUser = useSupabaseUser()
+watch(_ordersUser, (u) => { if (u?.id) fetchOrders() }, { immediate: true })
+watch(role, () => { if (_ordersUser.value?.id) fetchOrders() })
 </script>
 
 <template>

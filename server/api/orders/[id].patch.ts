@@ -83,6 +83,9 @@ export default defineEventHandler(async (event) => {
     confirm_meetup:  'completed',
   }
   const targetStatus = targetStatusMap[action]
+  if (!targetStatus) {
+    throw createError({ statusCode: 400, statusMessage: 'Aksi tidak valid.' })
+  }
   assertTransition('order', order.status, targetStatus)
 
   // ── Action: ship ────────────────────────────────────────────────────────────

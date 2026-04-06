@@ -16,12 +16,12 @@ export function useAddressEdit() {
   const addrActiveType = ref<'shipping' | 'seller'>('shipping')
 
   // Shipping address
-  const shippingForm     = reactive({ label: '', full_address: '', city: '', notes: '', lat: null as number | null, lng: null as number | null })
+  const shippingForm     = reactive({ label: '', full_address: '', city: '', postal_code: '', notes: '', lat: null as number | null, lng: null as number | null })
   const _shippingId      = ref<string | null>(null)
   const shippingEditMode = ref(false)
 
   // Seller address
-  const sellerForm     = reactive({ label: '', full_address: '', city: '', notes: '', lat: null as number | null, lng: null as number | null })
+  const sellerForm     = reactive({ label: '', full_address: '', city: '', postal_code: '', notes: '', lat: null as number | null, lng: null as number | null })
   const _sellerId      = ref<string | null>(null)
   const sellerEditMode = ref(false)
 
@@ -49,6 +49,7 @@ export function useAddressEdit() {
     form.label         = row.label        ?? ''
     form.full_address  = row.full_address ?? ''
     form.city          = row.city         ?? ''
+    form.postal_code   = row.postal_code  ?? ''
     form.notes         = row.notes        ?? ''
     form.lat           = row.lat          ?? null
     form.lng           = row.lng          ?? null
@@ -97,6 +98,7 @@ export function useAddressEdit() {
         label:        form.label.trim() || null,
         full_address: form.full_address.trim(),
         city:         form.city.trim() || null,
+        postal_code:  (form as any).postal_code?.trim() || null,
         notes:        form.notes.trim() || null,
         lat:          form.lat || null,
         lng:          form.lng || null,
@@ -141,12 +143,13 @@ export function useAddressEdit() {
         return
       }
       Object.assign(sellerForm, {
-        label: shippingForm.label,
+        label:        shippingForm.label,
         full_address: shippingForm.full_address,
-        city: shippingForm.city,
-        notes: shippingForm.notes,
-        lat: shippingForm.lat,
-        lng: shippingForm.lng,
+        city:         shippingForm.city,
+        postal_code:  shippingForm.postal_code,
+        notes:        shippingForm.notes,
+        lat:          shippingForm.lat,
+        lng:          shippingForm.lng,
       })
       sellerEditMode.value = false
       await saveAddress('seller')
@@ -177,7 +180,7 @@ export function useAddressEdit() {
     const idRef = type === 'seller' ? _sellerId : _shippingId
     const editRef = type === 'seller' ? sellerEditMode : shippingEditMode
     idRef.value = null
-    form.label = ''; form.full_address = ''; form.city = ''; form.notes = ''; form.lat = null; form.lng = null
+    form.label = ''; form.full_address = ''; form.city = ''; (form as any).postal_code = ''; form.notes = ''; form.lat = null; form.lng = null
     editRef.value = true
     if (type === 'seller') syncAddress.value = false
     addrMsg.value = 'Alamat berhasil dihapus.'
