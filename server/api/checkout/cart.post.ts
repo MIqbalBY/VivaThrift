@@ -157,13 +157,13 @@ export default defineEventHandler(async (event) => {
         .update(stockUpdate)
         .eq('id', item.product_id)
 
-      // Expire all remaining pending offers when stock is exhausted
+      // Expire all remaining pending/accepted offers when stock is exhausted
       if (newStock === 0) {
         await supabaseAdmin
           .from('offers')
           .update({ status: 'expired' })
           .eq('product_id', item.product_id)
-          .eq('status', 'pending')
+          .in('status', ['pending', 'accepted'])
       }
     }
   }
