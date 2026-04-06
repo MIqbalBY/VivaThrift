@@ -10,7 +10,8 @@ const { isDark }  = useDarkMode()
 const { data: { session } } = await supabase.auth.getSession()
 const myId = computed(() => session?.user?.id ?? currentUser.value?.id ?? null)
 
-const offerId = typeof route.query.offer_id === 'string' ? route.query.offer_id : undefined
+const offerId       = typeof route.query.offer_id === 'string' ? route.query.offer_id : undefined
+const paymentFailed = computed(() => route.query.payment_failed === '1')
 
 // ── Order state (declared early so the alreadyOrdered guard below can set it) ──
 const placing       = ref(false)
@@ -91,7 +92,7 @@ const { data: checkoutData, pending, error: loadError } = await useAsyncData(`ch
       .single(),
     supabase
       .from('orders')
-      .select('id')
+      .select('id, status')
       .eq('offer_id', offerId)
       .eq('buyer_id', myId.value)
       .maybeSingle(),
@@ -101,9 +102,15 @@ const { data: checkoutData, pending, error: loadError } = await useAsyncData(`ch
   const stockDepleted =
     product?.status === 'sold' || product?.status === 'deleted' ||
     (product?.stock !== null && product?.stock !== undefined && product.stock < (offerData?.quantity ?? 1))
+  // Only treat as already ordered if the order is in an active state.
+  // payment_failed orders should allow the buyer to retry.
+  const orderStatus = (orderRes.data as any)?.status
+  const alreadyOrdered = !!orderRes.data &&
+    orderStatus !== 'payment_failed' &&
+    orderStatus !== 'cancelled'
   return {
     offer: offerData ?? null,
-    alreadyOrdered: !!orderRes.data,
+    alreadyOrdered,
     stockDepleted,
   }
 })
@@ -253,6 +260,18 @@ async function placeOrder() {
       </svg>
       Kembali ke chat
     </button>
+
+    <!-- Payment failed banner -->
+    <div
+      v-if="paymentFailed"
+      class="vt-hero-enter vt-hero-enter-d2 mb-5 flex items-start gap-3 rounded-xl px-4 py-3 text-sm"
+      :class="isDark ? 'bg-red-900/30 border border-red-700/40 text-red-300' : 'bg-red-50 border border-red-200 text-red-700'"
+    >
+      <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+      </svg>
+      <span>Pembayaran sebelumnya gagal atau kadaluarsa. Kamu bisa mencoba lagi sekarang.</span>
+    </div>
 
     <!-- ── Success State ── -->
     <div v-if="orderDone" class="vt-hero-enter vt-hero-enter-d2 text-center py-16">

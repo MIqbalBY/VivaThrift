@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   // ── Load order (caller must be buyer) ────────────────────────────────────
   const { data: order } = await supabaseAdmin
     .from('orders')
-    .select('id, status, xendit_invoice_id, buyer_id, shipping_method')
+    .select('id, status, xendit_invoice_id, buyer_id, shipping_method, offer_id')
     .eq('id', orderId)
     .eq('buyer_id', userId)
     .maybeSingle()
@@ -64,6 +64,32 @@ export default defineEventHandler(async (event) => {
       if (updErr) {
         console.error('[verify] Failed to update order to payment_failed:', updErr)
       }
+
+      // Restore product stock + status
+      const { data: items } = await supabaseAdmin
+        .from('order_items')
+        .select('product_id, quantity')
+        .eq('order_id', order.id)
+      for (const item of items ?? []) {
+        const { data: prod } = await supabaseAdmin
+          .from('products')
+          .select('stock')
+          .eq('id', item.product_id)
+          .single()
+        await supabaseAdmin
+          .from('products')
+          .update({ status: 'active', stock: (prod?.stock ?? 0) + item.quantity })
+          .eq('id', item.product_id)
+      }
+
+      // Restore offer to accepted so buyer can retry
+      if ((order as any).offer_id) {
+        await supabaseAdmin
+          .from('offers')
+          .update({ status: 'accepted', updated_at: new Date().toISOString() })
+          .eq('id', (order as any).offer_id)
+      }
+
       return { status: 'payment_failed', updated: !updErr }
     }
 

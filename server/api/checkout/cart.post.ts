@@ -109,13 +109,17 @@ export default defineEventHandler(async (event) => {
   // ── 4. Idempotency: cek pending orders yang sudah punya payment_url ────────
   // Kolom payment_url / xendit_invoice_id ditambah via migration 006.
   // Tipe Supabase belum di-regenerate → await dulu, baru cast hasilnya ke any.
+  // Batasi ke order yang dibuat ≤ 2 menit lalu (mencegah double-submit bukan
+  // mengulang checkout dari sesi lama yang tidak relevan).
   type PendingOrder = { id: string; payment_url: string; xendit_invoice_id: string; total_amount: number }
+  const idempotencyWindow = new Date(Date.now() - 2 * 60 * 1000).toISOString()
   const existingRaw: any = await supabase
     .from('orders')
     .select('id, payment_url, xendit_invoice_id, total_amount')
     .eq('buyer_id', user.id)
     .eq('status', 'pending_payment')
     .not('payment_url', 'is', null)
+    .gte('created_at', idempotencyWindow)
     .order('created_at', { ascending: false })
     .limit(1)
   const existingOrders = existingRaw?.data as PendingOrder[] | null

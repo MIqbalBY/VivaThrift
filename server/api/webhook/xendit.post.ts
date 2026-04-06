@@ -30,11 +30,11 @@ export default defineEventHandler(async (event) => {
   // ── 2. Load order(s) ────────────────────────────────────────────────────
   // Single-product checkout: external_id === orderId → query by id
   // Cart checkout: external_id === "uuid1_uuid2_..." → query by xendit_invoice_id
-  let orders: { id: string; status: string; shipping_method: string | null }[] = []
+  let orders: { id: string; status: string; shipping_method: string | null; offer_id: string | null }[] = []
 
   const { data: singleOrder } = await supabaseAdmin
     .from('orders')
-    .select('id, status, shipping_method')
+    .select('id, status, shipping_method, offer_id')
     .eq('id', externalId)
     .maybeSingle()
 
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     // Cart checkout: multiple orders share the same xendit_invoice_id
     const { data: multiOrders } = await supabaseAdmin
       .from('orders')
-      .select('id, status, shipping_method')
+      .select('id, status, shipping_method, offer_id')
       .eq('xendit_invoice_id', xenditId)
     orders = (multiOrders ?? []) as any
   }
@@ -75,6 +75,31 @@ export default defineEventHandler(async (event) => {
         .from('orders')
         .update({ status: 'payment_failed', updated_at: new Date().toISOString() })
         .eq('id', o.id)
+
+      // Restore product stock + status so the product is listable again
+      const { data: items } = await supabaseAdmin
+        .from('order_items')
+        .select('product_id, quantity')
+        .eq('order_id', o.id)
+      for (const item of items ?? []) {
+        const { data: prod } = await supabaseAdmin
+          .from('products')
+          .select('stock')
+          .eq('id', item.product_id)
+          .single()
+        await supabaseAdmin
+          .from('products')
+          .update({ status: 'active', stock: (prod?.stock ?? 0) + item.quantity })
+          .eq('id', item.product_id)
+      }
+
+      // Restore offer to accepted so the buyer can retry checkout
+      if (o.offer_id) {
+        await supabaseAdmin
+          .from('offers')
+          .update({ status: 'accepted', updated_at: new Date().toISOString() })
+          .eq('id', o.offer_id)
+      }
     }
   }
 

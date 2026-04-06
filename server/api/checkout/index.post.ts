@@ -86,7 +86,9 @@ export default defineEventHandler(async (event) => {
     .eq('buyer_id', user.id)
     .maybeSingle()
 
-  if (existingOrder?.payment_url) {
+  // Only short-circuit if payment is still in progress (pending_payment + URL exists).
+  // A payment_failed order must be treated as a fresh retry — fall through.
+  if (existingOrder?.payment_url && existingOrder.status === 'pending_payment') {
     return {
       orderId: existingOrder.id,
       paymentUrl: existingOrder.payment_url,
@@ -130,45 +132,58 @@ export default defineEventHandler(async (event) => {
   // ── 5. INSERT order ───────────────────────────────────────────────────────
   let orderId: string
 
-  if (existingOrder) {
-    // Order row exists but has no payment_url yet → reuse it
+  if (existingOrder && existingOrder.status === 'pending_payment') {
+    // Idempotency: order row exists without a payment_url yet — reuse it.
     orderId = existingOrder.id
   } else {
-    const { data: order, error: ordErr } = await supabaseAdmin
-      .from('orders')
-      .insert({
-        buyer_id:        user.id,
-        seller_id:       sellerId,
-        total_amount:    totalAmount,
-        platform_fee:    platformFee,
-        status:          'pending_payment',
-        offer_id:        offerId,
-        shipping_method: shippingMethod,
-        shipping_cost:   shippingCost,
-        meetup_location: meetupLocation,
-        meetup_otp:      meetupOtp,
-        courier_code:    courierCode,
-        courier_service: courierService,
-      })
-      .select('id')
-      .single()
+    if (existingOrder?.status === 'payment_failed') {
+      // Retry after a failed payment: restore the existing order to pending_payment.
+      // (stock + offer were already restored by the webhook/verify handler)
+      await supabaseAdmin
+        .from('orders')
+        .update({ status: 'pending_payment', updated_at: new Date().toISOString() })
+        .eq('id', existingOrder.id)
+      orderId = existingOrder.id
+    } else {
+      // Fresh checkout: create a new order row + items.
+      const { data: order, error: ordErr } = await supabaseAdmin
+        .from('orders')
+        .insert({
+          buyer_id:        user.id,
+          seller_id:       sellerId,
+          total_amount:    totalAmount,
+          platform_fee:    platformFee,
+          status:          'pending_payment',
+          offer_id:        offerId,
+          shipping_method: shippingMethod,
+          shipping_cost:   shippingCost,
+          meetup_location: meetupLocation,
+          meetup_otp:      meetupOtp,
+          courier_code:    courierCode,
+          courier_service: courierService,
+        })
+        .select('id')
+        .single()
 
-    if (ordErr) throw createError({ statusCode: 500, statusMessage: ordErr.message })
+      if (ordErr) throw createError({ statusCode: 500, statusMessage: ordErr.message })
 
-    // INSERT order_item
-    const { error: itemErr } = await supabaseAdmin
-      .from('order_items')
-      .insert({
-        order_id:      order.id,
-        product_id:    offer.product_id,
-        quantity:      offer.quantity,
-        price_at_time: offer.offered_price,
-      })
+      // INSERT order_item
+      const { error: itemErr } = await supabaseAdmin
+        .from('order_items')
+        .insert({
+          order_id:      order.id,
+          product_id:    offer.product_id,
+          quantity:      offer.quantity,
+          price_at_time: offer.offered_price,
+        })
 
-    if (itemErr) throw createError({ statusCode: 500, statusMessage: itemErr.message })
+      if (itemErr) throw createError({ statusCode: 500, statusMessage: itemErr.message })
 
-    // Decrement stock & mark sold (optimistic — webhook will not change stock)
-    // Always mark sold (secondhand = each item is unique); only update stock if tracked
+      orderId = order.id
+    }
+
+    // Decrement stock & mark sold (runs for both fresh checkout and retry).
+    // Always mark sold (secondhand = each item is unique); only update stock if tracked.
     const stockUpdate: Record<string, unknown> = { status: 'sold' }
     if (currentProduct.stock !== null && currentProduct.stock !== undefined) {
       stockUpdate.stock = Math.max(0, currentProduct.stock - offer.quantity)
@@ -178,14 +193,12 @@ export default defineEventHandler(async (event) => {
       .update(stockUpdate)
       .eq('id', offer.product_id as string)
 
-    // Expire all remaining pending/accepted offers
+    // Expire all remaining pending/accepted offers for this product
     await supabaseAdmin
       .from('offers')
       .update({ status: 'expired' })
       .eq('product_id', offer.product_id as string)
       .in('status', ['pending', 'accepted'])
-
-    orderId = order.id
   }
 
   // ── 6. Call Xendit API — create Invoice ───────────────────────────────────
@@ -224,6 +237,25 @@ export default defineEventHandler(async (event) => {
     xenditInvoiceId = invoiceRes.id
     paymentUrl      = invoiceRes.invoice_url
   } catch (e: any) {
+    // Rollback: restore product status/stock and offer so buyer can retry.
+    const { data: prod } = await supabaseAdmin
+      .from('products')
+      .select('stock')
+      .eq('id', offer.product_id as string)
+      .single()
+    await supabaseAdmin
+      .from('products')
+      .update({ status: 'active', stock: (prod?.stock ?? 0) + offer.quantity })
+      .eq('id', offer.product_id as string)
+    await supabaseAdmin
+      .from('offers')
+      .update({ status: 'accepted', updated_at: new Date().toISOString() })
+      .eq('id', offerId)
+    await supabaseAdmin
+      .from('orders')
+      .delete()
+      .eq('id', orderId)
+
     const detail = e?.data?.message ?? e?.message ?? 'Gagal membuat invoice Xendit.'
     throw createError({ statusCode: 502, statusMessage: detail })
   }
