@@ -12,7 +12,7 @@ const {
   tabCounts, filteredOrders,
   primaryMedia, productTitle, productSlug, chatId, formatRp, sellerReceives,
   actionLoading, actionErr, actionSuccess,
-  fetchOrders, shipOrder, completeOrder, startMeetup, confirmMeetup,
+  fetchOrders, shipOrder, shipViaBiteship, completeOrder, startMeetup, confirmMeetup,
   isReviewed, markReviewed,
   ORDER_TABS,
 } = useOrders()
@@ -45,11 +45,11 @@ function onReviewSubmitted() {
 }
 
 // Per-order ship form state
-const shipForms = ref<Record<string, { tracking: string; courier: string; open: boolean }>>({})
+const shipForms = ref<Record<string, { tracking: string; courier: string; open: boolean; manualMode: boolean }>>({})
 
 function getShipForm(orderId: string) {
   if (!shipForms.value[orderId]) {
-    shipForms.value[orderId] = { tracking: '', courier: '', open: false }
+    shipForms.value[orderId] = { tracking: '', courier: '', open: false, manualMode: false }
   }
   return shipForms.value[orderId]
 }
@@ -63,6 +63,36 @@ async function handleShip(orderId: string) {
   const form = getShipForm(orderId)
   await shipOrder(orderId, form.tracking, form.courier)
   if (actionSuccess.value[orderId]) form.open = false
+}
+
+async function handleShipViaBiteship(orderId: string) {
+  const form = getShipForm(orderId)
+  await shipViaBiteship(orderId)
+  if (actionSuccess.value[orderId]) form.open = false
+}
+
+// Per-order tracking panel state
+const trackingData    = ref<Record<string, any>>({})
+const trackingLoading = ref<Record<string, boolean>>({})
+const trackingError   = ref<Record<string, string>>({})
+const trackingOpen    = ref<Record<string, boolean>>({})
+
+async function loadTracking(orderId: string, biteshipOrderId: string) {
+  if (trackingOpen.value[orderId] && trackingData.value[orderId]) {
+    trackingOpen.value[orderId] = false
+    return
+  }
+  trackingOpen.value[orderId]    = true
+  trackingLoading.value[orderId] = true
+  trackingError.value[orderId]   = ''
+  try {
+    const res = await $fetch<any>(`/api/shipping/track?order_id=${orderId}`)
+    trackingData.value[orderId] = res
+  } catch (e: any) {
+    trackingError.value[orderId] = e?.data?.statusMessage ?? e?.message ?? 'Gagal memuat data pelacakan.'
+  } finally {
+    trackingLoading.value[orderId] = false
+  }
 }
 
 // Meetup OTP state (per order)
@@ -486,44 +516,135 @@ onMounted(async () => {
             class="mx-4 mb-4 rounded-xl p-4 space-y-3"
             :style="isDark ? 'background:rgba(30,58,138,0.15);border:1px solid rgba(56,189,248,0.15);' : 'background:rgba(239,246,255,0.80);border:1px solid rgba(147,197,253,0.50);'"
           >
-            <p class="text-xs font-semibold" :class="isDark ? 'text-sky-300' : 'text-blue-700'">Masukkan info pengiriman</p>
-            <div class="flex gap-2">
-              <input
-                v-model="getShipForm(order.id).courier"
-                type="text"
-                placeholder="Kurir (opsional, misal JNE)"
-                class="flex-1 text-xs rounded-lg px-3 py-2 border focus:outline-none focus:ring-2 transition"
-                :class="isDark
-                  ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-500 focus:ring-sky-400/30 focus:border-sky-400'
-                  : 'bg-white border-gray-200 text-gray-700 placeholder-gray-400 focus:ring-blue-200 focus:border-blue-400'"
-              />
+            <!-- Biteship auto-create button (primary) -->
+            <p class="text-xs font-semibold" :class="isDark ? 'text-sky-300' : 'text-blue-700'">Buat resi otomatis via Biteship</p>
+            <button
+              @click="handleShipViaBiteship(order.id)"
+              :disabled="actionLoading[order.id]"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+              style="background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);"
+            >
+              <span v-if="actionLoading[order.id]" class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin border-white/40 border-t-white"></span>
+                Membuat pesanan Biteship…
+              </span>
+              <span v-else>🚀 Buat Resi Otomatis (Biteship)</span>
+            </button>
+
+            <!-- Manual toggle -->
+            <button
+              @click="getShipForm(order.id).manualMode = !getShipForm(order.id).manualMode"
+              class="w-full text-xs text-center py-0.5 transition"
+              :class="isDark ? 'text-slate-400 hover:text-slate-200' : 'text-gray-400 hover:text-gray-600'"
+            >
+              {{ getShipForm(order.id).manualMode ? '▲ Sembunyikan form manual' : '▼ atau masukkan resi manual' }}
+            </button>
+
+            <!-- Manual form (hidden by default) -->
+            <div
+              v-if="getShipForm(order.id).manualMode"
+              class="space-y-2 pt-2 border-t"
+              :class="isDark ? 'border-slate-700' : 'border-blue-100'"
+            >
+              <div class="flex gap-2">
+                <input
+                  v-model="getShipForm(order.id).courier"
+                  type="text"
+                  placeholder="Kurir (opsional, misal JNE)"
+                  class="flex-1 text-xs rounded-lg px-3 py-2 border focus:outline-none focus:ring-2 transition"
+                  :class="isDark
+                    ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-500 focus:ring-sky-400/30 focus:border-sky-400'
+                    : 'bg-white border-gray-200 text-gray-700 placeholder-gray-400 focus:ring-blue-200 focus:border-blue-400'"
+                />
+              </div>
+              <div class="flex gap-2">
+                <input
+                  v-model="getShipForm(order.id).tracking"
+                  type="text"
+                  placeholder="Nomor resi (wajib)"
+                  class="flex-1 text-xs rounded-lg px-3 py-2 border focus:outline-none focus:ring-2 transition"
+                  :class="isDark
+                    ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-500 focus:ring-sky-400/30 focus:border-sky-400'
+                    : 'bg-white border-gray-200 text-gray-700 placeholder-gray-400 focus:ring-blue-200 focus:border-blue-400'"
+                />
+                <button
+                  @click="handleShip(order.id)"
+                  :disabled="actionLoading[order.id] || !getShipForm(order.id).tracking.trim()"
+                  class="px-4 py-2 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50 shrink-0"
+                  style="background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);"
+                >
+                  <span v-if="actionLoading[order.id]" class="flex items-center gap-1">
+                    <span class="w-3 h-3 rounded-full border border-t-transparent animate-spin border-white/50 border-t-white"></span>
+                    Menyimpan…
+                  </span>
+                  <span v-else>Konfirmasi Kirim</span>
+                </button>
+              </div>
             </div>
-            <div class="flex gap-2">
-              <input
-                v-model="getShipForm(order.id).tracking"
-                type="text"
-                placeholder="Nomor resi (wajib)"
-                class="flex-1 text-xs rounded-lg px-3 py-2 border focus:outline-none focus:ring-2 transition"
-                :class="isDark
-                  ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-500 focus:ring-sky-400/30 focus:border-sky-400'
-                  : 'bg-white border-gray-200 text-gray-700 placeholder-gray-400 focus:ring-blue-200 focus:border-blue-400'"
-              />
-              <button
-                @click="handleShip(order.id)"
-                :disabled="actionLoading[order.id] || !getShipForm(order.id).tracking.trim()"
-                class="px-4 py-2 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50 shrink-0"
-                style="background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);"
-              >
-                <span v-if="actionLoading[order.id]" class="flex items-center gap-1">
-                  <span class="w-3 h-3 rounded-full border border-t-transparent animate-spin border-white/50 border-t-white"></span>
-                  Menyimpan…
-                </span>
-                <span v-else>Konfirmasi Kirim</span>
-              </button>
-            </div>
+
             <p v-if="actionErr[order.id]" class="text-xs text-red-500">{{ actionErr[order.id] }}</p>
           </div>
         </Transition>
+
+        <!-- Biteship tracking panel (shipped / completed orders with biteship_order_id) -->
+        <div
+          v-if="order.biteship_order_id && (order.status === 'shipped' || order.status === 'completed')"
+          class="mx-4 mb-3"
+        >
+          <button
+            @click="loadTracking(order.id, order.biteship_order_id)"
+            :disabled="trackingLoading[order.id]"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition"
+            :class="isDark ? 'border-indigo-600 text-indigo-300 hover:bg-indigo-900/20 disabled:opacity-50' : 'border-indigo-300 text-indigo-700 hover:bg-indigo-50 disabled:opacity-50'"
+          >
+            <span v-if="trackingLoading[order.id]" class="flex items-center gap-1">
+              <span class="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin border-current"></span>
+              Memuat…
+            </span>
+            <span v-else>{{ trackingOpen[order.id] ? '▲ Tutup pelacakan' : '📍 Lacak Paket' }}</span>
+          </button>
+
+          <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0 -translate-y-1"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-1"
+          >
+            <div
+              v-if="trackingOpen[order.id] && trackingData[order.id]"
+              class="mt-2 rounded-xl p-3 text-xs space-y-1.5"
+              :class="isDark ? 'bg-slate-800/60 border border-slate-700' : 'bg-gray-50 border border-gray-200'"
+            >
+              <p class="font-semibold" :class="isDark ? 'text-indigo-300' : 'text-indigo-700'">
+                Status Biteship: {{ trackingData[order.id].status ?? '—' }}
+              </p>
+              <p v-if="trackingData[order.id].tracking_number" :class="isDark ? 'text-slate-300' : 'text-gray-600'">
+                Resi: <strong>{{ trackingData[order.id].tracking_number }}</strong>
+              </p>
+              <template v-if="trackingData[order.id].history?.length">
+                <p class="font-medium pt-1" :class="isDark ? 'text-slate-400' : 'text-gray-500'">Histori:</p>
+                <div class="max-h-40 overflow-y-auto space-y-1">
+                  <div
+                    v-for="(evt, idx) in trackingData[order.id].history"
+                    :key="idx"
+                    class="flex gap-2"
+                    :class="isDark ? 'text-slate-300' : 'text-gray-600'"
+                  >
+                    <span class="shrink-0 opacity-60 w-28">
+                      {{ evt.updated_at ? new Date(evt.updated_at).toLocaleString('id-ID', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '' }}
+                    </span>
+                    <span>{{ evt.note || evt.description || evt.status }}</span>
+                  </div>
+                </div>
+              </template>
+              <p v-else class="opacity-60" :class="isDark ? 'text-slate-400' : 'text-gray-500'">Belum ada histori pelacakan.</p>
+            </div>
+          </Transition>
+
+          <p v-if="trackingError[order.id]" class="mt-1 text-xs text-red-500">{{ trackingError[order.id] }}</p>
+        </div>
       </div>
     </div>
 

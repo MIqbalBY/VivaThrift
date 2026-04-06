@@ -202,8 +202,9 @@ async function placeOrder() {
       }
       body.meetupLocation = loc
     } else {
-      body.shippingCost = selectedRate.value!.price
-      body.courierCode  = selectedRate.value!.courier_code
+      body.shippingCost   = selectedRate.value!.price
+      body.courierCode    = selectedRate.value!.courier_code
+      body.courierService = selectedRate.value!.service
     }
 
     const result = await $fetch<{ orderId: string; paymentUrl: string }>('/api/checkout', {

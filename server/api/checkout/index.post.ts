@@ -46,7 +46,8 @@ export default defineEventHandler(async (event) => {
   let meetupLocation: string | null = null
   let meetupOtp: string | null = null
   let shippingCost: number = 0
-  const courierCode: string | null = body?.courierCode ?? null
+  const courierCode: string | null    = body?.courierCode    ?? null
+  const courierService: string | null = body?.courierService ?? null
 
   if (shippingMethod === 'cod') {
     meetupLocation = body?.meetupLocation
@@ -144,6 +145,7 @@ export default defineEventHandler(async (event) => {
         meetup_location: meetupLocation,
         meetup_otp:      meetupOtp,
         courier_code:    courierCode,
+        courier_service: courierService,
       })
       .select('id')
       .single()

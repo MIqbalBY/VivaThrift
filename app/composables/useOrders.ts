@@ -48,6 +48,7 @@ export function useOrders() {
         id, status, total_amount,
         tracking_number, courier_name, shipped_at, completed_at,
         shipping_method, shipping_cost, meetup_location, meetup_otp, meetup_confirmed_at, courier_code,
+        biteship_order_id, biteship_waybill_id, courier_service,
         created_at, updated_at, payment_url, offer_id, disbursement_id,
         order_items (
           quantity, price_at_time,
@@ -181,6 +182,24 @@ export function useOrders() {
     }
   }
 
+  async function shipViaBiteship(orderId: string) {
+    actionLoading.value[orderId] = true
+    actionErr.value[orderId]     = ''
+    actionSuccess.value[orderId] = false
+    try {
+      await $fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        body: { action: 'ship', use_biteship: true },
+      })
+      actionSuccess.value[orderId] = true
+      await fetchOrders()
+    } catch (e: any) {
+      actionErr.value[orderId] = e?.data?.statusMessage ?? e?.message ?? 'Gagal membuat pesanan Biteship.'
+    } finally {
+      actionLoading.value[orderId] = false
+    }
+  }
+
   async function completeOrder(orderId: string) {
     actionLoading.value[orderId] = true
     actionErr.value[orderId]     = ''
@@ -247,7 +266,7 @@ export function useOrders() {
     tabCounts, filteredOrders,
     primaryMedia, productTitle, productSlug, chatId, formatRp, sellerReceives,
     actionLoading, actionErr, actionSuccess,
-    fetchOrders, shipOrder, completeOrder, startMeetup, confirmMeetup,
+    fetchOrders, shipOrder, shipViaBiteship, completeOrder, startMeetup, confirmMeetup,
     isReviewed, markReviewed, reviewedIds,
     ORDER_TABS,
   }

@@ -19,9 +19,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Kode pos asal dan tujuan harus diisi.' })
   }
 
-  const biteshipKey = process.env.BITESHIP_API_KEY
+  const biteshipKey = process.env.BITESHIP_KEY
   if (!biteshipKey) {
-    throw createError({ statusCode: 500, statusMessage: 'BITESHIP_API_KEY belum dikonfigurasi.' })
+    throw createError({ statusCode: 500, statusMessage: 'BITESHIP_KEY belum dikonfigurasi.' })
   }
 
   // Default weight: 500g per item if not specified

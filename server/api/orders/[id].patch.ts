@@ -2,6 +2,7 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 import { resolveServerUid } from '../../utils/resolve-server-uid'
 import { assertTransition } from '../../utils/state-machine'
 import { calculateCommission } from '../../utils/domain-rules'
+import { createBiteshipOrder } from '../../utils/biteship'
 
 // PATCH /api/orders/:id
 // Body: { action: 'ship', tracking_number: string, courier_name?: string }
@@ -52,9 +53,12 @@ export default defineEventHandler(async (event) => {
     .from('orders')
     .select(`
       id, status, total_amount, offer_id, seller_id, buyer_id,
-      shipping_method, meetup_otp, meetup_location,
+      shipping_method, meetup_otp, meetup_location, courier_code, courier_service,
       seller:users!seller_id (
         id, name, bank_code, bank_account_number, bank_account_name
+      ),
+      buyer:users!buyer_id (
+        id, name
       )
     `)
     .eq('id', orderId)
@@ -94,35 +98,113 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 422, statusMessage: 'Aksi kirim hanya untuk pesanan pengiriman, bukan COD.' })
     }
 
-    const trackingNumber: string = (body?.tracking_number ?? '').trim()
-    if (!trackingNumber) {
-      throw createError({ statusCode: 400, statusMessage: 'Nomor resi pengiriman wajib diisi.' })
+    let trackingNumber: string
+    let courierName: string | null = null
+    let biteshipOrderId: string | null = null
+    let biteshipWaybillId: string | null = null
+
+    if (body?.use_biteship) {
+      // ── Auto-create Biteship order ────────────────────────────────────────
+      const o = order as any
+      const courierCode: string = (o.courier_code ?? '').toLowerCase()
+      const courierService: string = (o.courier_service ?? '').toLowerCase()
+
+      if (!courierCode) {
+        throw createError({ statusCode: 422, statusMessage: 'Kode kurir tidak ditemukan pada pesanan. Pilih ulang ongkir atau gunakan resi manual.' })
+      }
+
+      // Load seller store address
+      const { data: sellerAddr } = await supabaseAdmin
+        .from('addresses')
+        .select('full_address, city, postal_code')
+        .eq('user_id', order.seller_id)
+        .eq('address_type', 'seller')
+        .single()
+
+      if (!sellerAddr) {
+        throw createError({ statusCode: 422, statusMessage: 'Alamat toko penjual belum diatur. Tambahkan di Profil → Alamat terlebih dahulu.' })
+      }
+
+      // Load buyer shipping address
+      const { data: buyerAddr } = await supabaseAdmin
+        .from('addresses')
+        .select('full_address, city, postal_code')
+        .eq('user_id', order.buyer_id)
+        .eq('address_type', 'shipping')
+        .single()
+
+      if (!buyerAddr) {
+        throw createError({ statusCode: 422, statusMessage: 'Alamat pengiriman pembeli belum diatur.' })
+      }
+
+      // Load order items for Biteship
+      const { data: items } = await supabaseAdmin
+        .from('order_items')
+        .select('quantity, price_at_time, product:products ( title )')
+        .eq('order_id', orderId)
+
+      const seller = o.seller as any
+      const buyer  = o.buyer  as any
+
+      const biteshipResult = await createBiteshipOrder({
+        orderId:          orderId,
+        sellerName:       seller?.name ?? 'Penjual',
+        sellerAddress:    sellerAddr.full_address,
+        sellerPostalCode: sellerAddr.postal_code ?? 60111,
+        buyerName:        buyer?.name ?? 'Pembeli',
+        buyerAddress:     buyerAddr.full_address,
+        buyerPostalCode:  buyerAddr.postal_code ?? 60111,
+        courierCompany:   courierCode,
+        courierType:      courierService || 'REG',
+        items: (items ?? []).map((item: any) => ({
+          name:     item.product?.title ?? 'Produk VivaThrift',
+          quantity: item.quantity ?? 1,
+          value:    item.price_at_time ?? 0,
+        })),
+      })
+
+      biteshipOrderId   = biteshipResult.biteshipOrderId
+      biteshipWaybillId = biteshipResult.waybillId || null
+      trackingNumber    = biteshipWaybillId || `BS-${biteshipOrderId}`
+      courierName       = courierCode.toUpperCase()
+    } else {
+      // ── Manual tracking number ────────────────────────────────────────────
+      trackingNumber = (body?.tracking_number ?? '').trim()
+      if (!trackingNumber) {
+        throw createError({ statusCode: 400, statusMessage: 'Nomor resi pengiriman wajib diisi.' })
+      }
+      courierName = (body?.courier_name ?? '').trim() || null
     }
+
+    const updatePayload: Record<string, unknown> = {
+      status:          'shipped',
+      tracking_number: trackingNumber,
+      courier_name:    courierName,
+      shipped_at:      new Date().toISOString(),
+    }
+    if (biteshipOrderId)  updatePayload.biteship_order_id  = biteshipOrderId
+    if (biteshipWaybillId) updatePayload.biteship_waybill_id = biteshipWaybillId
 
     const { error: updateErr } = await supabaseAdmin
       .from('orders')
-      .update({
-        status:          'shipped',
-        tracking_number: trackingNumber,
-        courier_name:    (body?.courier_name ?? '').trim() || null,
-        shipped_at:      new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', orderId)
 
     if (updateErr) throw createError({ statusCode: 500, statusMessage: updateErr.message })
 
-    // Notify buyer via notifications table (best-effort)
+    // Notify buyer (best-effort)
     try {
+      const resiText = trackingNumber ? `Nomor resi: ${trackingNumber}.` : ''
       await supabaseAdmin.from('notifications').insert({
         user_id:      order.buyer_id,
         type:         'order_shipped',
         title:        'Paketmu sedang dikirim!',
-        body:         `Nomor resi: ${trackingNumber}. Konfirmasi pesanan setelah barang tiba ya.`,
+        body:         `${resiText} Konfirmasi pesanan setelah barang tiba ya.`.trim(),
         reference_id: orderId,
       })
     } catch { /* best-effort */ }
 
-    return { orderId, status: 'shipped', tracking_number: trackingNumber }
+    return { orderId, status: 'shipped', tracking_number: trackingNumber, biteship_order_id: biteshipOrderId }
   }
 
   // ── Action: start_meetup ────────────────────────────────────────────────────
