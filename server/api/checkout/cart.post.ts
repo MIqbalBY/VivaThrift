@@ -65,7 +65,33 @@ export default defineEventHandler(async (event) => {
 
   if (!cart) throw createError({ statusCode: 404, statusMessage: 'Keranjang tidak ditemukan.' })
 
-  // ── 2. Fetch cart items ───────────────────────────────────────────────────
+  // ── 2. Idempotency check (sebelum validasi items) ─────────────────────────
+  // Jika cart sudah dikosongkan oleh checkout sebelumnya, kembalikan payment URL lama
+  // daripada melempar error "Keranjang kosong". Window 24 jam = Xendit invoice expiry.
+  type PendingOrder = { id: string; payment_url: string; xendit_invoice_id: string; total_amount: number }
+  const idempotencyWindow = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const existingRaw: any = await supabase
+    .from('orders')
+    .select('id, payment_url, xendit_invoice_id, total_amount')
+    .eq('buyer_id', user.id)
+    .eq('status', 'pending_payment')
+    .is('offer_id', null)  // cart checkout orders tidak punya offer_id
+    .not('payment_url', 'is', null)
+    .gte('created_at', idempotencyWindow)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const existingOrders = existingRaw?.data as PendingOrder[] | null
+
+  if (existingOrders?.[0]?.payment_url) {
+    return {
+      paymentUrl:     existingOrders[0].payment_url,
+      orderIds:       [existingOrders[0].id],
+      grandTotal:     existingOrders[0].total_amount,
+      alreadyExisted: true,
+    }
+  }
+
+  // ── 3. Fetch cart items ───────────────────────────────────────────────────
   const { data: items, error: itemsErr } = await supabase
     .from('cart_items')
     .select(`
@@ -77,7 +103,7 @@ export default defineEventHandler(async (event) => {
   if (itemsErr) throw createError({ statusCode: 500, statusMessage: itemsErr.message })
   if (!items?.length) throw createError({ statusCode: 400, statusMessage: 'Keranjang kosong.' })
 
-  // ── 3. Validasi stok + self-purchase ─────────────────────────────────────
+  // ── 4. Validasi stok + self-purchase ─────────────────────────────────────
   const depleted: string[] = []
   const ownProducts: string[] = []
 
@@ -104,33 +130,6 @@ export default defineEventHandler(async (event) => {
       statusCode: 409,
       statusMessage: `Stok tidak cukup: ${depleted.join(', ')}`,
     })
-  }
-
-  // ── 4. Idempotency: cek pending orders yang sudah punya payment_url ────────
-  // Kolom payment_url / xendit_invoice_id ditambah via migration 006.
-  // Tipe Supabase belum di-regenerate → await dulu, baru cast hasilnya ke any.
-  // Batasi ke order yang dibuat ≤ 2 menit lalu (mencegah double-submit bukan
-  // mengulang checkout dari sesi lama yang tidak relevan).
-  type PendingOrder = { id: string; payment_url: string; xendit_invoice_id: string; total_amount: number }
-  const idempotencyWindow = new Date(Date.now() - 2 * 60 * 1000).toISOString()
-  const existingRaw: any = await supabase
-    .from('orders')
-    .select('id, payment_url, xendit_invoice_id, total_amount')
-    .eq('buyer_id', user.id)
-    .eq('status', 'pending_payment')
-    .not('payment_url', 'is', null)
-    .gte('created_at', idempotencyWindow)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const existingOrders = existingRaw?.data as PendingOrder[] | null
-
-  if (existingOrders?.[0]?.payment_url) {
-    return {
-      paymentUrl:     existingOrders[0].payment_url,
-      orderIds:       [existingOrders[0].id],
-      grandTotal:     existingOrders[0].total_amount,
-      alreadyExisted: true,
-    }
   }
 
   // ── 5. Group items per seller & hitung total ──────────────────────────────

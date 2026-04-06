@@ -59,7 +59,8 @@ export default defineEventHandler(async (event) => {
 
     return { rates }
   } catch (e: any) {
-    const detail = e?.data?.message ?? e?.message ?? 'Gagal mengambil tarif pengiriman.'
+    // Biteship error response uses "error" field, not "message"
+    const detail = e?.data?.error ?? e?.data?.message ?? 'Gagal mengambil tarif pengiriman.'
     console.error('[shipping/rates] Biteship API error:', detail)
     throw createError({ statusCode: 502, statusMessage: detail })
   }
