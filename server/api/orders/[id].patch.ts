@@ -87,6 +87,10 @@ export default defineEventHandler(async (event) => {
 
   // ── Action: ship ────────────────────────────────────────────────────────────
   if (action === 'ship') {
+    if ((order as any).shipping_method !== 'shipping') {
+      throw createError({ statusCode: 422, statusMessage: 'Aksi kirim hanya untuk pesanan pengiriman, bukan COD.' })
+    }
+
     const trackingNumber: string = (body?.tracking_number ?? '').trim()
     if (!trackingNumber) {
       throw createError({ statusCode: 400, statusMessage: 'Nomor resi pengiriman wajib diisi.' })

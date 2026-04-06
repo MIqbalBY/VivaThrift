@@ -202,12 +202,21 @@ async function placeOrder() {
       <img src="/img/illustrations/order-confirmed.svg" alt="Pesanan berhasil" width="192" height="192" loading="lazy" class="w-48 h-auto mx-auto mb-4 opacity-90" />
       <h2 class="font-heading text-2xl font-bold mb-2" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">Pesanan Berhasil!</h2>
       <p class="text-sm mb-6" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Pembayaran sedang diproses. Cek halaman Pesanan untuk memantau status.</p>
-      <NuxtLink
-        :to="`/chat/${offer?.chat?.id}`"
-        class="vt-btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm hover:opacity-90 transition"
-      >
-        💬 Kembali ke Chat
-      </NuxtLink>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <NuxtLink
+          to="/orders"
+          class="vt-btn-primary inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm hover:opacity-90 transition"
+        >
+          📦 Lihat Pesanan
+        </NuxtLink>
+        <NuxtLink
+          :to="`/chat/${offer?.chat?.id}`"
+          class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm transition border"
+          :class="isDark ? 'border-white/20 text-gray-300 hover:bg-white/10' : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
+        >
+          💬 Kembali ke Chat
+        </NuxtLink>
+      </div>
     </div>
 
     <!-- ── Stock Depleted State ── -->

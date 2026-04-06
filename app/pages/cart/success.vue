@@ -26,17 +26,24 @@ onMounted(() => clearCart())
       Pesananmu sedang diproses. Penjual akan segera mengonfirmasi.
     </p>
     <p class="text-xs mb-8" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
-      Konfirmasi pengiriman & COD bisa diatur langsung lewat fitur chat.
+      Pantau status pesanan, konfirmasi pengiriman, dan serah terima COD di halaman Pesanan.
     </p>
 
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
       <NuxtLink
-        to="/chat"
+        to="/orders"
         class="vt-btn-primary inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-white font-semibold text-sm hover:opacity-90 transition"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.836L3 20l1.09-3.27C3.39 15.522 3 13.809 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM1 9h22M1 15h22"/>
         </svg>
+        Lihat Pesanan
+      </NuxtLink>
+      <NuxtLink
+        to="/chat"
+        class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm transition border"
+        :class="isDark ? 'border-white/20 text-gray-300 hover:bg-white/10' : 'border-gray-200 text-gray-600 hover:bg-gray-50'"
+      >
         Buka Chat
       </NuxtLink>
       <NuxtLink
