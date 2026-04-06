@@ -129,33 +129,39 @@ export function generateMeetupOTP(): string {
   return digits.join('')
 }
 
-// ── Commission ────────────────────────────────────────────────────────────────
+// ── Platform Fee ──────────────────────────────────────────────────────────────
+//
+// Fee dibebankan ke PEMBELI (ditambah ke tagihan), bukan dipotong dari penjual.
+// Penjual menerima penuh harga barang (subtotal).
+//
+// Tier berdasarkan subtotal (harga × kuantitas, tanpa ongkir):
+//   ≤ Rp 100.000       → + Rp   1.000 flat
+//   Rp 100.001–500.000 → + Rp   2.000 flat
+//   > Rp 500.000       → + 0,5% × subtotal (dibulatkan)
 
-export const COMMISSION_RATES = {
-  standard:       0.05,   // 5% for all transactions
-  premium_seller: 0.04,   // 4% for rating >= 4.8 and 50+ completed orders
-  new_seller:     0.03,   // 3% for first 3 months (onboarding incentive)
-} as const
-
-export type SellerTier = keyof typeof COMMISSION_RATES
+export function calculatePlatformFee(subtotal: number): number {
+  if (subtotal <= 100_000) return 1_000
+  if (subtotal <= 500_000) return 2_000
+  return Math.round(subtotal * 0.005)
+}
 
 export interface CommissionResult {
   subtotal: number
   platformFee: number
+  /** Jumlah yang ditransfer ke penjual = subtotal penuh (fee sudah ditanggung pembeli) */
   sellerReceives: number
 }
 
+/** @deprecated Gunakan calculatePlatformFee secara langsung. */
 export function calculateCommission(
   offeredPrice: number,
   quantity: number,
-  sellerTier: SellerTier = 'standard',
 ): CommissionResult {
   const subtotal = offeredPrice * quantity
-  const rate = COMMISSION_RATES[sellerTier]
-  const platformFee = Math.round(subtotal * rate)
+  const platformFee = calculatePlatformFee(subtotal)
   return {
     subtotal,
     platformFee,
-    sellerReceives: subtotal - platformFee,
+    sellerReceives: subtotal,
   }
 }

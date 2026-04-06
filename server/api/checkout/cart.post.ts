@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 import {
   isValidMeetupLocation,
   generateMeetupOTP,
+  calculatePlatformFee,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
 
@@ -141,7 +142,10 @@ export default defineEventHandler(async (event) => {
     group.total += (p.price ?? 0) * item.quantity
   }
 
-  const grandTotal = [...sellerMap.values()].reduce((sum, g) => sum + g.total, 0) + shippingCost
+  const grandTotal = [...sellerMap.values()].reduce(
+    (sum, g) => sum + g.total + calculatePlatformFee(g.total),
+    0,
+  ) + shippingCost
 
   // ── 6. Buat orders per seller ─────────────────────────────────────────────
   const orderIds: string[] = []
@@ -155,13 +159,15 @@ export default defineEventHandler(async (event) => {
   for (const [sellerId, group] of sellerMap.entries()) {
     const orderShippingCost = costPerSeller + (sellerIndex === 0 ? remainderCost : 0)
     const meetupOtp = shippingMethod === 'cod' ? generateMeetupOTP() : null
+    const platformFee = calculatePlatformFee(group.total)
 
     const { data: order, error: ordErr } = await supabaseAdmin
       .from('orders')
       .insert({
         buyer_id:        user.id,
         seller_id:       sellerId,
-        total_amount:    group.total + orderShippingCost,
+        total_amount:    group.total + orderShippingCost + platformFee,
+        platform_fee:    platformFee,
         status:          'pending_payment',
         shipping_method: shippingMethod,
         shipping_cost:   orderShippingCost,

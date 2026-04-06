@@ -5,6 +5,7 @@ import {
   PRODUCT_UNAVAILABLE_STATUSES,
   isValidMeetupLocation,
   generateMeetupOTP,
+  calculatePlatformFee,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
 
@@ -122,8 +123,9 @@ export default defineEventHandler(async (event) => {
   const product = offer.product as any
   const chat = offer.chat as any
   const sellerId: string = chat?.seller_id ?? product?.seller_id
-  const subtotal: number = offer.offered_price * offer.quantity
-  const totalAmount: number = subtotal + shippingCost
+  const subtotal: number    = offer.offered_price * offer.quantity
+  const platformFee: number = calculatePlatformFee(subtotal)
+  const totalAmount: number = subtotal + platformFee + shippingCost
 
   // ── 5. INSERT order ───────────────────────────────────────────────────────
   let orderId: string
@@ -138,6 +140,7 @@ export default defineEventHandler(async (event) => {
         buyer_id:        user.id,
         seller_id:       sellerId,
         total_amount:    totalAmount,
+        platform_fee:    platformFee,
         status:          'pending_payment',
         offer_id:        offerId,
         shipping_method: shippingMethod,

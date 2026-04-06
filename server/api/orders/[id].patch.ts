@@ -1,7 +1,6 @@
 import { supabaseAdmin } from '../../utils/supabase-admin'
 import { resolveServerUid } from '../../utils/resolve-server-uid'
 import { assertTransition } from '../../utils/state-machine'
-import { calculateCommission } from '../../utils/domain-rules'
 import { createBiteshipOrder } from '../../utils/biteship'
 
 // PATCH /api/orders/:id
@@ -53,7 +52,7 @@ export default defineEventHandler(async (event) => {
     .from('orders')
     .select(`
       id, status, total_amount, offer_id, seller_id, buyer_id,
-      shipping_method, meetup_otp, meetup_location, courier_code, courier_service,
+      shipping_method, shipping_cost, platform_fee, meetup_otp, meetup_location, courier_code, courier_service,
       seller:users!seller_id (
         id, name, bank_code, bank_account_number, bank_account_name
       ),
@@ -285,7 +284,9 @@ export default defineEventHandler(async (event) => {
       disbursementSkipped = true
       disbursementError   = 'Data rekening penjual belum dilengkapi.'
     } else {
-      const { sellerReceives } = calculateCommission(order.total_amount, 1, 'standard')
+      const sellerReceives = order.total_amount
+        - (order.shipping_cost ?? 0)
+        - (order.platform_fee ?? 0)
       try {
         const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
         const disburseRes = await $fetch<{ id: string; status: string }>(
@@ -377,12 +378,10 @@ export default defineEventHandler(async (event) => {
     disbursementError   = 'Data rekening penjual belum dilengkapi.'
     console.warn('[orders/complete] Disbursement skipped: seller bank info missing for seller', seller?.id)
   } else {
-    // Calculate seller's net amount after VivaThrift commission (5% standard)
-    const { sellerReceives } = calculateCommission(
-      order.total_amount,
-      1, // already multiplied in total_amount
-      'standard',
-    )
+    // Seller menerima penuh harga barang (platform_fee sudah ditanggung pembeli)
+    const sellerReceives = order.total_amount
+      - (order.shipping_cost ?? 0)
+      - (order.platform_fee ?? 0)
 
     try {
       const credentials = Buffer.from(`${xenditKey}:`).toString('base64')

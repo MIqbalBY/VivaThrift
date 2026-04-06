@@ -45,7 +45,7 @@ export function useOrders() {
     const { data, error } = await supabase
       .from('orders')
       .select(`
-        id, status, total_amount,
+        id, status, total_amount, platform_fee,
         tracking_number, courier_name, shipped_at, completed_at,
         shipping_method, shipping_cost, meetup_location, meetup_otp, meetup_confirmed_at, courier_code,
         biteship_order_id, biteship_waybill_id, courier_service,
@@ -154,9 +154,9 @@ export function useOrders() {
     }).format(amount)
   }
 
-  function sellerReceives(totalAmount: number, shippingCost: number = 0) {
-    // 5% platform fee applied only to item price, not ongkir
-    return Math.round((totalAmount - shippingCost) * 0.95)
+  function sellerReceives(totalAmount: number, shippingCost: number = 0, platformFee: number = 0) {
+    // Penjual menerima penuh harga barang — fee sudah ditanggung pembeli
+    return totalAmount - shippingCost - platformFee
   }
 
   // ── Mutations ─────────────────────────────────────────────────────────────────
