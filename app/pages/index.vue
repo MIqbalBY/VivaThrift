@@ -371,14 +371,14 @@ watch(sentinelRef, () => nextTick(setupObserver))
       <h2 :ref="reveal" class="text-xl font-bold mb-4" :class="isDark ? 'text-white' : 'text-[#1e3a8a]'">
         🕐 Baru Saja Dilihat
       </h2>
-      <div class="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-        <div v-for="rp in recentProducts" :key="rp.id" class="w-48 shrink-0">
-          <ProductCard
-            :product="rp"
-            :show-seller="true"
-            @seller-click="(uid) => profileCardUserId = uid"
-          />
-        </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+        <ProductCard
+          v-for="rp in recentProducts"
+          :key="rp.id"
+          :product="rp"
+          :show-seller="true"
+          @seller-click="(uid) => profileCardUserId = uid"
+        />
       </div>
     </section>
 
@@ -584,7 +584,9 @@ watch(sentinelRef, () => nextTick(setupObserver))
             <button
               @click="applyPriceFilter"
               class="px-3 py-1 rounded-full text-xs font-bold text-white transition hover:opacity-90"
-              style="background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);"
+              :style="isDark
+                ? 'background: linear-gradient(to right, #0ea5e9, #38bdf8, #7dd3fc);'
+                : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af);'"
             >Terapkan</button>
           </div>
         </div>
