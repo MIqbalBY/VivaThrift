@@ -443,9 +443,6 @@ watch(currentUserId, (id, prevId) => {
               </svg>
               <template v-if="ratingCount > 0">
                 <span class="text-xs text-gray-500">{{ sellerRating.toFixed(1) }} / 5.0</span>
-                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
-                  <div class="h-1.5 rounded-full" :style="`background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af); width:${Math.min(sellerRating / 5 * 100, 100)}%`"></div>
-                </div>
               </template>
               <span v-else class="text-xs text-gray-400">Belum ada ulasan</span>
             </div>

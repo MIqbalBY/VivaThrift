@@ -81,24 +81,35 @@ async function fetchRates() {
   }
 }
 
+// Fetch alamat pengiriman — dipanggil baik dari watch(user) maupun onMounted
+async function fetchBuyerAddress(uid: string) {
+  if (buyerAddressLoading.value) return
+  buyerAddressLoading.value = true
+  const { data } = await supabase
+    .from('addresses')
+    .select('label, full_address, city, postal_code, lat, lng')
+    .eq('user_id', uid)
+    .eq('address_type', 'shipping')
+    .maybeSingle()
+  buyerAddress.value = data ?? null
+  if (data?.postal_code) destPostal.value = data.postal_code
+  buyerAddressLoading.value = false
+}
+
+// Watch user — menangani kasus user belum tersedia saat onMounted (Supabase session restore)
+watch(user, (u) => {
+  if (u?.id && buyerAddress.value === null && !buyerAddressLoading.value) {
+    fetchBuyerAddress(u.id)
+  }
+}, { immediate: true })
+
 // Pastikan cart terisi sebelum render, dan fetch alamat pembeli dari profil
 onMounted(async () => {
   if (cartItems.value.length === 0) await fetchCart()
   if (cartItems.value.length === 0) await navigateTo('/cart')
 
   const uid = user.value?.id
-  if (uid) {
-    buyerAddressLoading.value = true
-    const { data } = await supabase
-      .from('addresses')
-      .select('label, full_address, city, postal_code, lat, lng')
-      .eq('user_id', uid)
-      .eq('address_type', 'shipping')
-      .maybeSingle()
-    buyerAddress.value = data ?? null
-    if (data?.postal_code) destPostal.value = data.postal_code
-    buyerAddressLoading.value = false
-  }
+  if (uid && buyerAddress.value === null) fetchBuyerAddress(uid)
 })
 
 // Kelompok per penjual (untuk tampilan summary)

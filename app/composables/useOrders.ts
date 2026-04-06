@@ -58,7 +58,7 @@ export function useOrders() {
           )
         ),
         buyer:users!buyer_id   ( id, name, username, avatar_url ),
-        seller:users!seller_id ( id, name, username, avatar_url ),
+        seller:users!seller_id ( id, name, username, avatar_url, bank_account_number ),
         offer:offers!offer_id  ( id, chat_id )
       `)
       .eq(field, uid)
