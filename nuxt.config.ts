@@ -8,8 +8,10 @@ export default defineNuxtConfig({
     r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
     r2BucketName:      process.env.R2_BUCKET_NAME ?? 'vivathrift-media',
     r2Endpoint:        process.env.R2_ENDPOINT ?? '',
-    r2PublicUrl:       process.env.R2_PUBLIC_URL ?? '',
-    public: {},
+    r2Region:          process.env.R2_REGION ?? 'auto',
+    public: {
+      r2PublicUrl: process.env.R2_PUBLIC_URL ?? '',
+    },
   },
   site: {
     url: 'https://vivathrift.store',
@@ -69,6 +71,8 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://jwnisdkjgqnoergsoorf.supabase.co' },
         { rel: 'dns-prefetch', href: 'https://jwnisdkjgqnoergsoorf.supabase.co' },
+        { rel: 'preconnect', href: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev' },
+        { rel: 'dns-prefetch', href: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev' },
       ]
     }
   },

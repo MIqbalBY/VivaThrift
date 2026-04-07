@@ -1,27 +1,24 @@
-<script setup lang="ts">
+<script setup>
 // MapPicker.vue — Leaflet map dengan draggable pin
 // Props: lat, lng (nullable — default ke ITS Sukolilo)
 // Emits: update:lat, update:lng
 
-const props = defineProps<{
-  lat: number | null
-  lng: number | null
-}>()
+const props = defineProps({
+  lat: { type: Number, default: null },
+  lng: { type: Number, default: null },
+})
 
-const emit = defineEmits<{
-  'update:lat': [value: number]
-  'update:lng': [value: number]
-}>()
+const emit = defineEmits(['update:lat', 'update:lng'])
 
 // ITS Sukolilo sebagai default
 const DEFAULT_LAT = -7.2813
 const DEFAULT_LNG = 112.7971
 
-const mapEl = ref<HTMLElement | null>(null)
+const mapEl = ref(null)
 
 // Simpan instance Leaflet agar bisa diakses dari watch (GPS update)
-let mapInstance: any = null
-let markerInstance: any = null
+let mapInstance = null
+let markerInstance = null
 
 onMounted(async () => {
   if (!mapEl.value) return
@@ -44,7 +41,7 @@ onMounted(async () => {
   const initLat = props.lat ?? DEFAULT_LAT
   const initLng = props.lng ?? DEFAULT_LNG
 
-  mapInstance = L.map(mapEl.value as HTMLElement, { zoomControl: true }).setView([initLat, initLng], 16)
+  mapInstance = L.map(mapEl.value, { zoomControl: true }).setView([initLat, initLng], 16)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -64,7 +61,7 @@ onMounted(async () => {
   })
 
   // Klik peta → pindahkan pin
-  mapInstance.on('click', (e: any) => {
+  mapInstance.on('click', (e) => {
     markerInstance.setLatLng(e.latlng)
     emit('update:lat', parseFloat(e.latlng.lat.toFixed(7)))
     emit('update:lng', parseFloat(e.latlng.lng.toFixed(7)))
@@ -81,7 +78,7 @@ onBeforeUnmount(() => {
 
 // Watch: ketika GPS atau input eksternal mengubah lat/lng → pan peta ke sana
 watch(
-  () => [props.lat, props.lng] as [number | null, number | null],
+  () => [props.lat, props.lng],
   ([newLat, newLng]) => {
     if (!mapInstance || !markerInstance) return
     if (newLat == null || newLng == null) return

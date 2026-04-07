@@ -84,7 +84,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const presignedUrl = await getSignedUrl(client, command, { expiresIn: 300 })
-  const publicUrl    = `${config.r2PublicUrl}/${key}`
+  const publicUrl    = `${config.public.r2PublicUrl}/${key}`
 
   return { presignedUrl, publicUrl, key }
 })

@@ -20,16 +20,9 @@ COMMENT ON COLUMN public.products.length IS 'Panjang kemasan dalam cm (opsional)
 COMMENT ON COLUMN public.products.width  IS 'Lebar kemasan dalam cm (opsional).';
 COMMENT ON COLUMN public.products.height IS 'Tinggi kemasan dalam cm (opsional).';
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints
-    WHERE table_name = 'products' AND constraint_name = 'products_dimensions_valid'
-  ) THEN
-    ALTER TABLE public.products ADD CONSTRAINT products_dimensions_valid CHECK (
-      (length IS NULL OR (length >= 1 AND length <= 300)) AND
-      (width  IS NULL OR (width  >= 1 AND width  <= 300)) AND
-      (height IS NULL OR (height >= 1 AND height <= 300))
-    );
-  END IF;
-END $$;
+ALTER TABLE public.products
+  ADD CONSTRAINT products_dimensions_valid CHECK (
+    (length IS NULL OR (length >= 1 AND length <= 300)) AND
+    (width  IS NULL OR (width  >= 1 AND width  <= 300)) AND
+    (height IS NULL OR (height >= 1 AND height <= 300))
+  );

@@ -28,16 +28,8 @@ ALTER TABLE reviews ALTER COLUMN order_item_id SET NOT NULL;
 -- 5. Drop old per-order unique constraint
 ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_unique_per_order;
 
--- 6. New unique constraint: 1 review per order_item (idempotent)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints
-    WHERE table_name = 'reviews' AND constraint_name = 'reviews_unique_per_order_item'
-  ) THEN
-    ALTER TABLE reviews ADD CONSTRAINT reviews_unique_per_order_item UNIQUE (order_item_id);
-  END IF;
-END $$;
+-- 6. New unique constraint: 1 review per order_item
+ALTER TABLE reviews ADD CONSTRAINT reviews_unique_per_order_item UNIQUE (order_item_id);
 
 -- 7. Index for fast lookup
 CREATE INDEX IF NOT EXISTS idx_reviews_order_item_id ON reviews(order_item_id);
