@@ -43,25 +43,27 @@ export function useAvatarUpload() {
     avatarUploading.value = true
     showCropModal.value = false
 
-    const { canvas } = cropperRef.value.getResult()
-    const blob = await new Promise<Blob>(res => canvas.toBlob(res, 'image/jpeg', 0.92))
+    try {
+      const { canvas } = cropperRef.value.getResult()
+      const blob: Blob = await new Promise(res => canvas.toBlob(res, 'image/webp', 0.92))
+      const file = new File([blob], 'avatar.webp', { type: 'image/webp' })
 
-    const uid  = user.value?.id ?? userId ?? await resolveUid()
-    const path = `${uid}/avatar.jpg`
-    const { error: upErr } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
-    if (upErr) {
-      msgCallback?.('Upload gagal: ' + upErr.message, 'err')
+      const { uploadToR2 } = useR2Upload()
+      // skipCompression: canvas output is already optimized
+      const { publicUrl } = await uploadToR2(file, 'avatars', { skipCompression: true })
+      const newUrl = publicUrl + '?t=' + Date.now()
+
+      const uid = user.value?.id ?? userId ?? await resolveUid()
+      await supabase.from('users').update({ avatar_url: newUrl }).eq('id', uid)
+      avatarUrl.value = newUrl
+      const sharedProfile = useState('userProfile')
+      sharedProfile.value = { ...(sharedProfile.value ?? {}), avatar_url: newUrl }
+      msgCallback?.('Foto profil diperbarui! ✅', 'ok')
+    } catch (err: any) {
+      msgCallback?.('Upload gagal: ' + (err?.message ?? 'Coba lagi'), 'err')
+    } finally {
       avatarUploading.value = false
-      return
     }
-    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-    const newUrl = urlData.publicUrl + '?t=' + Date.now()
-    await supabase.from('users').update({ avatar_url: newUrl }).eq('id', uid)
-    avatarUrl.value = newUrl
-    const sharedProfile = useState('userProfile')
-    sharedProfile.value = { ...(sharedProfile.value ?? {}), avatar_url: newUrl }
-    msgCallback?.('Foto profil diperbarui! ✅', 'ok')
-    avatarUploading.value = false
   }
 
   function cancelCrop() {
@@ -79,14 +81,22 @@ export function useAvatarUpload() {
     const uid = user.value?.id ?? userId ?? await resolveUid()
     if (!uid) return
     avatarUploading.value = true
-    const path = `${uid}/avatar.jpg`
-    await supabase.storage.from('avatars').remove([path])
-    await supabase.from('users').update({ avatar_url: null }).eq('id', uid)
-    avatarUrl.value = ''
-    const sharedProfile = useState('userProfile')
-    sharedProfile.value = { ...(sharedProfile.value ?? {}), avatar_url: null }
-    msgCallback?.('Foto profil dihapus.', 'ok')
-    avatarUploading.value = false
+    try {
+      // Best-effort delete from R2 — key: avatars/<uid>/avatar.webp
+      try {
+        const { deleteFromR2 } = useR2Upload()
+        await deleteFromR2(`avatars/${uid}/avatar.webp`)
+      } catch { /* ignore — object may not exist */ }
+      await supabase.from('users').update({ avatar_url: null }).eq('id', uid)
+      avatarUrl.value = ''
+      const sharedProfile = useState('userProfile')
+      sharedProfile.value = { ...(sharedProfile.value ?? {}), avatar_url: null }
+      msgCallback?.('Foto profil dihapus.', 'ok')
+    } catch (err: any) {
+      msgCallback?.('Gagal hapus: ' + (err?.message ?? 'Coba lagi'), 'err')
+    } finally {
+      avatarUploading.value = false
+    }
   }
 
   return {

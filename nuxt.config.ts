@@ -2,6 +2,15 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  runtimeConfig: {
+    r2AccountId:       process.env.R2_ACCOUNT_ID ?? '',
+    r2AccessKeyId:     process.env.R2_ACCESS_KEY_ID ?? '',
+    r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
+    r2BucketName:      process.env.R2_BUCKET_NAME ?? 'vivathrift-media',
+    r2Endpoint:        process.env.R2_ENDPOINT ?? '',
+    r2PublicUrl:       process.env.R2_PUBLIC_URL ?? '',
+    public: {},
+  },
   site: {
     url: 'https://vivathrift.store',
     name: 'VivaThrift',
@@ -36,7 +45,7 @@ export default defineNuxtConfig({
   image: {
     quality: 80,
     format: ['webp', 'avif'],
-    domains: ['jwnisdkjgqnoergsoorf.supabase.co'],
+    domains: ['jwnisdkjgqnoergsoorf.supabase.co', 'pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev'],
   },
   fonts: {
     families: [

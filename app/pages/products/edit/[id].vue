@@ -141,15 +141,14 @@ async function saveEdits() {
       .eq('product_id', productId)
     if (deleteError) throw deleteError
 
+    const { uploadToR2 } = useR2Upload()
+
     for (const media of mediaList.value) {
       if (media.isExisting) {
         let thumbnailUrl = media.dbThumbnailUrl || null
         if (media.thumbnailFile) {
-          const thumbPath = `${productId}/${Date.now()}-thumb-${Math.random().toString(36).slice(2)}.jpg`
-          const { error: thumbErr } = await supabase.storage.from('product-media').upload(thumbPath, media.thumbnailFile, { upsert: false })
-          if (thumbErr) throw thumbErr
-          const { data: thumbUrl } = supabase.storage.from('product-media').getPublicUrl(thumbPath)
-          thumbnailUrl = thumbUrl.publicUrl
+          const { publicUrl: thumbUrl } = await uploadToR2(media.thumbnailFile, 'product-media')
+          thumbnailUrl = thumbUrl
         }
         const { error: insError } = await supabase
           .from('product_media')
@@ -162,28 +161,19 @@ async function saveEdits() {
           })
         if (insError) throw insError
       } else {
-        const ext      = media.file.name.split('.').pop()
-        const filePath = `${productId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: uploadError } = await supabase.storage
-          .from('product-media')
-          .upload(filePath, media.file, { upsert: false })
-        if (uploadError) throw uploadError
-        const { data: urlData } = supabase.storage.from('product-media').getPublicUrl(filePath)
+        const { publicUrl: mediaUrl } = await uploadToR2(media.file, 'product-media')
 
         let thumbnailUrl = null
         if (media.thumbnailFile) {
-          const thumbPath = `${productId}/${Date.now()}-thumb-${Math.random().toString(36).slice(2)}.jpg`
-          const { error: thumbErr } = await supabase.storage.from('product-media').upload(thumbPath, media.thumbnailFile, { upsert: false })
-          if (thumbErr) throw thumbErr
-          const { data: thumbUrl } = supabase.storage.from('product-media').getPublicUrl(thumbPath)
-          thumbnailUrl = thumbUrl.publicUrl
+          const { publicUrl: thumbUrl } = await uploadToR2(media.thumbnailFile, 'product-media')
+          thumbnailUrl = thumbUrl
         }
 
         const { error: insError } = await supabase
           .from('product_media')
           .insert({
             product_id: productId,
-            media_url:  urlData.publicUrl,
+            media_url:  mediaUrl,
             media_type: media.file.type,
             is_primary: media.isCover,
             thumbnail_url: thumbnailUrl,
