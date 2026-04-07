@@ -3,18 +3,16 @@ import { resolveServerUid } from '../../utils/resolve-server-uid'
 
 // POST /api/reviews
 // Body: {
-//   order_id:       string,
-//   product_id:     string,
-//   seller_id:      string,
+//   order_item_id:  string,
 //   rating_product: number (1-5),
 //   rating_seller:  number (1-5),
 //   comment?:       string
 // }
 //
 // Rules:
-//   1. Caller must be the buyer of the order
+//   1. Caller must be the buyer of the order containing order_item_id
 //   2. Order must be 'completed'
-//   3. One review per (reviewer, order) — enforced by DB unique constraint
+//   3. One review per order_item — enforced by DB unique constraint
 //   4. Ratings must be integer 1–5
 
 export default defineEventHandler(async (event) => {
@@ -22,23 +20,15 @@ export default defineEventHandler(async (event) => {
   const body   = await readBody(event)
 
   const {
-    order_id,
-    product_id,
-    seller_id,
+    order_item_id,
     rating_product,
     rating_seller,
     comment,
   } = body ?? {}
 
   // ── Validate required fields ────────────────────────────────────────────────
-  if (!order_id || typeof order_id !== 'string') {
-    throw createError({ statusCode: 400, statusMessage: 'order_id wajib diisi.' })
-  }
-  if (!product_id || typeof product_id !== 'string') {
-    throw createError({ statusCode: 400, statusMessage: 'product_id wajib diisi.' })
-  }
-  if (!seller_id || typeof seller_id !== 'string') {
-    throw createError({ statusCode: 400, statusMessage: 'seller_id wajib diisi.' })
+  if (!order_item_id || typeof order_item_id !== 'string') {
+    throw createError({ statusCode: 400, statusMessage: 'order_item_id wajib diisi.' })
   }
 
   // ── Validate ratings ────────────────────────────────────────────────────────
@@ -53,14 +43,19 @@ export default defineEventHandler(async (event) => {
 
   const supabase = await serverSupabaseClient(event)
 
-  // ── Validate order ownership & status ────────────────────────────────────────
-  const { data: order, error: orderErr } = await supabase
-    .from('orders')
-    .select('id, status, buyer_id, seller_id')
-    .eq('id', order_id)
+  // ── Resolve order_item → order (with security checks) ────────────────────────
+  const { data: orderItem, error: itemErr } = await supabase
+    .from('order_items')
+    .select('id, order_id, product_id, order:orders(id, status, buyer_id, seller_id)')
+    .eq('id', order_item_id)
     .single()
 
-  if (orderErr || !order) {
+  if (itemErr || !orderItem) {
+    throw createError({ statusCode: 404, statusMessage: 'Item pesanan tidak ditemukan.' })
+  }
+
+  const order = Array.isArray(orderItem.order) ? orderItem.order[0] : orderItem.order
+  if (!order) {
     throw createError({ statusCode: 404, statusMessage: 'Pesanan tidak ditemukan.' })
   }
   if (order.buyer_id !== userId) {
@@ -74,12 +69,11 @@ export default defineEventHandler(async (event) => {
   const { data: existing } = await supabase
     .from('reviews')
     .select('id')
-    .eq('reviewer_id', userId)
-    .eq('order_id', order_id)
+    .eq('order_item_id', order_item_id)
     .maybeSingle()
 
   if (existing) {
-    throw createError({ statusCode: 409, statusMessage: 'Kamu sudah memberikan ulasan untuk pesanan ini.' })
+    throw createError({ statusCode: 409, statusMessage: 'Item ini sudah pernah diulas.' })
   }
 
   // ── Insert review ───────────────────────────────────────────────────────────
@@ -88,9 +82,10 @@ export default defineEventHandler(async (event) => {
     .from('reviews')
     .insert({
       reviewer_id:    userId,
-      reviewee_id:    seller_id,
-      order_id,
-      product_id,
+      reviewee_id:    order.seller_id,
+      order_id:       order.id,
+      product_id:     orderItem.product_id,
+      order_item_id,
       rating_product,
       rating_seller,
       comment:        (comment ?? '').trim() || null,
@@ -100,7 +95,7 @@ export default defineEventHandler(async (event) => {
 
   if (insertErr) {
     if (insertErr.code === '23505') {
-      throw createError({ statusCode: 409, statusMessage: 'Kamu sudah memberikan ulasan untuk pesanan ini.' })
+      throw createError({ statusCode: 409, statusMessage: 'Item ini sudah pernah diulas.' })
     }
     throw createError({ statusCode: 500, statusMessage: insertErr.message })
   }

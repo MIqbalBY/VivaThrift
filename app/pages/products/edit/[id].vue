@@ -14,6 +14,7 @@ const { data: product } = await useAsyncData(`edit-product-${param}`, async () =
     .from('products')
     .select(`
       id, title, description, price, condition, is_negotiable, is_cod, status, stock, slug, seller_id, category_id,
+      weight, length, width, height,
       product_media ( media_url, media_type, is_primary, thumbnail_url ),
       categories ( name )
     `)
@@ -48,14 +49,18 @@ const { data: categories } = await useAsyncData('edit-categories', async () => {
 
 // ── Form ─────────────────────────────────────────────────────────────────────
 const form = reactive({
-  title:        product.value?.title ?? '',
-  price:        product.value?.price ?? '',
-  description:  product.value?.description ?? '',
-  condition:    product.value?.condition ?? '',
-  category_id:  product.value?.category_id ?? '',
+  title:         product.value?.title ?? '',
+  price:         product.value?.price ?? '',
+  description:   product.value?.description ?? '',
+  condition:     product.value?.condition ?? '',
+  category_id:   product.value?.category_id ?? '',
   is_negotiable: product.value?.is_negotiable ?? false,
-  is_cod:       product.value?.is_cod ?? false,
-  stock:        product.value?.stock ?? 0,
+  is_cod:        product.value?.is_cod ?? false,
+  stock:         product.value?.stock ?? 0,
+  weight:        (product.value as any)?.weight ?? 500,
+  length:        (product.value as any)?.length ?? null as number | null,
+  width:         (product.value as any)?.width  ?? null as number | null,
+  height:        (product.value as any)?.height ?? null as number | null,
 })
 
 const isSubmitting = ref(false)
@@ -111,17 +116,21 @@ async function saveEdits() {
     const { error: updateError } = await supabase
       .from('products')
       .update({
-        title:        stripUrls(form.title.trim()),
-        price:        Number(form.price),
-        description:  form.description.trim() || null,
-        condition:    form.condition,
-        category_id:  form.category_id ? Number(form.category_id) : null,
+        title:         stripUrls(form.title.trim()),
+        price:         Number(form.price),
+        description:   form.description.trim() || null,
+        condition:     form.condition,
+        category_id:   form.category_id ? Number(form.category_id) : null,
         is_negotiable: form.is_negotiable,
-        is_cod:       form.is_cod,
-        stock:        stockVal,
-        status:       stockVal > 0 ? 'active' : 'sold',
-        slug:         newSlug,
-        updated_at:   new Date().toISOString(),
+        is_cod:        form.is_cod,
+        stock:         stockVal,
+        status:        stockVal > 0 ? 'active' : 'sold',
+        slug:          newSlug,
+        updated_at:    new Date().toISOString(),
+        weight:        Math.max(1, Number(form.weight) || 500),
+        length:        form.length || null,
+        width:         form.width  || null,
+        height:        form.height || null,
       })
       .eq('id', productId)
     if (updateError) throw updateError

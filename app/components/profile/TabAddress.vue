@@ -128,34 +128,29 @@ const emit = defineEmits([
             <label class="text-xs font-semibold vt-label">Catatan Pengiriman</label>
             <input v-model="shippingForm.notes" type="text" placeholder="Contoh: Lantai 2, kamar paling kiri" class="vt-input" maxlength="150" />
           </div>
+          <!-- Pin Lokasi -->
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-semibold vt-label">📍 Pin Lokasi</label>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold vt-label">📍 Pin Lokasi</label>
               <button type="button" @click="emit('use-gps', 'shipping')" :disabled="gpsLoading"
-                class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-sm font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-60">
-                <svg v-if="!gpsLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-60">
+                <svg v-if="!gpsLoading" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
                 </svg>
-                <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
-                {{ gpsLoading ? 'Mengambil lokasi...' : 'Pakai GPS saat ini' }}
-              </button>
-              <button v-if="shippingForm.lat && shippingForm.lng" type="button" @click="emit('open-map-link', 'shipping')"
-                class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-600 text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition">
-                🗺️ Lihat di Maps
+                <svg v-else class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                {{ gpsLoading ? 'Mengambil...' : 'Pakai GPS' }}
               </button>
             </div>
-            <div class="flex gap-2">
-              <div class="flex flex-col gap-1 flex-1">
-                <label class="text-xs vt-text-muted">Latitude</label>
-                <input v-model.number="shippingForm.lat" type="number" step="0.0000001" placeholder="-7.2885618..." class="vt-input text-xs font-mono" />
-              </div>
-              <div class="flex flex-col gap-1 flex-1">
-                <label class="text-xs vt-text-muted">Longitude</label>
-                <input v-model.number="shippingForm.lng" type="number" step="0.0000001" placeholder="112.7917407..." class="vt-input text-xs font-mono" />
-              </div>
-            </div>
-            <p class="text-xs vt-text-muted opacity-60">Isi otomatis dengan GPS atau masukkan manual. Contoh: Asrama Mahasiswa ITS Blok H → -7.2885618, 112.7917407.</p>
+            <ClientOnly>
+              <MapPicker
+                :lat="shippingForm.lat"
+                :lng="shippingForm.lng"
+                @update:lat="shippingForm.lat = $event"
+                @update:lng="shippingForm.lng = $event"
+              />
+            </ClientOnly>
+            <p class="text-xs vt-text-muted opacity-60">Klik di peta atau geser pin biru untuk menentukan lokasi persis. Atau gunakan tombol GPS.</p>
           </div>
           <button
             @click="emit('save-address', 'shipping')"
@@ -253,34 +248,29 @@ const emit = defineEmits([
             <label class="text-xs font-semibold vt-label">Catatan</label>
             <input v-model="sellerForm.notes" type="text" placeholder="Contoh: Blok H lantai 3" class="vt-input" maxlength="150" />
           </div>
+          <!-- Pin Lokasi -->
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-semibold vt-label">📍 Pin Lokasi</label>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold vt-label">📍 Pin Lokasi</label>
               <button type="button" @click="emit('use-gps', 'seller')" :disabled="gpsLoading"
-                class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-700 text-sm font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-60">
-                <svg v-if="!gpsLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-700 text-xs font-medium text-blue-700 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition disabled:opacity-60">
+                <svg v-if="!gpsLoading" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
                 </svg>
-                <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
-                {{ gpsLoading ? 'Mengambil lokasi...' : 'Pakai GPS saat ini' }}
-              </button>
-              <button v-if="sellerForm.lat && sellerForm.lng" type="button" @click="emit('open-map-link', 'seller')"
-                class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-600 text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition">
-                🗺️ Lihat di Maps
+                <svg v-else class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                {{ gpsLoading ? 'Mengambil...' : 'Pakai GPS' }}
               </button>
             </div>
-            <div class="flex gap-2">
-              <div class="flex flex-col gap-1 flex-1">
-                <label class="text-xs vt-text-muted">Latitude</label>
-                <input v-model.number="sellerForm.lat" type="number" step="0.0000001" placeholder="-7.2885618..." class="vt-input text-xs font-mono" />
-              </div>
-              <div class="flex flex-col gap-1 flex-1">
-                <label class="text-xs vt-text-muted">Longitude</label>
-                <input v-model.number="sellerForm.lng" type="number" step="0.0000001" placeholder="112.7917407..." class="vt-input text-xs font-mono" />
-              </div>
-            </div>
-            <p class="text-xs vt-text-muted opacity-60">Isi otomatis dengan GPS atau masukkan manual. Contoh: Asrama Mahasiswa ITS Blok H → -7.2885618, 112.7917407.</p>
+            <ClientOnly>
+              <MapPicker
+                :lat="sellerForm.lat"
+                :lng="sellerForm.lng"
+                @update:lat="sellerForm.lat = $event"
+                @update:lng="sellerForm.lng = $event"
+              />
+            </ClientOnly>
+            <p class="text-xs vt-text-muted opacity-60">Klik di peta atau geser pin biru untuk menentukan lokasi persis. Atau gunakan tombol GPS.</p>
           </div>
           <button
             @click="emit('save-address', 'seller')"

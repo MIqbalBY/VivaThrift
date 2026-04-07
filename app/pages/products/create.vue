@@ -14,6 +14,10 @@ const form = reactive({
   category_id: '',
   is_negotiable: false,
   is_cod: false,
+  weight: 500,
+  length: null as number | null,
+  width:  null as number | null,
+  height: null as number | null,
 })
 
 const { data: categories } = await useAsyncData('jual-categories', async () => {
@@ -58,16 +62,20 @@ async function submitProduct() {
     const { data: product, error: productError } = await supabase
       .from('products')
       .insert({
-        title: stripUrls(form.title.trim()),
-        price: Number(form.price),
-        description: form.description.trim() || null,
-        condition: form.condition,
-        category_id: form.category_id ? Number(form.category_id) : null,
-        stock: Number(form.stock) || 1,
+        title:         stripUrls(form.title.trim()),
+        price:         Number(form.price),
+        description:   form.description.trim() || null,
+        condition:     form.condition,
+        category_id:   form.category_id ? Number(form.category_id) : null,
+        stock:         Number(form.stock) || 1,
         is_negotiable: form.is_negotiable,
-        is_cod: form.is_cod,
-        status: 'active',
-        seller_id: sessionUser.id,
+        is_cod:        form.is_cod,
+        status:        'active',
+        seller_id:     sessionUser.id,
+        weight:        Math.max(1, Number(form.weight) || 500),
+        length:        form.length || null,
+        width:         form.width  || null,
+        height:        form.height || null,
       })
       .select('id')
       .single()

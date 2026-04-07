@@ -2,9 +2,7 @@
 const { isDark } = useDarkMode()
 
 const props = defineProps<{
-  orderId: string
-  productId: string
-  sellerId: string
+  orderItemId: string
   productTitle: string
   sellerName: string
   productImage?: string | null
@@ -45,9 +43,7 @@ async function submit() {
     await $fetch('/api/reviews', {
       method: 'POST',
       body: {
-        order_id:       props.orderId,
-        product_id:     props.productId,
-        seller_id:      props.sellerId,
+        order_item_id:  props.orderItemId,
         rating_product: ratingProduct.value,
         rating_seller:  ratingSeller.value,
         comment:        comment.value,

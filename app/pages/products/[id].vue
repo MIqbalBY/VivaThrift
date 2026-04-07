@@ -18,6 +18,7 @@ const { data: product } = await useAsyncData(`product-${route.params.id}`, async
     .from('products')
     .select(`
       id, title, description, price, condition, is_negotiable, is_cod, status, stock, created_at, updated_at,
+      weight, length, width, height,
       product_media ( media_url, media_type, is_primary, thumbnail_url ),
       users!products_seller_id_fkey ( id, name, nrp, faculty, department, avatar_url, gender ),
       categories ( name )
@@ -464,19 +465,57 @@ watch(currentUserId, (id, prevId) => {
           </span>
         </div>
 
+        <!-- Info Pengiriman (berat & volume) -->
+        <div v-if="product.weight" class="rounded-xl px-4 py-3 flex flex-wrap gap-x-5 gap-y-2"
+          :class="isDark ? 'bg-slate-800/60 border border-white/8' : 'bg-gray-50 border border-gray-100'"
+        >
+          <!-- Berat asli -->
+          <div class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 shrink-0" :class="isDark ? 'text-sky-400' : 'text-blue-600'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 18V5m-6-2v2"/>
+            </svg>
+            <span class="text-xs" :class="isDark ? 'text-slate-300' : 'text-gray-600'">
+              Berat: <span class="font-semibold" :class="isDark ? 'text-slate-100' : 'text-gray-800'">{{ product.weight }}g</span>
+            </span>
+          </div>
+          <!-- Dimensi kemasan (jika ada) -->
+          <div v-if="product.length && product.width && product.height" class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 shrink-0" :class="isDark ? 'text-sky-400' : 'text-blue-600'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+            </svg>
+            <span class="text-xs" :class="isDark ? 'text-slate-300' : 'text-gray-600'">
+              Ukuran: <span class="font-semibold" :class="isDark ? 'text-slate-100' : 'text-gray-800'">{{ product.length }}×{{ product.width }}×{{ product.height }} cm</span>
+            </span>
+          </div>
+          <!-- Berat yang ditagih (muncul hanya jika volumetrik > asli) -->
+          <template v-if="product.length && product.width && product.height">
+            <div v-if="Math.round((product.length * product.width * product.height) / 6000) > product.weight"
+              class="flex items-center gap-1.5"
+            >
+              <svg class="w-3.5 h-3.5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span class="text-xs text-amber-600 dark:text-amber-400">
+                Ditagih kurir: <span class="font-semibold">{{ Math.round((product.length * product.width * product.height) / 6000) }}g</span>
+                <span class="font-normal opacity-75"> (volumetrik)</span>
+              </span>
+            </div>
+          </template>
+        </div>
+
         <!-- Deskripsi -->
-        <div class="border-t border-gray-100 pt-4">
-          <p class="text-sm font-semibold text-gray-700 mb-2">Deskripsi</p>
-          <div class="text-gray-600 text-sm leading-relaxed">
+        <div class="border-t pt-4" :class="isDark ? 'border-white/8' : 'border-gray-100'">
+          <p class="text-sm font-semibold mb-2" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Deskripsi</p>
+          <div class="text-sm leading-relaxed" :class="isDark ? 'text-slate-300' : 'text-gray-600'">
             <div v-if="product.description" v-html="formatDescription(product.description)"></div>
-            <span v-else class="text-gray-400">Tidak ada deskripsi.</span>
+            <span v-else :class="isDark ? 'text-slate-500' : 'text-gray-400'">Tidak ada deskripsi.</span>
           </div>
         </div>
 
         <!-- Ulasan Pembeli -->
-        <div v-if="productReviews.length" class="border-t border-gray-100 pt-4">
+        <div v-if="productReviews.length" class="border-t pt-4" :class="isDark ? 'border-white/8' : 'border-gray-100'">
           <div class="flex items-center gap-2 mb-3">
-            <p class="text-sm font-semibold text-gray-700">Ulasan Pembeli</p>
+            <p class="text-sm font-semibold" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Ulasan Pembeli</p>
             <div v-if="productRating != null" class="flex items-center gap-1">
               <svg class="w-3.5 h-3.5 text-yellow-400 fill-current" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>

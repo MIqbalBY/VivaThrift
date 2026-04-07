@@ -64,13 +64,34 @@ async function fetchRates() {
   selectedRate.value = null
   rates.value        = []
   try {
+    const shippingItems = cartItems.value.map(item => ({
+      weight: (item.product as any)?.weight ?? 500,
+      length: (item.product as any)?.length ?? null,
+      width:  (item.product as any)?.width  ?? null,
+      height: (item.product as any)?.height ?? null,
+    }))
+
+    // Pakai koordinat jika buyer sudah pinpoint (munculkan GoSend/GrabExpress)
+    // Fallback ke kode pos jika belum ada koordinat
+    const hasCoords = buyerAddress.value?.lat && buyerAddress.value?.lng
+    const rateBody = hasCoords
+      ? {
+          // ITS Sukolilo sebagai titik origin (lat/lng)
+          origin_lat:       -7.2826,
+          origin_lng:       112.7955,
+          destination_lat:  Number(buyerAddress.value.lat),
+          destination_lng:  Number(buyerAddress.value.lng),
+          items:            shippingItems,
+        }
+      : {
+          origin_postal_code:      '60111',
+          destination_postal_code: destPostal.value.trim(),
+          items:                   shippingItems,
+        }
+
     const res = await $fetch<{ rates: any[] }>('/api/shipping/rates', {
       method: 'POST',
-      body: {
-        origin_postal_code:      '60111',
-        destination_postal_code: destPostal.value.trim(),
-        items: [{ weight: 500 }],
-      },
+      body: rateBody,
     })
     rates.value = res.rates ?? []
     if (!rates.value.length) ratesErr.value = 'Tidak ada layanan pengiriman tersedia untuk kode pos ini.'
@@ -314,7 +335,7 @@ async function handleCheckout() {
               <p v-if="buyerAddress.city" class="text-xs mt-0.5" :class="isDark ? 'text-slate-400' : 'text-gray-500'">
                 {{ buyerAddress.city }}<template v-if="buyerAddress.postal_code"> · {{ buyerAddress.postal_code }}</template>
               </p>
-              <NuxtLink to="/profile/edit?tab=address" class="text-xs mt-1 inline-block text-blue-500 hover:underline">Ganti alamat</NuxtLink>
+              <NuxtLink to="/profile/edit?tab=address" class="text-xs mt-1 inline-block hover:underline" :class="isDark ? 'text-sky-400' : 'text-blue-500'">Ganti alamat</NuxtLink>
             </div>
             <div v-else class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800" :class="isDark ? 'border-amber-700/40 bg-amber-900/20 text-amber-300' : ''">
               ⚠️ Belum ada alamat pengiriman.
@@ -343,7 +364,9 @@ async function handleCheckout() {
                 @click="fetchRates"
                 :disabled="ratesLoading"
                 class="px-4 py-2 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60"
-                style="background:linear-gradient(to right,#1e3a8a,#1e40af);"
+                :style="isDark
+                  ? 'background:linear-gradient(to right,#0ea5e9,#38bdf8);'
+                  : 'background:linear-gradient(to right,#1e3a8a,#1e40af);'"
               >
                 {{ ratesLoading ? '…' : 'Cek' }}
               </button>

@@ -13,6 +13,7 @@ export default defineNuxtConfig({
     '~/assets/css/dark-overrides.css',
     '~/assets/css/components.css',
     '~/assets/css/animations.css',
+    'leaflet/dist/leaflet.css',
   ],
   compatibilityDate: '2026-04-04',
   devServer: { port: 3004 },

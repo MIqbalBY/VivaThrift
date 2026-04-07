@@ -10,6 +10,10 @@ export type CartItem = {
     id: string
     title: string
     price: number
+    weight: number | null
+    length: number | null
+    width:  number | null
+    height: number | null
     slug: string | null
     status: string | null
     stock: number | null
@@ -81,7 +85,7 @@ export function useCart() {
       .select(`
         id, cart_id, product_id, quantity, added_at,
         product:products (
-          id, title, price, slug, status, stock, is_negotiable, is_cod, seller_id,
+          id, title, price, weight, length, width, height, slug, status, stock, is_negotiable, is_cod, seller_id,
           product_media (media_url, is_primary),
           users:seller_id (id, name, username, avatar_url)
         )
@@ -133,7 +137,7 @@ export function useCart() {
           .select(`
             id, cart_id, product_id, quantity, added_at,
             product:products (
-              id, title, price, slug, status, stock, is_negotiable, is_cod, seller_id,
+              id, title, price, weight, length, width, height, slug, status, stock, is_negotiable, is_cod, seller_id,
               product_media (media_url, is_primary),
               users:seller_id (id, name, username, avatar_url)
             )

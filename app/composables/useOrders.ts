@@ -51,7 +51,7 @@ export function useOrders() {
         biteship_order_id, biteship_waybill_id, courier_service,
         created_at, updated_at, payment_url, offer_id, disbursement_id,
         order_items (
-          quantity, price_at_time,
+          id, quantity, price_at_time,
           product:products (
             id, title, slug,
             product_media ( media_url, media_type, is_primary, thumbnail_url )
@@ -70,33 +70,26 @@ export function useOrders() {
       orders.value = data ?? []
     }
 
-    // Fetch which completed orders the user has already reviewed (buyer role only)
+    // Fetch which order_items the user has already reviewed (buyer role only)
     if (role.value === 'buyer') {
-      const completedIds = (orders.value ?? [])
-        .filter((o: any) => o.status === 'completed')
-        .map((o: any) => o.id)
-
-      if (completedIds.length) {
-        const { data: reviewed } = await supabase
-          .from('reviews')
-          .select('order_id')
-          .eq('reviewer_id', user.value.id)
-          .in('order_id', completedIds)
-        reviewedIds.value = new Set((reviewed ?? []).map((r: any) => r.order_id))
-      } else {
-        reviewedIds.value = new Set()
-      }
+      const { data: reviewed } = await supabase
+        .from('reviews')
+        .select('order_item_id')
+        .eq('reviewer_id', uid)
+      reviewedIds.value = new Set((reviewed ?? []).map((r: any) => r.order_item_id))
+    } else {
+      reviewedIds.value = new Set()
     }
 
     loading.value = false
   }
 
-  function isReviewed(orderId: string) {
-    return reviewedIds.value.has(orderId)
+  function isReviewed(orderItemId: string) {
+    return reviewedIds.value.has(orderItemId)
   }
 
-  function markReviewed(orderId: string) {
-    reviewedIds.value = new Set([...reviewedIds.value, orderId])
+  function markReviewed(orderItemId: string) {
+    reviewedIds.value = new Set([...reviewedIds.value, orderItemId])
   }
 
   // ── Derived ──────────────────────────────────────────────────────────────────
