@@ -37,35 +37,80 @@ export default defineEventHandler(async (event) => {
     paid_amount:     paidAmount,
   } = body ?? {}
 
-  // Abaikan event selain PAID
-  if (status !== 'PAID') {
-    return { received: true, action: 'ignored', status }
-  }
-
   if (!xenditInvoiceId) {
     throw createError({ statusCode: 400, statusMessage: 'Missing invoice id in payload.' })
   }
 
-  // ── Update semua orders dengan invoice ID ini → confirmed ─────────────────
-  // Satu query handles both single-order (offer flow) dan multi-order (cart flow).
-  const { data: updatedOrders, error: orderErr } = await supabaseAdmin
+  // ── Handle EXPIRED / FAILED → restore stock + offer ───────────────────────
+  if (status === 'EXPIRED' || status === 'FAILED') {
+    const { data: failedOrders } = await supabaseAdmin
+      .from('orders')
+      .update({ status: 'payment_failed', updated_at: new Date().toISOString() })
+      .eq('xendit_invoice_id', xenditInvoiceId)
+      .in('status', ['pending_payment'])
+      .select('id, offer_id')
+
+    for (const order of failedOrders ?? []) {
+      // Restore product stock
+      const { data: items } = await supabaseAdmin
+        .from('order_items')
+        .select('product_id, quantity')
+        .eq('order_id', order.id)
+      for (const item of items ?? []) {
+        const { data: prod } = await supabaseAdmin
+          .from('products')
+          .select('stock')
+          .eq('id', item.product_id)
+          .single()
+        await supabaseAdmin
+          .from('products')
+          .update({ status: 'active', stock: (prod?.stock ?? 0) + item.quantity })
+          .eq('id', item.product_id)
+      }
+      // Restore offer
+      if (order.offer_id) {
+        await supabaseAdmin
+          .from('offers')
+          .update({ status: 'accepted', updated_at: new Date().toISOString() })
+          .eq('id', order.offer_id)
+      }
+    }
+
+    return { received: true, action: 'payment_failed', orderCount: failedOrders?.length ?? 0 }
+  }
+
+  // Ignore anything else (e.g. PENDING)
+  if (status !== 'PAID') {
+    return { received: true, action: 'ignored', status }
+  }
+
+  // ── Fetch current orders to determine shipping_method per order ───────────
+  const { data: currentOrders } = await supabaseAdmin
     .from('orders')
-    .update({
-      status:         'confirmed',
-      payment_method: paymentMethod ?? null,
-    })
+    .select('id, shipping_method')
     .eq('xendit_invoice_id', xenditInvoiceId)
-    .select('id, total_amount')
+    .in('status', ['pending_payment'])
+
+  if (!currentOrders?.length) {
+    return { received: true, action: 'no_orders_found' }
+  }
+
+  // ── Update each order with correct next status (COD vs shipping) ──────────
+  const updatePromises = currentOrders.map((o) => {
+    const nextStatus = o.shipping_method === 'cod' ? 'awaiting_meetup' : 'confirmed'
+    return supabaseAdmin
+      .from('orders')
+      .update({ status: nextStatus, payment_method: paymentMethod ?? null })
+      .eq('id', o.id)
+      .select('id, total_amount')
+  })
+  const updateResults = await Promise.all(updatePromises)
+  const updatedOrders = updateResults.flatMap(r => r.data ?? [])
+  const orderErr      = updateResults.find(r => r.error)?.error
 
   if (orderErr) {
     console.error('[xendit-webhook] Failed to update orders:', orderErr)
     throw createError({ statusCode: 500, statusMessage: 'Failed to update orders.' })
-  }
-
-  if (!updatedOrders?.length) {
-    // Invoice ID tidak ditemukan di DB — mungkin sudah diproses atau data stale
-    console.warn('[xendit-webhook] No orders found for invoice:', xenditInvoiceId)
-    return { received: true, action: 'no_orders_found' }
   }
 
   // ── Stock note ────────────────────────────────────────────────────────────
