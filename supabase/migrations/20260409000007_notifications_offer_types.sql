@@ -9,5 +9,6 @@ ALTER TABLE notifications ADD CONSTRAINT notifications_type_check
   CHECK (type = ANY (ARRAY[
     'new_product', 'restock', 'out_of_stock',
     'new_offer', 'offer_accepted', 'offer_rejected',
-    'order_confirmed', 'order_shipped', 'order_completed'
+    'order_confirmed', 'order_shipped', 'order_completed',
+    'order_paid'
   ]));
