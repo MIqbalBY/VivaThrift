@@ -59,7 +59,7 @@ function onDocClick(e) {
   if (!showMobileMenu.value && categoryButtonRef.value && !categoryButtonRef.value.contains(e.target)) {
     showCategory.value = false
   }
-  if (profileMenuRef.value && !profileMenuRef.value.contains(e.target as Node)) {
+  if (profileMenuRef.value && !profileMenuRef.value.contains(e.target)) {
     showProfileMenu.value = false
   }
 }
