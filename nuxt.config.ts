@@ -80,13 +80,9 @@ export default defineNuxtConfig({
     '/about': { prerender: true },
     '/img/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
   },
-  $production: {
-    routeRules: {
-      '/': { isr: 3600 },
-      '/products/**': { isr: 1800 },
-      '/profile/**': { isr: 1200 },
-    },
-  },
+  // ISR dihapus — semua halaman mengandung auth state (useSupabaseUser) di Navbar.
+  // ISR/SSG cache Vercel akan menyimpan HTML yang berisi payload sesi user tertentu
+  // dan mengirimkannya ke user lain (ISR cache poisoning). Gunakan SSR murni.
   nitro: {
     compressPublicAssets: true,
   },

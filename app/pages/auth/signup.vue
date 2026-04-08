@@ -97,25 +97,24 @@ async function handleSignup() {
 
   isLoading.value = true
   try {
-    const { data, error } = await supabase.auth.signUp({
+    // Profile data is passed as metadata → DB trigger (handle_new_user) copies
+    // it into public.users via SECURITY DEFINER. This avoids the RLS INSERT block
+    // that occurs when email confirmation is enabled (no session yet).
+    const { error } = await supabase.auth.signUp({
       email: email.value.trim(),
       password: password.value,
+      options: {
+        data: {
+          name: name.value.trim(),
+          username: username.value.trim().toLowerCase(),
+          nrp: nrp.value.trim(),
+          faculty: faculty.value,
+          department: department.value,
+          gender: gender.value,
+        },
+      },
     })
     if (error) throw error
-
-    if (data.user) {
-      const { error: insertError } = await supabase.from('users').insert({
-        id: data.user.id,
-        email: email.value.trim(),
-        name: name.value.trim(),
-        username: username.value.trim().toLowerCase(),
-        nrp: nrp.value.trim(),
-        faculty: faculty.value,
-        department: department.value,
-        gender: gender.value,
-      })
-      if (insertError) throw insertError
-    }
 
     await navigateTo('/auth/signin?signup=success')
   } catch (err) {
