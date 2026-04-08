@@ -17,19 +17,37 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_name       text;
+  v_username   text;
+  v_nrp        text;
+  v_email_pfx  text;
 BEGIN
+  -- Ambil prefix email (NRP) sebagai fallback jika metadata kosong
+  v_email_pfx := split_part(NEW.email, '@', 1);
+
+  v_name     := NULLIF(trim(NEW.raw_user_meta_data->>'name'), '');
+  v_username := NULLIF(lower(trim(NEW.raw_user_meta_data->>'username')), '');
+  v_nrp      := NULLIF(trim(NEW.raw_user_meta_data->>'nrp'), '');
+
+  -- Fallback: gunakan prefix email jika metadata kosong
+  v_name     := COALESCE(v_name, v_email_pfx);
+  v_username := COALESCE(v_username, lower(replace(v_email_pfx, '.', '_')));
+  v_nrp      := COALESCE(v_nrp, v_email_pfx);
+
   INSERT INTO public.users (id, email, name, username, nrp, faculty, department, gender)
   VALUES (
     NEW.id,
     NEW.email,
-    (NEW.raw_user_meta_data->>'name')::text,
-    lower((NEW.raw_user_meta_data->>'username')::text),
-    (NEW.raw_user_meta_data->>'nrp')::text,
-    (NEW.raw_user_meta_data->>'faculty')::text,
-    (NEW.raw_user_meta_data->>'department')::text,
-    (NEW.raw_user_meta_data->>'gender')::text
+    v_name,
+    v_username,
+    v_nrp,
+    NULLIF(trim(NEW.raw_user_meta_data->>'faculty'), ''),
+    NULLIF(trim(NEW.raw_user_meta_data->>'department'), ''),
+    NULLIF(trim(NEW.raw_user_meta_data->>'gender'), '')
   )
   ON CONFLICT (id) DO NOTHING;
+
   RETURN NEW;
 END;
 $$;
