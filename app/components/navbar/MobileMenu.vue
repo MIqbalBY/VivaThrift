@@ -9,6 +9,8 @@ const navUnreadCount = useState('navUnreadCount', () => 0)
 const notifUnreadCount = useState('navNotifUnreadCount', () => 0)
 const showNotifPanel = useState('navShowNotifPanel', () => false)
 
+const isAdmin = computed(() => ['admin', 'moderator'].includes((user.value?.app_metadata as any)?.role))
+
 const show = defineModel<boolean>('show', { required: true })
 
 const emit = defineEmits<{
@@ -159,6 +161,9 @@ const emit = defineEmits<{
                 </span>
               </button>
             </div>
+            <NuxtLink v-if="isAdmin" to="/admin" @click="show = false" class="flex items-center justify-center gap-2 w-full py-2 rounded-lg border border-purple-200 dark:border-purple-700 text-xs font-medium text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition">
+              ⚙️ Admin Dashboard
+            </NuxtLink>
           </div>
         </template>
       </div>
