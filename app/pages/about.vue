@@ -16,7 +16,7 @@ const stats = [
 const team = [
   { name: 'Muhammad Ichlas Rifqi F.', nrp: '5023221003', dept: 'Teknik Biomedik', faculty: 'FTEIC', initials: 'IR', color: '#1e3a8a' },
   { name: 'Tiara Aryacitra Dhaneswari', nrp: '5023221053', dept: 'Teknik Biomedik', faculty: 'FTEIC', initials: 'TA', color: '#0369a1', photo: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev/team-photo/Tiara.jpeg' },
-  { name: 'Muhammad Iqbal Baiduri Yamani', nrp: '5026221103', dept: 'Sistem Informasi', faculty: 'FTEIC', initials: 'IB', color: '#1e3a8a', photo: 'https://jwnisdkjgqnoergsoorf.supabase.co/storage/v1/object/public/team-photo/Iqbal.png' },
+  { name: 'Muhammad Iqbal Baiduri Yamani', nrp: '5026221103', dept: 'Sistem Informasi', faculty: 'FTEIC', initials: 'IB', color: '#1e3a8a', photo: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev/team-photo/Iqbal.png' },
   { name: 'Ravarel Harsha Athalla', nrp: '5026221048', dept: 'Sistem Informasi', faculty: 'FTEIC', initials: 'RH', color: '#0369a1' },
   { name: 'Fathimah Humairoh', nrp: '5002221147', dept: 'Matematika', faculty: 'FSAD', initials: 'FH', color: '#15803d' },
 ]

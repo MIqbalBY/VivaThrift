@@ -47,7 +47,7 @@ export default defineNuxtConfig({
   image: {
     quality: 80,
     format: ['webp', 'avif'],
-    domains: ['jwnisdkjgqnoergsoorf.supabase.co', 'pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev'],
+    domains: ['pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev'],
   },
   fonts: {
     families: [
@@ -69,8 +69,6 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
-        { rel: 'preconnect', href: 'https://jwnisdkjgqnoergsoorf.supabase.co' },
-        { rel: 'dns-prefetch', href: 'https://jwnisdkjgqnoergsoorf.supabase.co' },
         { rel: 'preconnect', href: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev' },
         { rel: 'dns-prefetch', href: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev' },
       ]
