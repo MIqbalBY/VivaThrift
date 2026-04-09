@@ -9,13 +9,13 @@ useSeoMeta({
   ogType: 'website',
   ogTitle: defaultTitle,
   ogDescription: defaultDesc,
-  ogImage: `${siteUrl}/img/thumbnail.jpeg`,
+  ogImage: `${siteUrl}/thumbnail.png`,
   ogUrl: siteUrl,
   ogSiteName: 'VivaThrift',
   twitterCard: 'summary_large_image',
   twitterTitle: defaultTitle,
   twitterDescription: defaultDesc,
-  twitterImage: `${siteUrl}/img/thumbnail.jpeg`,
+  twitterImage: `${siteUrl}/thumbnail.png`,
 })
 
 useHead({
