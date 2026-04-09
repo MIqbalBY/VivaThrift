@@ -241,7 +241,7 @@ const values = [
             <!-- Portrait avatar area — 1:1 square -->
             <div class="relative overflow-hidden aspect-square"
                  :style="`background: linear-gradient(160deg, ${member.color} 0%, #060d1a 100%);`">
-              <img v-if="member.photo" :src="member.photo" :alt="member.name" width="300" height="300" loading="lazy" class="absolute inset-0 w-full h-full object-cover object-top" />
+              <NuxtImg v-if="member.photo" :src="member.photo" :alt="member.name" width="300" height="300" loading="lazy" class="absolute inset-0 w-full h-full object-cover object-top" />
               <span v-else class="absolute inset-0 flex items-center justify-center font-heading text-8xl font-bold select-none"
                     style="color: rgba(255,255,255,0.20);">{{ member.initials }}</span>
               <div class="absolute bottom-0 left-0 w-full h-0.5" :style="`background: ${member.color}; opacity: 0.8;`"></div>
