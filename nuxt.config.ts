@@ -77,6 +77,10 @@ export default defineNuxtConfig({
   routeRules: {
     '/about': { prerender: true },
     '/img/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
+    // File statis OG image harus public agar WhatsApp/Telegram scraper bisa mengaksesnya
+    '/thumbnail.png': { headers: { 'cache-control': 'public, max-age=86400' } },
+    '/*.png': { headers: { 'cache-control': 'public, max-age=86400' } },
+    '/*.ico': { headers: { 'cache-control': 'public, max-age=86400' } },
     // Paksa semua halaman SSR tidak pernah di-cache oleh Vercel CDN / proxy manapun.
     // Ini mencegah ISR cache poisoning (sesi user A tersimpan & dikirim ke user B).
     '/**': { headers: { 'cache-control': 'private, no-store' } },
