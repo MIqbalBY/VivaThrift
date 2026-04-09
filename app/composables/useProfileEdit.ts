@@ -8,11 +8,12 @@ export function useProfileEdit() {
     return session?.user?.id ?? null
   }
 
+  const _shared = useState<any>('userProfile')
   const name       = ref('')
   const username   = ref('')
   const faculty    = ref('')
   const department = ref('')
-  const avatarUrl  = ref('')
+  const avatarUrl  = ref(_shared.value?.avatar_url ?? '')
   const nrp        = ref('')
   const email      = ref('')
   const phone      = ref('')

@@ -252,3 +252,7 @@ html.dark .vt-badge-cod {
   border-color: rgba(34, 197, 94, 0.25) !important;
 }
 html.dark .vt-thumb-active { border-color: #38bdf8 !important; }
+
+/* ── Hide native browser password reveal button (Edge / IE) ── */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear { display: none; }
