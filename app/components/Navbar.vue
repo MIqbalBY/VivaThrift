@@ -25,7 +25,7 @@ const showLogoutConfirm = ref(false)
 const showProfileMenu = ref(false)
 const profileMenuRef = ref<HTMLElement | null>(null)
 
-const isAdmin = computed(() => ['admin', 'moderator'].includes((user.value?.app_metadata as any)?.role))
+const isAdmin = computed(() => ['admin', 'moderator'].includes(user.value?.app_metadata?.role))
 
 // ── Actions ───────────────────────────────────────────────────────
 function goHome() {

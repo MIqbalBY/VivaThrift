@@ -9,7 +9,7 @@ const navUnreadCount = useState('navUnreadCount', () => 0)
 const notifUnreadCount = useState('navNotifUnreadCount', () => 0)
 const showNotifPanel = useState('navShowNotifPanel', () => false)
 
-const isAdmin = computed(() => ['admin', 'moderator'].includes((user.value?.app_metadata as any)?.role))
+const isAdmin = computed(() => ['admin', 'moderator'].includes(user.value?.app_metadata?.role))
 
 const show = defineModel<boolean>('show', { required: true })
 
