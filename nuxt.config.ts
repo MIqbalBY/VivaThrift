@@ -57,7 +57,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'VivaThrift — Marketplace Preloved Mahasiswa ITS Surabaya',
+      title: 'VivaThrift — Marketplace Preloved Khusus Mahasiswa ITS',
       script: [
         {
           innerHTML: '(function(){try{var d=localStorage.getItem("vt-dark");var p=d!==null?d==="1":window.matchMedia("(prefers-color-scheme:dark)").matches;if(p)document.documentElement.classList.add("dark")}catch(e){}})()',
