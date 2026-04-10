@@ -58,6 +58,9 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'VivaThrift — Marketplace Preloved Khusus Mahasiswa ITS',
+      meta: [
+        { name: 'theme-color', content: '#1e3a8a' },
+      ],
       script: [
         {
           innerHTML: '(function(){try{var d=localStorage.getItem("vt-dark");var p=d!==null?d==="1":window.matchMedia("(prefers-color-scheme:dark)").matches;if(p)document.documentElement.classList.add("dark")}catch(e){}})()',
@@ -69,6 +72,7 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/manifest.webmanifest' },
         { rel: 'preconnect', href: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev' },
         { rel: 'dns-prefetch', href: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev' },
       ]

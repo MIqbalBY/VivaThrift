@@ -4,7 +4,7 @@ useSeoMeta({ title: 'Admin Dashboard — VivaThrift' })
 
 const { isDark } = useDarkMode()
 
-const activeTab = ref<'overview' | 'users' | 'products' | 'reports'>('overview')
+const activeTab = ref<'overview' | 'users' | 'products' | 'reports' | 'disputes'>('overview')
 
 // ── Overview stats ────────────────────────────────────────────────────────────
 const stats = ref<any>(null)
@@ -157,8 +157,47 @@ function getReportProductImage(report: any) {
   return primary?.thumbnail_url ?? primary?.media_url ?? null
 }
 
+// ── Disputes ─────────────────────────────────────────────────────────────────
+const disputeTab = ref<'open' | 'in_review' | 'resolved_refund' | 'resolved_partial' | 'resolved_rejected'>('open')
+const adminDisputes = ref<any[]>([])
+const disputesTotal = ref(0)
+const disputesPage = ref(1)
+const disputesLoading = ref(false)
+async function loadDisputes() {
+  disputesLoading.value = true
+  try {
+    const res = await $fetch<any>('/api/admin/disputes', { query: { status: disputeTab.value, page: disputesPage.value, limit: 20 } })
+    adminDisputes.value = res.disputes
+    disputesTotal.value = res.total
+  } catch {}
+  disputesLoading.value = false
+}
+watch(disputeTab, () => { disputesPage.value = 1; loadDisputes() })
+
+const disputeActionLoading = ref<Record<string, boolean>>({})
+
+async function resolveDispute(disputeId: string, resolution: 'refund' | 'partial' | 'rejected') {
+  let refundAmount = 0
+  if (resolution !== 'rejected') {
+    const input = prompt(`Masukkan jumlah refund (Rupiah):`)
+    if (!input) return
+    refundAmount = Number(input)
+    if (isNaN(refundAmount) || refundAmount <= 0) { alert('Jumlah tidak valid.'); return }
+  }
+  const note = prompt('Catatan resolusi (opsional):') ?? ''
+  disputeActionLoading.value[disputeId] = true
+  try {
+    await $fetch(`/api/disputes/${disputeId}`, {
+      method: 'PATCH',
+      body: { action: 'resolve', resolution, refund_amount: refundAmount, resolution_note: note },
+    })
+    await loadDisputes()
+  } catch (e: any) { alert(e?.data?.statusMessage ?? 'Gagal.') }
+  finally { disputeActionLoading.value[disputeId] = false }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
-onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports() })
+onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports(); loadDisputes() })
 </script>
 
 <template>
@@ -176,7 +215,7 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports() })
 
     <!-- Tabs -->
     <div class="flex items-center gap-1 p-1 rounded-xl mb-6 w-fit" :style="isDark ? 'background:rgba(15,23,42,0.70);border:1px solid rgba(255,255,255,0.08);' : 'background:rgba(30,58,138,0.07);border:1px solid rgba(30,58,138,0.10);'">
-      <button v-for="t in ([{ key: 'overview', label: '📊 Overview' }, { key: 'users', label: '👥 Users' }, { key: 'products', label: '📦 Produk' }, { key: 'reports', label: '📢 Reports' }] as const)" :key="t.key" @click="activeTab = t.key"
+      <button v-for="t in ([{ key: 'overview', label: '📊 Overview' }, { key: 'users', label: '👥 Users' }, { key: 'products', label: '📦 Produk' }, { key: 'reports', label: '📢 Reports' }, { key: 'disputes', label: '⚠️ Dispute' }] as const)" :key="t.key" @click="activeTab = t.key"
         class="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
         :class="activeTab === t.key ? 'text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 hover:text-gray-700'"
         :style="activeTab === t.key ? 'background:linear-gradient(to right,#7f1d1d,#dc2626,#ef4444);' : ''"
@@ -444,6 +483,92 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports() })
         <button @click="reportsPage = Math.max(1, reportsPage - 1); loadReports()" :disabled="reportsPage <= 1" class="px-3 py-1 rounded-lg text-xs border disabled:opacity-40" :class="isDark ? 'border-slate-600 text-slate-300' : 'border-gray-200 text-gray-600'">Prev</button>
         <span class="text-xs self-center" :class="isDark ? 'text-slate-400' : 'text-gray-500'">{{ reportsPage }} / {{ Math.ceil(reportsTotal / 20) }}</span>
         <button @click="reportsPage++; loadReports()" :disabled="reportsPage * 20 >= reportsTotal" class="px-3 py-1 rounded-lg text-xs border disabled:opacity-40" :class="isDark ? 'border-slate-600 text-slate-300' : 'border-gray-200 text-gray-600'">Next</button>
+      </div>
+    </div>
+
+    <!-- ═══ DISPUTES TAB ═══ -->
+    <div v-if="activeTab === 'disputes'">
+      <!-- Status filter -->
+      <div class="flex items-center gap-1 p-1 rounded-xl mb-4 w-fit flex-wrap"
+        :style="isDark ? 'background:rgba(15,23,42,0.50);border:1px solid rgba(255,255,255,0.06);' : 'background:rgba(248,250,252,1);border:1px solid rgba(226,232,240,0.50);'">
+        <button v-for="dt in ([
+          { key: 'open', label: 'Terbuka' },
+          { key: 'in_review', label: 'Ditinjau' },
+          { key: 'resolved_refund', label: 'Refund' },
+          { key: 'resolved_partial', label: 'Partial' },
+          { key: 'resolved_rejected', label: 'Ditolak' },
+        ] as const)" :key="dt.key" @click="disputeTab = dt.key"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+          :class="disputeTab === dt.key ? 'bg-red-600 text-white' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 hover:text-gray-700'"
+        >{{ dt.label }}</button>
+      </div>
+
+      <p class="text-xs mb-3" :class="isDark ? 'text-slate-500' : 'text-gray-400'">{{ disputesTotal }} dispute ditemukan</p>
+
+      <!-- Loading -->
+      <div v-if="disputesLoading" class="py-10 flex justify-center">
+        <div class="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" :class="isDark ? 'border-sky-400' : 'border-blue-800'"></div>
+      </div>
+
+      <!-- Dispute rows -->
+      <div v-else class="space-y-3">
+        <div v-for="d in adminDisputes" :key="d.id" class="rounded-xl p-4"
+          :style="isDark
+            ? 'background:rgba(15,23,42,0.70);border:1px solid rgba(255,255,255,0.06);'
+            : 'background:rgba(255,255,255,0.80);border:1px solid rgba(226,232,240,0.50);'"
+        >
+          <div class="flex items-start gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap mb-1">
+                <span class="text-xs font-semibold" :class="isDark ? 'text-sky-400' : 'text-blue-700'">{{ d.buyer?.name ?? '—' }}</span>
+                <span class="text-[10px]" :class="isDark ? 'text-slate-500' : 'text-gray-400'">→</span>
+                <span class="text-xs font-semibold" :class="isDark ? 'text-amber-400' : 'text-amber-700'">{{ d.seller?.name ?? '—' }}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                  :style="d.status === 'open' ? 'background:rgba(217,119,6,0.12);color:#d97706;' : 'background:rgba(124,58,237,0.12);color:#7c3aed;'">
+                  {{ d.status }}
+                </span>
+              </div>
+              <p class="text-sm mb-1" :class="isDark ? 'text-slate-300' : 'text-gray-700'">{{ d.reason }}</p>
+              <p class="text-[11px]" :class="isDark ? 'text-slate-500' : 'text-gray-400'">
+                Order: {{ formatRp(d.order?.total_amount ?? 0) }} · {{ new Date(d.created_at).toLocaleDateString('id-ID') }}
+              </p>
+            </div>
+            <!-- Action buttons (only for open/in_review) -->
+            <div v-if="['open', 'in_review'].includes(d.status)" class="flex flex-col gap-1 shrink-0">
+              <button @click="resolveDispute(d.id, 'refund')" :disabled="disputeActionLoading[d.id]"
+                class="px-3 py-1 rounded-lg text-xs font-bold transition disabled:opacity-50"
+                :class="isDark ? 'bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'"
+              >Refund Penuh</button>
+              <button @click="resolveDispute(d.id, 'partial')" :disabled="disputeActionLoading[d.id]"
+                class="px-3 py-1 rounded-lg text-xs font-bold transition disabled:opacity-50"
+                :class="isDark ? 'bg-sky-900/30 text-sky-400 hover:bg-sky-900/50' : 'bg-sky-50 text-sky-600 hover:bg-sky-100'"
+              >Partial</button>
+              <button @click="resolveDispute(d.id, 'rejected')" :disabled="disputeActionLoading[d.id]"
+                class="px-3 py-1 rounded-lg text-xs font-bold transition disabled:opacity-50"
+                :class="isDark ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50' : 'bg-red-50 text-red-600 hover:bg-red-100'"
+              >Tolak</button>
+            </div>
+          </div>
+          <!-- Resolution note -->
+          <div v-if="d.resolution_note" class="mt-2 p-2 rounded-lg text-xs"
+            :style="isDark ? 'background:rgba(255,255,255,0.04);' : 'background:#f8fafc;'">
+            <span class="font-semibold" :class="isDark ? 'text-slate-300' : 'text-gray-600'">Resolusi:</span>
+            <span class="ml-1" :class="isDark ? 'text-slate-400' : 'text-gray-500'">{{ d.resolution_note }}</span>
+            <span v-if="d.refund_amount > 0" class="ml-2 font-bold text-emerald-600">{{ formatRp(d.refund_amount) }}</span>
+          </div>
+        </div>
+
+        <div v-if="adminDisputes.length === 0" class="text-center py-12">
+          <span class="text-4xl block mb-2">⚠️</span>
+          <p class="text-sm" :class="isDark ? 'text-slate-500' : 'text-gray-400'">Tidak ada dispute di tab ini.</p>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="disputesTotal > 20" class="flex justify-center gap-2 mt-4">
+        <button @click="disputesPage = Math.max(1, disputesPage - 1); loadDisputes()" :disabled="disputesPage <= 1" class="px-3 py-1 rounded-lg text-xs border disabled:opacity-40" :class="isDark ? 'border-slate-600 text-slate-300' : 'border-gray-200 text-gray-600'">Prev</button>
+        <span class="text-xs self-center" :class="isDark ? 'text-slate-400' : 'text-gray-500'">{{ disputesPage }} / {{ Math.ceil(disputesTotal / 20) }}</span>
+        <button @click="disputesPage++; loadDisputes()" :disabled="disputesPage * 20 >= disputesTotal" class="px-3 py-1 rounded-lg text-xs border disabled:opacity-40" :class="isDark ? 'border-slate-600 text-slate-300' : 'border-gray-200 text-gray-600'">Next</button>
       </div>
     </div>
 
