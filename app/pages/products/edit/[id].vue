@@ -109,7 +109,7 @@ async function saveEdits() {
 
   isSubmitting.value = true
   try {
-    const productId = product.value!.id
+    const productId = product.value!.id as string
     const newSlug   = generateSlug(stripUrls(form.title.trim()), productId)
 
     const stockVal = Number(form.stock) || 0
@@ -154,7 +154,7 @@ async function saveEdits() {
           .from('product_media')
           .insert({
             product_id: productId,
-            media_url:  media.dbUrl,
+            media_url:  media.dbUrl!,
             media_type: media.mediaType,
             is_primary: media.isCover,
             thumbnail_url: thumbnailUrl,
