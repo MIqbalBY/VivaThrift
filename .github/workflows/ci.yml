@@ -38,3 +38,4 @@ jobs:
           SUPABASE_KEY: placeholder-key
           NUXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NUXT_PUBLIC_SUPABASE_KEY: placeholder-key
+          SUPABASE_SERVICE_KEY: placeholder-service-key
