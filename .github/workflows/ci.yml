@@ -36,3 +36,5 @@ jobs:
           NITRO_PRESET: node-server
           SUPABASE_URL: https://placeholder.supabase.co
           SUPABASE_KEY: placeholder-key
+          NUXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NUXT_PUBLIC_SUPABASE_KEY: placeholder-key
