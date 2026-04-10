@@ -88,7 +88,7 @@ async function submitProduct() {
     const { uploadToR2 } = useR2Upload()
 
     for (const media of mediaList.value) {
-      const { publicUrl: mediaUrl } = await uploadToR2(media.file, 'product-media')
+      const { publicUrl: mediaUrl } = await uploadToR2(media.file!, 'product-media')
 
       let thumbnailUrl = null
       if (media.thumbnailFile) {
@@ -101,7 +101,7 @@ async function submitProduct() {
         .insert({
           product_id: product.id,
           media_url: mediaUrl,
-          media_type: media.file.type,
+          media_type: media.file!.type,
           is_primary: media.isCover,
           thumbnail_url: thumbnailUrl,
         })
@@ -111,7 +111,7 @@ async function submitProduct() {
     const finalSlug = generateSlug(stripUrls(form.title.trim()), product.id)
     await navigateTo(`/products/${finalSlug}`)
   } catch (err) {
-    errorMsg.value = err.message ?? 'Terjadi kesalahan, coba lagi.'
+    errorMsg.value = (err as Error).message ?? 'Terjadi kesalahan, coba lagi.'
   } finally {
     isSubmitting.value = false
   }
@@ -207,7 +207,7 @@ async function submitProduct() {
     :show="showThumbModal"
     :video-src="thumbVideoSrc"
     :initial-preview="thumbInitialPreview"
-    :initial-file="thumbInitialFile"
+    :initial-file="thumbInitialFile ?? undefined"
     @confirm="handleThumbConfirm"
     @cancel="showThumbModal = false"
   />

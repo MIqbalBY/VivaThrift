@@ -63,7 +63,7 @@ export function useRecentlyViewed() {
       if (reviews) {
         for (const r of reviews) {
           if (!ratingsMap[r.reviewee_id]) ratingsMap[r.reviewee_id] = []
-          ratingsMap[r.reviewee_id].push(r.rating_seller)
+          ratingsMap[r.reviewee_id]!.push(r.rating_seller!)
         }
       }
     }

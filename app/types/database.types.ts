@@ -656,9 +656,11 @@ export type Database = {
           condition: string | null
           created_at: string | null
           description: string | null
+          height: number | null
           id: string
           is_cod: boolean | null
           is_negotiable: boolean | null
+          length: number | null
           moderated_at: string | null
           moderated_by: string | null
           moderation_reason: string | null
@@ -670,15 +672,19 @@ export type Database = {
           stock: number | null
           title: string
           updated_at: string | null
+          weight: number | null
+          width: number | null
         }
         Insert: {
           category_id?: number | null
           condition?: string | null
           created_at?: string | null
           description?: string | null
+          height?: number | null
           id?: string
           is_cod?: boolean | null
           is_negotiable?: boolean | null
+          length?: number | null
           moderated_at?: string | null
           moderated_by?: string | null
           moderation_reason?: string | null
@@ -690,15 +696,19 @@ export type Database = {
           stock?: number | null
           title: string
           updated_at?: string | null
+          weight?: number | null
+          width?: number | null
         }
         Update: {
           category_id?: number | null
           condition?: string | null
           created_at?: string | null
           description?: string | null
+          height?: number | null
           id?: string
           is_cod?: boolean | null
           is_negotiable?: boolean | null
+          length?: number | null
           moderated_at?: string | null
           moderated_by?: string | null
           moderation_reason?: string | null
@@ -710,6 +720,8 @@ export type Database = {
           stock?: number | null
           title?: string
           updated_at?: string | null
+          weight?: number | null
+          width?: number | null
         }
         Relationships: [
           {
@@ -809,6 +821,7 @@ export type Database = {
           created_at: string | null
           id: string
           order_id: string
+          order_item_id: string | null
           product_id: string
           rating_product: number | null
           rating_seller: number | null
@@ -821,6 +834,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           order_id: string
+          order_item_id?: string | null
           product_id: string
           rating_product?: number | null
           rating_seller?: number | null
@@ -833,6 +847,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           order_id?: string
+          order_item_id?: string | null
           product_id?: string
           rating_product?: number | null
           rating_seller?: number | null

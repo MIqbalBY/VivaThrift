@@ -6,7 +6,7 @@ const route = useRoute()
 const supabase = useSupabaseClient()
 const currentUser = useSupabaseUser()
 
-const param = route.params.id
+const param = route.params.id as string
 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param)
 
 const { data: product } = await useAsyncData(`edit-product-${param}`, async () => {
@@ -109,7 +109,7 @@ async function saveEdits() {
 
   isSubmitting.value = true
   try {
-    const productId = product.value.id
+    const productId = product.value!.id
     const newSlug   = generateSlug(stripUrls(form.title.trim()), productId)
 
     const stockVal = Number(form.stock) || 0
@@ -161,7 +161,7 @@ async function saveEdits() {
           })
         if (insError) throw insError
       } else {
-        const { publicUrl: mediaUrl } = await uploadToR2(media.file, 'product-media')
+        const { publicUrl: mediaUrl } = await uploadToR2(media.file!, 'product-media')
 
         let thumbnailUrl = null
         if (media.thumbnailFile) {
@@ -174,7 +174,7 @@ async function saveEdits() {
           .insert({
             product_id: productId,
             media_url:  mediaUrl,
-            media_type: media.file.type,
+            media_type: media.file!.type,
             is_primary: media.isCover,
             thumbnail_url: thumbnailUrl,
           })
@@ -188,7 +188,7 @@ async function saveEdits() {
     clearNuxtData(`edit-product-${param}`)
     await navigateTo(`/products/${newSlug}`)
   } catch (err) {
-    errorMsg.value = err.message ?? 'Terjadi kesalahan, coba lagi.'
+    errorMsg.value = (err as Error).message ?? 'Terjadi kesalahan, coba lagi.'
   } finally {
     isSubmitting.value = false
   }
@@ -198,7 +198,7 @@ async function saveEdits() {
 async function deleteProduct() {
   isDeleting.value = true
   try {
-    const productId = product.value.id
+    const productId = product.value!.id
     const { error: chatError } = await supabase
       .from('chats')
       .delete()
@@ -212,7 +212,7 @@ async function deleteProduct() {
     if (error) throw error
     await navigateTo('/')
   } catch (err) {
-    errorMsg.value = err.message ?? 'Gagal menghapus produk.'
+    errorMsg.value = (err as Error).message ?? 'Gagal menghapus produk.'
     showDeleteConfirm.value = false
   } finally {
     isDeleting.value = false
@@ -358,7 +358,7 @@ async function deleteProduct() {
     :show="showThumbModal"
     :video-src="thumbVideoSrc"
     :initial-preview="thumbInitialPreview"
-    :initial-file="thumbInitialFile"
+    :initial-file="thumbInitialFile ?? undefined"
     @confirm="handleThumbConfirm"
     @cancel="showThumbModal = false"
   />
