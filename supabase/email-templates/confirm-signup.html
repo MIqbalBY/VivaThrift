@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Konfirmasi Email - VivaThrift</title>
+</head>
+<body style="margin:0;padding:0;background-color:#eef2ff;font-family:'Segoe UI',Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#eef2ff;padding:40px 16px;">
+<tr><td align="center">
+
+  <!-- Container -->
+  <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(30,58,138,0.10);">
+
+    <!-- Header -->
+    <tr>
+      <td align="center" style="background:#1e3a8a;background:linear-gradient(135deg,#162d6e 0%,#1e3a8a 50%,#1e40af 100%);padding:36px 24px 32px;">
+        <img
+          src="https://www.vivathrift.store/img/logo-vivathrift.png"
+          alt="VivaThrift"
+          width="56" height="56"
+          style="display:block;width:56px;height:56px;margin:0 auto 16px auto;border-radius:12px;background-color:#ffffff;padding:6px;box-shadow:0 2px 12px rgba(0,0,0,0.20);"
+        />
+        <span style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:0.3px;">VivaThrift</span>
+        <br/>
+        <span style="font-size:12px;color:rgba(255,255,255,0.70);letter-spacing:0.5px;">Marketplace Preloved Mahasiswa ITS</span>
+      </td>
+    </tr>
+
+    <!-- Body -->
+    <tr>
+      <td style="padding:36px 32px 28px;">
+        <!-- Greeting badge -->
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+          <tr>
+            <td style="background-color:#eef2ff;border-radius:20px;padding:6px 14px;">
+              <span style="font-size:13px;color:#1e3a8a;font-weight:600;">Selamat Datang di VivaThrift</span>
+            </td>
+          </tr>
+        </table>
+
+        <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:700;color:#0f172a;">Konfirmasi Email Kamu</h1>
+
+        <p style="margin:0 0 24px 0;font-size:14px;color:#475569;line-height:1.7;">
+          Terima kasih sudah mendaftar! Satu langkah lagi sebelum kamu bisa mulai jual beli barang preloved di lingkungan ITS.
+        </p>
+
+        <!-- CTA Button -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td align="center" style="padding:4px 0 8px;">
+              <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{ .ConfirmationURL }}" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="17%" fillcolor="#1e3a8a">
+              <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;">Konfirmasi Email</center>
+              </v:roundrect>
+              <![endif]-->
+              <!--[if !mso]><!-->
+              <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;background:#1e3a8a;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 40px;border-radius:8px;box-shadow:0 4px 12px rgba(30,58,138,0.30);letter-spacing:0.3px;">
+                Konfirmasi Email
+              </a>
+              <!--<![endif]-->
+            </td>
+          </tr>
+        </table>
+
+        <!-- Fallback link -->
+        <p style="margin:20px 0 0 0;font-size:12px;color:#94a3b8;line-height:1.6;text-align:center;">
+          Tombol tidak berfungsi? Salin link berikut ke browser:
+        </p>
+        <p style="margin:4px 0 0 0;font-size:11px;color:#3b82f6;word-break:break-all;text-align:center;line-height:1.5;">
+          {{ .ConfirmationURL }}
+        </p>
+
+        <!-- Divider -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0 20px;">
+          <tr><td style="border-top:1px solid #e2e8f0;"></td></tr>
+        </table>
+
+        <!-- Security notice -->
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td width="20" valign="top" style="padding-right:8px;">
+              <span style="font-size:14px;">&#128274;</span>
+            </td>
+            <td style="font-size:12px;color:#64748b;line-height:1.6;">
+              Jika kamu tidak membuat akun di VivaThrift, abaikan email ini. Link konfirmasi akan kadaluarsa dalam 24 jam.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td align="center" style="background-color:#f8fafc;padding:20px 32px;border-top:1px solid #e2e8f0;">
+        <p style="margin:0;font-size:12px;color:#1e3a8a;font-weight:600;">
+          &copy; 2026 VivaThrift &mdash; Marketplace Preloved ITS
+        </p>
+        <p style="margin:8px 0 0 0;font-size:11px;color:#64748b;">
+          <a href="https://www.vivathrift.store" style="color:#2563eb;text-decoration:none;font-weight:600;">www.vivathrift.store</a>
+        </p>
+      </td>
+    </tr>
+
+  </table>
+
+  <!-- Outside footer text -->
+  <p style="margin:24px 0 0 0;font-size:11px;color:#94a3b8;text-align:center;">
+    Email ini dikirim oleh VivaThrift. Mohon jangan membalas email ini.
+  </p>
+
+</td></tr>
+</table>
+
+</body>
+</html>

@@ -41,6 +41,7 @@ onBeforeUnmount(() => cleanupPresence())
       <slot />
     </main>
     <LazyFooter />
+    <AppToast />
   </div>
 </template>
 

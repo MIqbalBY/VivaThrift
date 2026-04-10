@@ -2,6 +2,8 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 import { resolveServerUid } from '../../utils/resolve-server-uid'
 import { assertTransition } from '../../utils/state-machine'
 import { createBiteshipOrder } from '../../utils/biteship'
+import { sendEmail } from '../../utils/send-email'
+import { emailOrderShipped, emailOrderCompletedSeller } from '../../utils/email-templates'
 
 // PATCH /api/orders/:id
 // Body: { action: 'ship', tracking_number: string, courier_name?: string }
@@ -54,11 +56,12 @@ export default defineEventHandler(async (event) => {
       id, status, total_amount, offer_id, seller_id, buyer_id,
       shipping_method, shipping_cost, platform_fee, meetup_otp, meetup_location, courier_code, courier_service,
       seller:users!seller_id (
-        id, name, bank_code, bank_account_number, bank_account_name
+        id, name, email, bank_code, bank_account_number, bank_account_name
       ),
       buyer:users!buyer_id (
-        id, name
-      )
+        id, name, email
+      ),
+      order_items ( quantity, product:products ( title ) )
     `)
     .eq('id', orderId)
     .single()
@@ -203,6 +206,20 @@ export default defineEventHandler(async (event) => {
       })
     } catch { /* best-effort */ }
 
+    // Email buyer (best-effort, fire-and-forget)
+    const buyerUser = order.buyer as any
+    const orderItem = ((order as any).order_items ?? [])[0] as any
+    if (buyerUser?.email) {
+      const mail = emailOrderShipped({
+        buyerName:      buyerUser.name ?? 'Pembeli',
+        orderId,
+        productTitle:   orderItem?.product?.title ?? 'Produk',
+        trackingNumber,
+        courierName:    courierName,
+      })
+      sendEmail({ to: buyerUser.email, subject: mail.subject, html: mail.html }).catch(() => {})
+    }
+
     return { orderId, status: 'shipped', tracking_number: trackingNumber, biteship_order_id: biteshipOrderId }
   }
 
@@ -329,6 +346,21 @@ export default defineEventHandler(async (event) => {
       })
     } catch { /* best-effort */ }
 
+    // Email seller (best-effort, fire-and-forget)
+    const meetupSeller = order.seller as any
+    const meetupItem   = ((order as any).order_items ?? [])[0] as any
+    if (meetupSeller?.email) {
+      const sellerReceives = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0)
+      const mail = emailOrderCompletedSeller({
+        sellerName:         meetupSeller.name ?? 'Penjual',
+        orderId,
+        productTitle:       meetupItem?.product?.title ?? 'Produk',
+        sellerReceives,
+        disbursementSkipped,
+      })
+      sendEmail({ to: meetupSeller.email, subject: mail.subject, html: mail.html }).catch(() => {})
+    }
+
     return {
       orderId,
       status: 'completed',
@@ -429,6 +461,21 @@ export default defineEventHandler(async (event) => {
       reference_id: orderId,
     })
   } catch { /* best-effort */ }
+
+  // Email seller (best-effort, fire-and-forget)
+  const sellerUser  = order.seller as any
+  const completeItem = ((order as any).order_items ?? [])[0] as any
+  if (sellerUser?.email) {
+    const sellerReceives = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0)
+    const mail = emailOrderCompletedSeller({
+      sellerName:         sellerUser.name ?? 'Penjual',
+      orderId,
+      productTitle:       completeItem?.product?.title ?? 'Produk',
+      sellerReceives,
+      disbursementSkipped,
+    })
+    sendEmail({ to: sellerUser.email, subject: mail.subject, html: mail.html }).catch(() => {})
+  }
 
   return {
     orderId,

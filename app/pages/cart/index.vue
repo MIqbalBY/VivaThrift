@@ -10,8 +10,8 @@ const user = useSupabaseUser()
 const loading = ref(true)
 const validating = ref(false)
 const stockWarnings = ref([])
-const toast = ref('')
 const checkoutError = ref('')
+const toast = useToast()
 
 async function load() {
   loading.value = true
@@ -28,7 +28,7 @@ async function handleValidateAndCheckout() {
     const { removed } = await validateCartStock()
     if (removed.length > 0) {
       stockWarnings.value = removed
-      showToast(`${removed.length} produk dihapus karena tidak tersedia.`)
+      toast.warning(`${removed.length} produk dihapus karena tidak tersedia.`)
       return
     }
     await navigateTo('/cart/checkout')
@@ -37,11 +37,6 @@ async function handleValidateAndCheckout() {
   } finally {
     validating.value = false
   }
-}
-
-function showToast(msg) {
-  toast.value = msg
-  setTimeout(() => toast.value = '', 4000)
 }
 
 function getImage(item) {
@@ -85,17 +80,6 @@ onMounted(load)
         {{ cartCount }} item
       </span>
     </div>
-
-    <!-- Toast -->
-    <Transition name="vt-toast">
-      <div
-        v-if="toast"
-        class="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full text-sm font-semibold text-white shadow-lg"
-        style="background: linear-gradient(135deg, #dc2626, #b91c1c);"
-      >
-        {{ toast }}
-      </div>
-    </Transition>
 
     <!-- Loading skeleton -->
     <div v-if="loading" class="space-y-4">
@@ -254,7 +238,3 @@ onMounted(load)
   </div>
 </template>
 
-<style scoped>
-.vt-toast-enter-active, .vt-toast-leave-active { transition: all 0.25s ease; }
-.vt-toast-enter-from, .vt-toast-leave-to { opacity: 0; transform: translate(-50%, -12px); }
-</style>

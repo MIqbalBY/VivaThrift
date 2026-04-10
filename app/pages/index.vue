@@ -593,8 +593,23 @@ watch(sentinelRef, () => nextTick(setupObserver))
 
       </div>
 
+      <!-- Product Grid Skeleton (initial load) -->
+      <div v-if="productsLoading && products.length === 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
+        <div v-for="i in 12" :key="i" class="rounded-2xl overflow-hidden animate-pulse" :class="isDark ? 'bg-slate-800/60' : 'bg-white/60'">
+          <div class="aspect-square" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
+          <div class="p-3 space-y-2.5">
+            <div class="h-4 rounded-full w-3/4" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
+            <div class="h-5 rounded-full w-1/2" :class="isDark ? 'bg-slate-600' : 'bg-gray-300'" />
+            <div class="flex items-center gap-2 pt-1">
+              <div class="w-6 h-6 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
+              <div class="h-3 rounded-full w-20" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Product Grid -->
-      <div :ref="reveal" class="vt-stagger-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
+      <div v-else :ref="reveal" class="vt-stagger-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
         <ProductCard
           v-for="product in products"
           :key="product.id"

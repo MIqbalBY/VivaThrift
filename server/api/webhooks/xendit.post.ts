@@ -1,4 +1,6 @@
 import { supabaseAdmin } from '../../utils/supabase-admin'
+import { sendEmail } from '../../utils/send-email'
+import { emailOrderConfirmedBuyer, emailNewOrderSeller } from '../../utils/email-templates'
 
 // POST /api/webhooks/xendit
 //
@@ -87,7 +89,9 @@ export default defineEventHandler(async (event) => {
   // ── Fetch current orders to determine shipping_method per order ───────────
   const { data: currentOrders } = await supabaseAdmin
     .from('orders')
-    .select('id, shipping_method')
+    .select(`id, shipping_method, shipping_cost, meetup_location, total_amount, offer_id,
+      buyer:users!buyer_id  ( id, name, email ),
+      seller:users!seller_id ( id, name, email )`)
     .eq('xendit_invoice_id', xenditInvoiceId)
     .in('status', ['pending_payment'])
 
@@ -170,6 +174,47 @@ export default defineEventHandler(async (event) => {
   const { error: paymentErr } = await supabaseAdmin.from('payments').insert(paymentRows)
   if (paymentErr) {
     console.error('[xendit-webhook] Failed to insert payment records:', paymentErr)
+  }
+
+  // ── Send transactional emails (best-effort, non-blocking) ────────────────
+  for (const co of currentOrders) {
+    const buyer  = co.buyer  as any
+    const seller = co.seller as any
+    if (!buyer?.email || !seller?.email) continue
+
+    // Load product title from order_items
+    const { data: items } = await supabaseAdmin
+      .from('order_items')
+      .select('quantity, product:products ( title )')
+      .eq('order_id', co.id)
+      .limit(1)
+    const item = items?.[0] as any
+    const productTitle = item?.product?.title ?? 'Produk'
+    const quantity     = item?.quantity ?? 1
+
+    try {
+      const buyerEmail = emailOrderConfirmedBuyer({
+        buyerName:      buyer.name ?? 'Pembeli',
+        orderId:        co.id,
+        productTitle,
+        quantity,
+        totalAmount:    co.total_amount ?? 0,
+        shippingMethod: (co.shipping_method as 'cod' | 'shipping') ?? 'shipping',
+        meetupLocation: co.meetup_location,
+      })
+      const sellerEmail = emailNewOrderSeller({
+        sellerName:     seller.name ?? 'Penjual',
+        orderId:        co.id,
+        productTitle,
+        quantity,
+        totalAmount:    co.total_amount ?? 0,
+        buyerName:      buyer.name ?? 'Pembeli',
+        shippingMethod: (co.shipping_method as 'cod' | 'shipping') ?? 'shipping',
+      })
+      // Fire-and-forget — don't block webhook response
+      sendEmail({ to: buyer.email,  subject: buyerEmail.subject,  html: buyerEmail.html  }).catch(() => {})
+      sendEmail({ to: seller.email, subject: sellerEmail.subject, html: sellerEmail.html }).catch(() => {})
+    } catch { /* best-effort */ }
   }
 
   return {

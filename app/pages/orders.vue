@@ -248,10 +248,16 @@ onMounted(async () => {
       </button>
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-      <div class="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" :class="isDark ? 'border-sky-400' : 'border-blue-800'"></div>
-      <p class="text-sm" :class="isDark ? 'text-slate-400' : 'text-gray-400'">Memuat pesanan…</p>
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="space-y-4">
+      <div v-for="i in 4" :key="i" class="rounded-xl p-4 animate-pulse flex gap-4" :class="isDark ? 'bg-slate-800/60' : 'bg-white/60'">
+        <div class="w-16 h-16 rounded-lg shrink-0" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
+        <div class="flex-1 space-y-2">
+          <div class="h-4 rounded-full w-2/3" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
+          <div class="h-3 rounded-full w-1/3" :class="isDark ? 'bg-slate-700/60' : 'bg-gray-100'" />
+          <div class="h-3 rounded-full w-1/4" :class="isDark ? 'bg-slate-600' : 'bg-gray-300'" />
+        </div>
+      </div>
     </div>
 
     <!-- Error -->

@@ -37,6 +37,7 @@ onBeforeUnmount(() => cleanupPresence())
     <main class="flex-1 overflow-hidden">
       <slot />
     </main>
+    <AppToast />
   </div>
 </template>
 
