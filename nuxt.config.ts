@@ -14,7 +14,7 @@ export default defineNuxtConfig({
     },
   },
   site: {
-    url: 'https://vivathrift.store',
+    url: 'https://www.vivathrift.store',
     name: 'VivaThrift',
   },
   css: [
@@ -57,7 +57,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'VivaThrift - Situs Jual Beli Barang Preloved di ITS!',
+      title: 'VivaThrift — Marketplace Preloved Mahasiswa ITS Surabaya',
       script: [
         {
           innerHTML: '(function(){try{var d=localStorage.getItem("vt-dark");var p=d!==null?d==="1":window.matchMedia("(prefers-color-scheme:dark)").matches;if(p)document.documentElement.classList.add("dark")}catch(e){}})()',

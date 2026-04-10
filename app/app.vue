@@ -1,6 +1,6 @@
 <script setup>
-const siteUrl = 'https://vivathrift.store'
-const defaultTitle = 'VivaThrift — Marketplace Preloved Mahasiswa ITS'
+const siteUrl = 'https://www.vivathrift.store'
+const defaultTitle = 'VivaThrift — Marketplace Preloved Mahasiswa ITS Surabaya'
 const defaultDesc = 'Cari dan jual barang bekas berkualitas khusus untuk mahasiswa ITS Surabaya. Fashion, elektronik, buku, dan lainnya dengan harga terjangkau.'
 
 useSeoMeta({
