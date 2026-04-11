@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { facultyAcronym } from '~/data/faculties'
 
+const { mediaUrl } = useMediaUrl()
+
 const props = defineProps({
   name: { type: String, default: '' },
   username: { type: String, default: '' },
@@ -45,6 +47,17 @@ const localBio = computed({
   get: () => props.bio,
   set: (v) => emit('update:bio', v),
 })
+
+const avatarLoadFailed = ref(false)
+
+const resolvedAvatarUrl = computed(() => {
+  if (!props.avatarUrl || avatarLoadFailed.value) return undefined
+  return mediaUrl(props.avatarUrl)
+})
+
+watch(() => props.avatarUrl, () => {
+  avatarLoadFailed.value = false
+})
 </script>
 
 <template>
@@ -60,7 +73,7 @@ const localBio = computed({
     <div class="vt-card p-6 md:p-8 flex flex-col sm:flex-row items-center gap-6">
       <div class="relative group shrink-0">
         <div class="w-24 h-24 rounded-full overflow-hidden ring-4 ring-blue-100 dark:ring-blue-900/40">
-          <img v-if="avatarUrl" :src="avatarUrl" alt="Foto profil" width="96" height="96" class="w-full h-full object-cover" />
+          <img v-if="resolvedAvatarUrl" :src="resolvedAvatarUrl" alt="Foto profil" width="96" height="96" class="w-full h-full object-cover" @error="avatarLoadFailed = true" />
           <div v-else class="w-full h-full flex items-center justify-center text-3xl font-bold text-white"
                :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(135deg, #162d6e, #1e3a8a, #1e40af)'">
             {{ name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?' }}
