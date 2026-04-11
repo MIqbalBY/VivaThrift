@@ -30,15 +30,12 @@ function next() {
         video-class="w-full aspect-square object-contain"
         preload="metadata"
       />
-      <NuxtImg
+      <img
         v-else
         :src="activeMedia.url"
         :alt="productTitle"
         width="600"
         height="600"
-        densities="1x 2x"
-        format="webp"
-        quality="85"
         class="w-full aspect-square object-cover cursor-zoom-in"
         @click="emit('open-lightbox')"
       />

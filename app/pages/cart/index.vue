@@ -136,12 +136,12 @@ onMounted(load)
               class="flex gap-3 p-4"
             >
               <NuxtLink :to="`/products/${item.product?.slug ?? item.product_id}`" class="shrink-0">
-                <NuxtImg
+                <img
                   v-if="getImage(item)"
                   :src="getImage(item)"
                   :alt="item.product?.title"
                   width="88" height="88"
-                  format="webp" quality="80" loading="lazy"
+                  loading="lazy"
                   class="w-[88px] h-[88px] rounded-lg object-cover"
                 />
                 <div v-else class="w-[88px] h-[88px] rounded-lg flex items-center justify-center" :class="isDark ? 'bg-slate-700' : 'bg-gray-100'">

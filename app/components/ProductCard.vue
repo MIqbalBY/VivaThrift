@@ -42,16 +42,13 @@ async function onWishlistClick(e: Event) {
   >
     <!-- Image -->
     <div class="relative overflow-hidden rounded-t-xl">
-      <NuxtImg
+      <img
         v-if="getPrimaryImage(product)"
         :src="mediaUrl(getPrimaryImage(product))!"
         :alt="product.title"
         width="300"
         height="300"
         loading="lazy"
-        densities="1x 2x"
-        format="webp"
-        quality="85"
         class="aspect-square w-full object-cover rounded-t-xl transition-transform duration-500"
         :class="isSold ? 'opacity-60' : 'group-hover:scale-105'"
       />

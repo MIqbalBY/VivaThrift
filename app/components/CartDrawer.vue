@@ -5,7 +5,7 @@ const { cartItems, cartOpen, cartTotal, cartCount, removeFromCart, updateQuantit
 function close() { cartOpen.value = false }
 function getImage(item: any) {
   const media = item.product?.product_media
-  return (media?.find((m: any) => m.is_primary) ?? media?.[0])?.media_url ?? null
+  return mediaUrl((media?.find((m: any) => m.is_primary) ?? media?.[0])?.media_url ?? null)
 }
 </script>
 
@@ -64,12 +64,12 @@ function getImage(item: any) {
               >
                 <!-- Image -->
                 <NuxtLink :to="`/products/${item.product?.slug ?? item.product_id}`" @click="close" class="shrink-0">
-                  <NuxtImg
+                  <img
                     v-if="getImage(item)"
                     :src="getImage(item)"
                     :alt="item.product?.title"
                     width="72" height="72"
-                    format="webp" quality="80" loading="lazy"
+                    loading="lazy"
                     class="w-[72px] h-[72px] rounded-lg object-cover"
                   />
                   <div v-else class="w-[72px] h-[72px] rounded-lg flex items-center justify-center" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'">

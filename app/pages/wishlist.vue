@@ -79,12 +79,12 @@ onMounted(async () => {
       >
         <!-- Image -->
         <NuxtLink :to="`/products/${product.slug ?? product.id}`" class="relative overflow-hidden">
-          <NuxtImg
+          <img
             v-if="product.product_media?.find(m => m.is_primary) ?? product.product_media?.[0]"
             :src="mediaUrl((product.product_media?.find(m => m.is_primary) ?? product.product_media?.[0])?.media_url)"
             :alt="product.title"
             width="300" height="300"
-            loading="lazy" format="webp" quality="85"
+            loading="lazy"
             class="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div v-else class="aspect-square bg-gray-100 flex items-center justify-center">
