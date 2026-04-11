@@ -1,4 +1,6 @@
 import { supabaseAdmin } from '../../utils/supabase-admin'
+import { processBiteshipWebhook } from '../../utils/biteship-webhook-handler'
+import { verifyOptionalBiteshipWebhookAuth } from '../../utils/webhook-auth'
 
 // POST /api/webhooks/biteship
 //
@@ -6,81 +8,97 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 // Register this URL in Biteship Dashboard → Settings → Webhook URL:
 //   https://www.vivathrift.store/api/webhooks/biteship
 //
+// Security:
+//   Biteship docs mention webhook authentication can be configured from the dashboard.
+//   This handler supports either:
+//   - Bearer/custom token via BITESHIP_WEBHOOK_TOKEN
+//   - Basic Auth via BITESHIP_WEBHOOK_BASIC_USER + BITESHIP_WEBHOOK_BASIC_PASSWORD
+//
 // Biteship webhook payload (order_status type):
 //   { event: "order.status", order_id, courier_tracking_id, status, ... }
 //
 // Statuses: confirmed, allocated, picking_up, picked, dropping_off, delivered, rejected, cancelled, on_hold, courier_not_found
 
-const BITESHIP_TO_NOTIF: Record<string, { title: string; body: string } | null> = {
-  picked:       { title: 'Paketmu sudah dipickup kurir!', body: 'Kurir sudah mengambil paketmu dari penjual.' },
-  dropping_off: { title: 'Paketmu sedang diantar!', body: 'Kurir sedang dalam perjalanan ke alamatmu.' },
-  delivered:    { title: 'Paket sudah sampai!', body: 'Paketmu sudah diterima. Jangan lupa konfirmasi pesanan ya.' },
-  rejected:     { title: 'Pengiriman bermasalah', body: 'Kurir menolak pengiriman. Hubungi penjual untuk info lebih lanjut.' },
-  on_hold:      { title: 'Pengiriman tertahan', body: 'Paketmu sedang ditahan di gudang kurir. Hubungi kurir untuk detail.' },
+async function filterDuplicateNotifications(rows: Array<Record<string, string>>) {
+  if (!rows.length) {
+    return rows
+  }
+
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+  const existenceChecks = await Promise.all(rows.map(async (row) => {
+    const { data } = await supabaseAdmin
+      .from('notifications')
+      .select('id')
+      .eq('user_id', row.user_id)
+      .eq('type', row.type)
+      .eq('reference_id', row.reference_id)
+      .eq('title', row.title)
+      .eq('body', row.body)
+      .gte('created_at', cutoff)
+      .limit(1)
+
+    return (data?.length ?? 0) > 0
+  }))
+
+  return rows.filter((_, index) => !existenceChecks[index])
 }
 
 export default defineEventHandler(async (event) => {
+  const authResult = verifyOptionalBiteshipWebhookAuth({
+    authorization: getHeader(event, 'authorization'),
+    callbackToken: getHeader(event, 'x-callback-token'),
+    webhookToken: getHeader(event, 'x-webhook-token'),
+    expectedToken: process.env.BITESHIP_WEBHOOK_TOKEN,
+    expectedUser: process.env.BITESHIP_WEBHOOK_BASIC_USER,
+    expectedPassword: process.env.BITESHIP_WEBHOOK_BASIC_PASSWORD,
+  })
+
+  if (!authResult.ok) {
+    if (authResult.logMessage) {
+      console.error(authResult.logMessage)
+    }
+
+    throw createError({ statusCode: authResult.statusCode, statusMessage: authResult.statusMessage })
+  }
+
   const body = await readBody(event)
+  const eventType = typeof body?.event === 'string' ? body.event : ''
 
   // ── Validate payload ──────────────────────────────────────────────────────
   const biteshipOrderId = body?.order_id ?? body?.id
   const courierStatus   = body?.status ?? body?.courier_status
 
-  if (!biteshipOrderId) {
-    return { received: true, action: 'ignored', reason: 'no order_id' }
-  }
+  return processBiteshipWebhook({
+    eventType,
+    biteshipOrderId: biteshipOrderId ? String(biteshipOrderId) : null,
+    courierStatus: courierStatus ? String(courierStatus) : null,
+    courierWaybillId: body?.courier_waybill_id ?? body?.courier?.waybill_id ?? null,
+    courierCompany: body?.courier_company ?? body?.courier?.company ?? null,
+  }, {
+    findOrderByBiteshipId: async (incomingBiteshipOrderId) => {
+      const { data } = await supabaseAdmin
+        .from('orders')
+        .select('id, buyer_id, seller_id, status, tracking_number, courier_name, shipped_at, shipping_method')
+        .eq('biteship_order_id', incomingBiteshipOrderId)
+        .single()
 
-  // ── Find matching order by biteship_order_id ──────────────────────────────
-  const { data: order } = await supabaseAdmin
-    .from('orders')
-    .select('id, buyer_id, status, tracking_number, courier_name')
-    .eq('biteship_order_id', biteshipOrderId)
-    .single()
+      return data
+    },
+    updateOrder: async (orderId, updates) => {
+      await supabaseAdmin.from('orders').update(updates).eq('id', orderId)
+    },
+    getAdminIds: async () => {
+      const { data } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .in('role', ['admin', 'moderator'])
 
-  if (!order) {
-    // Could be a test webhook or an order we don't track
-    return { received: true, action: 'no_matching_order' }
-  }
-
-  // ── Update tracking info on the order ─────────────────────────────────────
-  const updates: Record<string, unknown> = {
-    updated_at: new Date().toISOString(),
-  }
-
-  // Update tracking number if Biteship now provides a waybill
-  const waybillId = body?.courier_waybill_id ?? body?.courier?.waybill_id
-  if (waybillId && !order.tracking_number) {
-    updates.tracking_number = waybillId
-  }
-
-  // Update courier name if available
-  const courierCompany = body?.courier_company ?? body?.courier?.company
-  if (courierCompany && !order.courier_name) {
-    updates.courier_name = courierCompany.toUpperCase()
-  }
-
-  if (Object.keys(updates).length > 1) {
-    await supabaseAdmin.from('orders').update(updates).eq('id', order.id)
-  }
-
-  // ── Send notification to buyer ────────────────────────────────────────────
-  const notif = BITESHIP_TO_NOTIF[courierStatus]
-  if (notif && order.buyer_id) {
-    try {
-      await supabaseAdmin.from('notifications').insert({
-        user_id:      order.buyer_id,
-        type:         'order_shipped',
-        title:        notif.title,
-        body:         notif.body,
-        reference_id: order.id,
-      })
-    } catch { /* best-effort */ }
-  }
-
-  return {
-    received: true,
-    action:   'updated',
-    orderId:  order.id,
-    status:   courierStatus,
-  }
+      return (data ?? []).map((admin) => String(admin.id))
+    },
+    filterDuplicateNotifications,
+    insertNotifications: async (rows) => {
+      await supabaseAdmin.from('notifications').insert(rows)
+    },
+  })
 })

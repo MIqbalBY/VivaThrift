@@ -1,0 +1,275 @@
+openapi: 3.1.0
+info:
+  title: VivaThrift Public API
+  version: 0.1.0
+  description: |
+    OpenAPI 3.1 specification for stable VivaThrift public-facing endpoints.
+    This initial spec covers contact form and push notification subscription endpoints.
+  contact:
+    name: VivaThrift Team
+    email: admin@vivathrift.store
+
+servers:
+  - url: https://www.vivathrift.store/api
+    description: Production
+  - url: http://localhost:3004/api
+    description: Local development
+
+tags:
+  - name: public
+    description: Public endpoints that do not require authentication
+  - name: push
+    description: Push notification subscription endpoints
+
+paths:
+  /contact:
+    post:
+      tags:
+        - public
+      summary: Send a contact form message
+      description: |
+        Sends a message to the VivaThrift team and attempts to send an automatic
+        confirmation email back to the sender.
+      operationId: sendContactMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactRequest'
+      responses:
+        '200':
+          description: Contact form accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /push/vapid-public-key:
+    get:
+      tags:
+        - public
+        - push
+      summary: Get VAPID public key
+      description: Returns the VAPID public key required by the browser Push API.
+      operationId: getVapidPublicKey
+      responses:
+        '200':
+          description: Public key returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VapidPublicKeyResponse'
+
+  /push/subscribe:
+    post:
+      tags:
+        - push
+      summary: Save a push subscription for the authenticated user
+      description: |
+        Validates and stores a Web Push subscription for the current authenticated user.
+      operationId: subscribePushNotification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushSubscribeRequest'
+      responses:
+        '200':
+          description: Subscription saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '400':
+          description: Subscription payload invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to persist subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /push/unsubscribe:
+    post:
+      tags:
+        - push
+      summary: Remove a push subscription for the authenticated user
+      description: Deletes the stored push subscription matching the provided endpoint.
+      operationId: unsubscribePushNotification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushUnsubscribeRequest'
+      responses:
+        '200':
+          description: Subscription removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '400':
+          description: Endpoint payload invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase bearer access token
+
+  schemas:
+    OkResponse:
+      type: object
+      required:
+        - ok
+      properties:
+        ok:
+          type: boolean
+          const: true
+
+    ErrorResponse:
+      type: object
+      description: Simplified H3/Nitro error response body
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        statusMessage:
+          type: string
+          example: Endpoint tidak valid.
+        message:
+          type: string
+          example: Endpoint tidak valid.
+
+    ContactRequest:
+      type: object
+      required:
+        - name
+        - email
+        - subject
+        - message
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Muhammad Iqbal
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: 5026221103@student.its.ac.id
+        subject:
+          type: string
+          minLength: 3
+          example: Masalah transaksi
+        message:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          example: Saya butuh bantuan untuk pesanan yang belum dikonfirmasi.
+        website:
+          type: string
+          description: Honeypot anti-spam field. Must be left empty by real users.
+          default: ''
+
+    VapidPublicKeyResponse:
+      type: object
+      required:
+        - publicKey
+      properties:
+        publicKey:
+          type: string
+          example: BEl1ExampleBase64UrlPublicKey
+
+    PushKeys:
+      type: object
+      required:
+        - p256dh
+        - auth
+      properties:
+        p256dh:
+          type: string
+          minLength: 16
+          maxLength: 512
+          example: BExampleP256dhKey
+        auth:
+          type: string
+          minLength: 8
+          maxLength: 256
+          example: authSecret123
+
+    PushSubscription:
+      type: object
+      required:
+        - endpoint
+        - keys
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          minLength: 20
+          maxLength: 2048
+          example: https://fcm.googleapis.com/fcm/send/example-subscription-id
+        expirationTime:
+          type:
+            - integer
+            - 'null'
+          example: null
+        keys:
+          $ref: '#/components/schemas/PushKeys'
+
+    PushSubscribeRequest:
+      type: object
+      required:
+        - subscription
+      properties:
+        subscription:
+          $ref: '#/components/schemas/PushSubscription'
+
+    PushUnsubscribeRequest:
+      type: object
+      required:
+        - endpoint
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          minLength: 20
+          maxLength: 2048
+          example: https://fcm.googleapis.com/fcm/send/example-subscription-id

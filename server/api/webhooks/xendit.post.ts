@@ -1,6 +1,8 @@
 import { supabaseAdmin } from '../../utils/supabase-admin'
 import { sendEmail } from '../../utils/send-email'
 import { emailOrderConfirmedBuyer, emailNewOrderSeller } from '../../utils/email-templates'
+import { processXenditWebhook } from '../../utils/xendit-webhook-handler'
+import { verifyXenditCallbackToken } from '../../utils/webhook-auth'
 
 // POST /api/webhooks/xendit
 //
@@ -19,15 +21,17 @@ import { emailOrderConfirmedBuyer, emailNewOrderSeller } from '../../utils/email
 
 export default defineEventHandler(async (event) => {
   // ── Security: verify Xendit callback token ────────────────────────────────
-  const receivedToken = getHeader(event, 'x-callback-token')
-  const expectedToken = process.env.XENDIT_CALLBACK_TOKEN
+  const authResult = verifyXenditCallbackToken({
+    receivedToken: getHeader(event, 'x-callback-token'),
+    expectedToken: process.env.XENDIT_CALLBACK_TOKEN,
+  })
 
-  if (!expectedToken) {
-    console.error('[xendit-webhook] XENDIT_CALLBACK_TOKEN env var is not set!')
-    throw createError({ statusCode: 500, statusMessage: 'Webhook misconfigured.' })
-  }
-  if (receivedToken !== expectedToken) {
-    throw createError({ statusCode: 401, statusMessage: 'Invalid callback token.' })
+  if (!authResult.ok) {
+    if (authResult.logMessage) {
+      console.error(authResult.logMessage)
+    }
+
+    throw createError({ statusCode: authResult.statusCode, statusMessage: authResult.statusMessage })
   }
 
   // ── Parse body ────────────────────────────────────────────────────────────
@@ -43,184 +47,163 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Missing invoice id in payload.' })
   }
 
-  // ── Handle EXPIRED / FAILED → restore stock + offer ───────────────────────
-  if (status === 'EXPIRED' || status === 'FAILED') {
-    const { data: failedOrders } = await supabaseAdmin
-      .from('orders')
-      .update({ status: 'payment_failed', updated_at: new Date().toISOString() })
-      .eq('xendit_invoice_id', xenditInvoiceId)
-      .in('status', ['pending_payment'])
-      .select('id, offer_id')
+  try {
+    return await processXenditWebhook({
+      xenditInvoiceId,
+      status,
+      paymentMethod,
+      paidAmount,
+    }, {
+      markOrdersPaymentFailed: async (invoiceId, updatedAt) => {
+        const { data } = await supabaseAdmin
+          .from('orders')
+          .update({ status: 'payment_failed', updated_at: updatedAt })
+          .eq('xendit_invoice_id', invoiceId)
+          .in('status', ['pending_payment'])
+          .select('id, offer_id')
 
-    for (const order of failedOrders ?? []) {
-      // Restore product stock
-      const { data: items } = await supabaseAdmin
-        .from('order_items')
-        .select('product_id, quantity')
-        .eq('order_id', order.id)
-      for (const item of items ?? []) {
-        const { data: prod } = await supabaseAdmin
+        return data ?? []
+      },
+      getOrderItems: async (orderId) => {
+        const { data } = await supabaseAdmin
+          .from('order_items')
+          .select('product_id, quantity')
+          .eq('order_id', orderId)
+
+        return data ?? []
+      },
+      getProductStock: async (productId) => {
+        const { data } = await supabaseAdmin
           .from('products')
           .select('stock')
-          .eq('id', item.product_id)
+          .eq('id', productId)
           .single()
+
+        return data?.stock ?? null
+      },
+      restoreProduct: async (productId, stock) => {
         await supabaseAdmin
           .from('products')
-          .update({ status: 'active', stock: (prod?.stock ?? 0) + item.quantity })
-          .eq('id', item.product_id)
-      }
-      // Restore offer
-      if (order.offer_id) {
+          .update({ status: 'active', stock })
+          .eq('id', productId)
+      },
+      restoreOffer: async (offerId, updatedAt) => {
         await supabaseAdmin
           .from('offers')
-          .update({ status: 'accepted', updated_at: new Date().toISOString() })
-          .eq('id', order.offer_id)
-      }
-    }
+          .update({ status: 'accepted', updated_at: updatedAt })
+          .eq('id', offerId)
+      },
+      getPendingOrders: async (invoiceId) => {
+        const { data } = await supabaseAdmin
+          .from('orders')
+          .select(`id, shipping_method, shipping_cost, meetup_location, total_amount, offer_id,
+            buyer:users!buyer_id  ( id, name, email ),
+            seller:users!seller_id ( id, name, email )`)
+          .eq('xendit_invoice_id', invoiceId)
+          .in('status', ['pending_payment'])
 
-    return { received: true, action: 'payment_failed', orderCount: failedOrders?.length ?? 0 }
-  }
+        return data ?? []
+      },
+      getProcessedOrders: async (invoiceId) => {
+        const { data } = await supabaseAdmin
+          .from('orders')
+          .select(`id, shipping_method, shipping_cost, meetup_location, total_amount, offer_id,
+            buyer:users!buyer_id  ( id, name, email ),
+            seller:users!seller_id ( id, name, email )`)
+          .eq('xendit_invoice_id', invoiceId)
+          .in('status', ['confirmed', 'awaiting_meetup', 'shipped', 'completed'])
 
-  // Ignore anything else (e.g. PENDING)
-  if (status !== 'PAID') {
-    return { received: true, action: 'ignored', status }
-  }
+        return data ?? []
+      },
+      getPaidPaymentOrderIds: async (orderIds) => {
+        const { data } = await supabaseAdmin
+          .from('payments')
+          .select('order_id')
+          .in('order_id', orderIds)
+          .eq('status', 'paid')
 
-  // ── Fetch current orders to determine shipping_method per order ───────────
-  const { data: currentOrders } = await supabaseAdmin
-    .from('orders')
-    .select(`id, shipping_method, shipping_cost, meetup_location, total_amount, offer_id,
-      buyer:users!buyer_id  ( id, name, email ),
-      seller:users!seller_id ( id, name, email )`)
-    .eq('xendit_invoice_id', xenditInvoiceId)
-    .in('status', ['pending_payment'])
+        return (data ?? []).map((payment) => payment.order_id)
+      },
+      upsertPayments: async (rows) => {
+        const { error } = await supabaseAdmin
+          .from('payments')
+          .upsert(rows, { onConflict: 'order_id' })
 
-  if (!currentOrders?.length) {
-    return { received: true, action: 'no_orders_found' }
-  }
+        return error
+      },
+      updateShippingOrdersPaid: async (orderIds, incomingPaymentMethod) => {
+        const response = await supabaseAdmin
+          .from('orders')
+          .update({ status: 'confirmed', payment_method: incomingPaymentMethod })
+          .in('id', orderIds)
+          .eq('status', 'pending_payment')
+          .select('id, total_amount')
 
-  // ── Update each order with correct next status (COD vs shipping) ──────────
-  const updatePromises = currentOrders.map((o) => {
-    const nextStatus = o.shipping_method === 'cod' ? 'awaiting_meetup' : 'confirmed'
-    return supabaseAdmin
-      .from('orders')
-      .update({ status: nextStatus, payment_method: paymentMethod ?? null })
-      .eq('id', o.id)
-      .select('id, total_amount')
-  })
-  const updateResults = await Promise.all(updatePromises)
-  const updatedOrders = updateResults.flatMap(r => r.data ?? [])
-  const orderErr      = updateResults.find(r => r.error)?.error
+        return { data: response.data ?? [], error: response.error }
+      },
+      updateCodOrdersPaid: async (orderIds, incomingPaymentMethod) => {
+        const response = await supabaseAdmin
+          .from('orders')
+          .update({ status: 'awaiting_meetup', payment_method: incomingPaymentMethod })
+          .in('id', orderIds)
+          .eq('status', 'pending_payment')
+          .select('id, total_amount')
 
-  if (orderErr) {
-    console.error('[xendit-webhook] Failed to update orders:', orderErr)
-    throw createError({ statusCode: 500, statusMessage: 'Failed to update orders.' })
-  }
+        return { data: response.data ?? [], error: response.error }
+      },
+      getBuyerCartId: async (buyerId) => {
+        const { data } = await supabaseAdmin
+          .from('carts')
+          .select('id')
+          .eq('user_id', buyerId)
+          .maybeSingle()
 
-  // ── Stock note ────────────────────────────────────────────────────────────
-  // Stock decrement is handled optimistically at checkout time (cart.post.ts
-  // and index.post.ts). We do NOT decrement again here to avoid double-
-  // decrement bugs. If checkout crashed before decrementing, an admin can
-  // reconcile manually or a scheduled job can fix the mismatch.
-
-  // ── Clear cart items for buyer (best-effort) ──────────────────────────────
-  // Find buyer from first order, then remove their purchased cart items.
-  const { data: firstOrder } = await supabaseAdmin
-    .from('orders')
-    .select('buyer_id')
-    .eq('id', updatedOrders[0]!.id)
-    .single()
-
-  if (firstOrder) {
-    const { data: buyerCart } = await supabaseAdmin
-      .from('carts')
-      .select('id')
-      .eq('user_id', firstOrder.buyer_id)
-      .maybeSingle()
-
-    if (buyerCart) {
-      // Kumpulkan product_ids dari semua order items
-      const allProductIds: string[] = []
-      for (const order of updatedOrders) {
-        const { data: ois } = await supabaseAdmin
+        return data?.id ?? null
+      },
+      getOrderProductIds: async (orderId) => {
+        const { data } = await supabaseAdmin
           .from('order_items')
           .select('product_id')
-          .eq('order_id', order.id)
-        if (ois) allProductIds.push(...ois.map(o => o.product_id))
-      }
-      if (allProductIds.length > 0) {
+          .eq('order_id', orderId)
+
+        return (data ?? []).map((item) => item.product_id)
+      },
+      deleteCartItems: async (cartId, productIds) => {
         await supabaseAdmin
           .from('cart_items')
           .delete()
-          .eq('cart_id', buyerCart.id)
-          .in('product_id', allProductIds)
-      }
+          .eq('cart_id', cartId)
+          .in('product_id', productIds)
+      },
+      getOrderPrimaryItem: async (orderId) => {
+        const { data } = await supabaseAdmin
+          .from('order_items')
+          .select('quantity, product:products ( title )')
+          .eq('order_id', orderId)
+          .limit(1)
+
+        const item = data?.[0] as { quantity?: number | null; product?: { title?: string | null } | null } | undefined
+
+        return item
+          ? {
+            quantity: item.quantity ?? 1,
+            productTitle: item.product?.title ?? 'Produk',
+          }
+          : null
+      },
+      renderBuyerEmail: emailOrderConfirmedBuyer,
+      renderSellerEmail: emailNewOrderSeller,
+      sendEmail,
+      onWarning: (message, error) => {
+        console.error(message, error)
+      },
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Failed to update orders.') {
+      console.error('[xendit-webhook] Failed to update orders:', error)
+      throw createError({ statusCode: 500, statusMessage: 'Failed to update orders.' })
     }
-  }
 
-  // ── Insert payment record per order (non-fatal) ───────────────────────────
-  // Untuk cart checkout dengan banyak order, amount dibagi proporsional.
-  const totalDbAmount = updatedOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
-  const actualPaid    = paidAmount ?? totalDbAmount
-
-  const paymentRows = updatedOrders.map(o => ({
-    order_id: o.id,
-    amount:   totalDbAmount > 0
-      ? Math.round(actualPaid * ((o.total_amount ?? 0) / totalDbAmount))
-      : 0,
-    status: 'paid',
-  }))
-
-  const { error: paymentErr } = await supabaseAdmin.from('payments').insert(paymentRows)
-  if (paymentErr) {
-    console.error('[xendit-webhook] Failed to insert payment records:', paymentErr)
-  }
-
-  // ── Send transactional emails (best-effort, non-blocking) ────────────────
-  for (const co of currentOrders) {
-    const buyer  = co.buyer  as any
-    const seller = co.seller as any
-    if (!buyer?.email || !seller?.email) continue
-
-    // Load product title from order_items
-    const { data: items } = await supabaseAdmin
-      .from('order_items')
-      .select('quantity, product:products ( title )')
-      .eq('order_id', co.id)
-      .limit(1)
-    const item = items?.[0] as any
-    const productTitle = item?.product?.title ?? 'Produk'
-    const quantity     = item?.quantity ?? 1
-
-    try {
-      const buyerEmail = emailOrderConfirmedBuyer({
-        buyerName:      buyer.name ?? 'Pembeli',
-        orderId:        co.id,
-        productTitle,
-        quantity,
-        totalAmount:    co.total_amount ?? 0,
-        shippingMethod: (co.shipping_method as 'cod' | 'shipping') ?? 'shipping',
-        meetupLocation: co.meetup_location,
-      })
-      const sellerEmail = emailNewOrderSeller({
-        sellerName:     seller.name ?? 'Penjual',
-        orderId:        co.id,
-        productTitle,
-        quantity,
-        totalAmount:    co.total_amount ?? 0,
-        buyerName:      buyer.name ?? 'Pembeli',
-        shippingMethod: (co.shipping_method as 'cod' | 'shipping') ?? 'shipping',
-      })
-      // Fire-and-forget — don't block webhook response
-      sendEmail({ to: buyer.email,  subject: buyerEmail.subject,  html: buyerEmail.html  }).catch(() => {})
-      sendEmail({ to: seller.email, subject: sellerEmail.subject, html: sellerEmail.html }).catch(() => {})
-    } catch { /* best-effort */ }
-  }
-
-  return {
-    received:   true,
-    action:     'confirmed',
-    orderCount: updatedOrders.length,
-    orderIds:   updatedOrders.map(o => o.id),
+    throw error
   }
 })

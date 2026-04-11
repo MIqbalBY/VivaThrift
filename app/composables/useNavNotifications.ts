@@ -72,6 +72,8 @@ export function useNavNotifications() {
     out_of_stock:    '😔',
     order_paid:      '💰',
     order_shipped:   '🚚',
+    shipping_exception: '⚠️',
+    shipping_incident_admin: '🛠️',
     order_completed: '✅',
     new_offer:       '🤝',
     offer_accepted:  '🎉',
@@ -80,7 +82,11 @@ export function useNavNotifications() {
   }
 
   const ORDER_NOTIF_TYPES = new Set([
-    'order_paid', 'order_shipped', 'order_completed',
+    'order_paid', 'order_shipped', 'shipping_exception', 'order_completed',
+  ])
+
+  const ADMIN_NOTIF_TYPES = new Set([
+    'shipping_incident_admin',
   ])
 
   const CHAT_NOTIF_TYPES = new Set([
@@ -92,6 +98,8 @@ export function useNavNotifications() {
   }
 
   function getNotifRoute(notif: any): string {
+    if (ADMIN_NOTIF_TYPES.has(notif.type)) return '/admin'
+
     // Order notifs → /orders page
     if (ORDER_NOTIF_TYPES.has(notif.type)) return '/orders'
 

@@ -1,4 +1,4 @@
-// VivaThrift Service Worker — offline fallback + static asset caching
+// VivaThrift Service Worker — offline fallback + static asset caching + push notifications
 const CACHE_NAME = 'vivathrift-v1'
 
 const PRECACHE_URLS = [
@@ -59,4 +59,39 @@ self.addEventListener('fetch', (event) => {
       })
     )
   }
+})
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return
+
+  let payload = { title: 'VivaThrift', body: '', url: '/', icon: '/img/logo-vivathrift.png' }
+  try { payload = { ...payload, ...event.data.json() } } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: payload.icon,
+      badge: '/favicon-32x32.png',
+      data: { url: payload.url },
+      vibrate: [200, 100, 200],
+    })
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = event.notification.data?.url ?? '/'
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      const existing = windowClients.find(c => c.url.includes(self.location.origin))
+      if (existing) {
+        existing.focus()
+        existing.navigate(url)
+      } else {
+        clients.openWindow(url)
+      }
+    })
+  )
 })

@@ -1,6 +1,6 @@
 # VivaThrift — Master TODO List
 
-> **Last updated:** 11 Juli 2025
+> **Last updated:** 11 April 2026
 > **Tech Stack:** Nuxt 4.4.2 · Vue 3.5.32 · TypeScript 6.0.2 · Supabase · Xendit · Biteship · Vercel
 > **Legend:** ✅ Done · 🔧 Partial · ❌ Not Started
 
@@ -14,8 +14,8 @@
 | # | Item | Status | Detail |
 |---|------|--------|--------|
 | 1.1 | **Platform fee auto-disbursement ke rekening admin** | ❌ | Fee sudah di-record di kolom `platform_fee` tabel orders, tapi **belum ada flow otomatis** yang mentransfer ke rekening admin **Bank Jago 1034 3858 8617** (a.n. Muhammad Iqbal Baiduri Yamani). Opsi: (a) Xendit Disbursement API batch harian, (b) manual withdrawal dari Xendit Balance. File terkait: `server/api/webhooks/xendit.post.ts` (490 baris, handle paid/expired/failed) |
-| 1.2 | **Seller payout completion** | 🔧 | File `xendit-disburse.ts` ada tapi **incomplete** — logic payout ke seller setelah order `completed` belum selesai. Perlu: validasi bank account seller dari `profile/edit.vue` tab Rekening (kode bank, no rek, nama), lalu fire Xendit Disbursement |
-| 1.3 | **Refund flow untuk dispute** | ❌ | `server/api/disputes/[id].patch.ts` masih **stub**. Saat admin resolve dispute dengan `resolved_refund`, belum ada Xendit refund API call. State machine sudah support transisi `disputed → resolved_refund` |
+| 1.2 | **Seller payout completion** | 🔧 | Utility `server/utils/xendit-disburse.ts` sudah ada dan dipakai oleh flow order/cron untuk mencairkan dana seller + fee admin. Yang masih perlu dibereskan: verifikasi readiness production, retry/reconciliation, dan audit data rekening seller |
+| 1.3 | **Refund flow untuk dispute** | 🔧 | `server/api/disputes/[id].patch.ts` sudah bisa resolve dispute (`refund`, `partial`, `rejected`) dan kirim notifikasi. Yang belum ada: integrasi Xendit refund/disbursement reversal saat admin memilih refund |
 
 ---
 
@@ -23,10 +23,10 @@
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 2.1 | **Xendit production key verification** | 🔧 | URL sudah `api.xendit.co`. **Checklist:** (a) `XENDIT_API_KEY` di Vercel env = production key (bukan test `xnd_development_*`), (b) webhook callback URL = `https://vivathrift.vercel.app/api/webhooks/xendit`, (c) webhook verification token match, (d) IP whitelist jika ada |
-| 2.2 | **Biteship production key verification** | 🔧 | URL sudah `api.biteship.com` di `server/utils/biteship.ts`. **Checklist:** (a) `BITESHIP_API_KEY` = production key, (b) webhook URL registered di Biteship dashboard, (c) origin/destination mapping valid format Biteship |
-| 2.3 | **Biteship webhook handler** | ❌ | Xendit webhook fully implemented (490 baris), tapi **Biteship webhook belum ada**. Perlu: `server/api/webhooks/biteship.post.ts` untuk handle tracking status updates (picked_up, in_transit, delivered). Order state: `shipped → completed` bisa auto-trigger dari sini |
-| 2.4 | **Cart-based checkout** | 🔧 | Endpoint di `server/api/cart/` ada tapi **kosong / stub**. Saat ini checkout hanya via offer flow (1 produk per transaksi). Multi-item cart checkout belum diimplementasi |
+| 2.1 | **Xendit production key verification** | 🔧 | URL sudah `api.xendit.co`. **Checklist:** (a) `XENDIT_KEY` di Vercel env = production key (bukan test `xnd_development_*`), (b) webhook callback URL = `https://vivathrift.vercel.app/api/webhooks/xendit`, (c) `XENDIT_CALLBACK_TOKEN` match, (d) IP whitelist jika ada |
+| 2.2 | **Biteship production key verification** | 🔧 | URL sudah `api.biteship.com` di `server/utils/biteship.ts`. **Checklist:** (a) `BITESHIP_KEY` = production key, (b) webhook URL registered di Biteship dashboard, (c) origin/destination mapping valid format Biteship |
+| 2.3 | **Biteship webhook handler** | 🔧 | `server/api/webhooks/biteship.post.ts` sudah ada, menerima update tracking, mendukung verifikasi auth webhook opsional via token/basic auth dari dashboard Biteship, bisa mendorong order `confirmed` menjadi `shipped` saat event kurir menunjukkan paket sudah masuk alur pengiriman, dan mengirim notifikasi exception shipping ke buyer, seller, serta admin/moderator dengan tipe admin khusus yang diarahkan ke dashboard admin. Yang masih belum lengkap: rollout credential webhook di production dan enrichment automasi operasional di status exception tertentu |
+| 2.4 | **Cart-based checkout** | 🔧 | Frontend cart sudah ada, tetapi route backend `server/api/cart/` belum tersedia. Saat ini checkout masih efektif via offer flow (1 produk per transaksi), jadi multi-item cart checkout belum terhubung end-to-end |
 
 ---
 
@@ -38,11 +38,11 @@
 | # | Item | Status | Detail |
 |---|------|--------|--------|
 | 3.1 | **Cron job: order/offer cleanup** | ✅ | `server/api/cron/cleanup.post.ts` sudah ada via Vercel Cron (setiap 6 jam). Handles: expire pending offers >24h, cancel unpaid orders >1h, auto-complete shipped orders >7 hari |
-| 3.2 | **Rate limiting → Redis (production)** | 🔧 | `server/middleware/rate-limit.ts` pakai **in-memory Map** (auth: 8/min, upload: 10/min, default: 60/min). Ini **tidak persist across serverless instances** di Vercel. Perlu migrasi ke Upstash Redis atau Vercel KV untuk production |
-| 3.3 | **Reviews endpoint** | 🔧 | `server/api/reviews/index.post.ts` masih **stub** — logic create review belum lengkap. Frontend `ReviewModal.vue` sudah ada |
-| 3.4 | **Admin Supabase client security** | 🔧 | `server/utils/supabase-admin.ts` pakai module-level `createClient()` — env `SUPABASE_SERVICE_KEY` wajib ada. CI sudah pakai placeholder (commit `652aff5`), tapi di production harus service role key asli |
+| 3.2 | **Rate limiting → Redis (production)** | 🔧 | `server/middleware/rate-limit.ts` sekarang sudah memakai abstraksi store dengan dukungan Upstash Redis REST (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`) dan fallback aman ke in-memory store jika env belum diisi atau provider gagal. Fallback ke memory dan exceed pertama 429 juga sudah punya observability ringan via log/Sentry yang di-throttle, dan bila Upstash tersedia snapshot-nya ikut dipublikasikan ke admin dashboard sebagai global snapshot lintas instance. Yang masih perlu dituntaskan: isi env production dan validasi perilaku limit global lintas instance di deployment Vercel |
+| 3.3 | **Reviews endpoint** | ✅ | `server/api/reviews/index.post.ts` sudah meng-handle auth buyer, status order `completed`, duplicate review prevention, dan insert review. Frontend `ReviewModal.vue` tinggal bergantung pada coverage test/integrasi |
+| 3.4 | **Admin Supabase client security** | 🔧 | `server/utils/supabase-admin.ts` sudah memakai `SUPABASE_SECRET_KEY` dengan fallback kompatibilitas ke `SUPABASE_SERVICE_KEY`. Yang masih perlu dijaga: service role key production harus valid dan tidak pernah bocor ke client |
 | 3.5 | **Docker setup** | ❌ | Belum ada `Dockerfile` / `docker-compose.yml`. Perlu untuk: local dev parity, self-hosting option, CI integration test environment |
-| 3.6 | **Environment variables documentation** | ❌ | Env vars tersebar: `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`, `XENDIT_API_KEY`, `XENDIT_WEBHOOK_TOKEN`, `BITESHIP_API_KEY`, `R2_*` (4 vars), `RESEND_API_KEY`. Belum ada `.env.example` atau docs yang lengkap |
+| 3.6 | **Environment variables documentation** | ✅ | `.env.example` sudah tersedia dan README sudah merangkum env utama, termasuk penamaan baru `SUPABASE_SECRET_KEY`, `R2_*`, `VAPID_*`, `RESEND_API_KEY`, `XENDIT_*`, `BITESHIP_KEY`, kredensial auth webhook opsional Biteship, dan env Upstash Redis REST untuk rate limiting persisten |
 
 ---
 
@@ -54,8 +54,8 @@
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 4.1 | **Dispute creation endpoint** | 🔧 | `server/api/disputes/index.post.ts` ada tapi **stub**. Validasi (orderId, reason min 10 chars) sudah ada, tapi insert logic belum complete |
-| 4.2 | **Dispute resolution endpoint** | 🔧 | `server/api/disputes/[id].patch.ts` **stub**. Perlu: admin review evidence → approve refund / partial refund / reject → trigger Xendit refund jika `resolved_refund` |
+| 4.1 | **Dispute creation endpoint** | ✅ | `server/api/disputes/index.post.ts` sudah membuat dispute, memvalidasi buyer + status order, mencegah dispute aktif ganda, dan mengirim notifikasi best-effort ke seller |
+| 4.2 | **Dispute resolution endpoint** | 🔧 | `server/api/disputes/[id].patch.ts` sudah mendukung cancel oleh buyer dan resolve oleh admin (`refund`, `partial`, `rejected`) plus notifikasi. Yang belum ada: eksekusi refund finansial ke Xendit saat resolution mengembalikan dana |
 | 4.3 | **Evidence upload** | ❌ | `evidence_urls TEXT[]` ada di schema, tapi UI untuk upload bukti (foto/video) di `disputes.vue` belum ada. Bisa pakai existing `useR2Upload.ts` composable |
 | 4.4 | **Dispute notification emails** | ❌ | Belum ada email ke admin/buyer/seller saat dispute dibuat, di-review, atau resolved. Template engine: `server/utils/email-templates.ts` + `send-email.ts` (Resend) |
 | 4.5 | **Auto-escalation timer** | ❌ | SLA 14 hari ada di `ORDER_SLA_HOURS.disputed = 336`, tapi belum ada cron/trigger yang auto-escalate dispute jika timeout |
@@ -64,17 +64,17 @@
 
 ## 5. 📄 Halaman Informasi & Legal
 
-> Footer saat ini: "Tentang" → `/about` ✅, "Bantuan" → `#` ❌, "Syarat & Ketentuan" → `#` ❌
+> Footer: "Tentang" → `/about` ✅, "Bantuan" → `/faq` ✅, "Syarat & Ketentuan" → `/terms` ✅, "Privasi" → `/privacy` ✅, "Kontak" → `/contact` ✅
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 5.1 | **Terms & Conditions** (`/terms`) | ❌ | Halaman belum ada. Konten: hak & kewajiban buyer/seller, kebijakan refund, batasan tanggung jawab platform. Style referensi: Spotify T&C |
-| 5.2 | **Privacy Policy** (`/privacy`) | ❌ | Halaman belum ada. Konten: data collection (email, NRP, fakultas, lokasi GPS), data sharing, cookies, hak pengguna. Style referensi: Remote.com |
-| 5.3 | **FAQ / Help** (`/faq`) | ❌ | Halaman belum ada. Konten: cara jual, cara beli, cara nego, pengiriman, COD meetup flow, dispute, fee platform |
-| 5.4 | **Contact Us** (`/contact`) | ❌ | Halaman belum ada. Konten: form kontak + link email/IG/WA tim. Integrasi: `send-email.ts` (Resend) |
-| 5.5 | **How It Works** (`/how-it-works`) | ❌ | Halaman belum ada. Onboarding visual: (1) Daftar → (2) Upload/Browse → (3) Chat & Nego → (4) Bayar → (5) Kirim/COD → (6) Selesai. Bisa pakai SVG ilustrasi dari `public/img/illustrations/` |
-| 5.6 | **Shipping & Return Policy** (`/shipping-policy`) | ❌ | Halaman belum ada. Konten: metode (COD di ITS + kurir Biteship), meetup locations (11 lokasi di `MEETUP_LOCATIONS`), SLA pengiriman, prosedur return/refund |
-| 5.7 | **Footer & Nav links update** | ❌ | Setelah page dibuat: (a) Update `Footer.vue` — ganti `href="#"` dengan route asli, (b) Tambah link di `NavbarMobileMenu`, (c) Tambah di sitemap |
+| 5.1 | **Terms & Conditions** (`/terms`) | ✅ | `app/pages/terms.vue` — 10 sections, `lang=ts`, SEO meta done |
+| 5.2 | **Privacy Policy** (`/privacy`) | ✅ | `app/pages/privacy.vue` — 8 sections, `lang=ts`, SEO meta done |
+| 5.3 | **FAQ / Help** (`/faq`) | ✅ | `app/pages/faq.vue` — 17 FAQ items, category filter, `lang=ts`, SEO meta done |
+| 5.4 | **Contact Us** (`/contact`) | ✅ | `server/api/contact.post.ts` — validasi, honeypot, rate-limit 3req/5min, dual Resend email (team + auto-reply). `contact.vue` terhubung ke API, error banner, honeypot field |
+| 5.5 | **How It Works** (`/how-it-works`) | ✅ | `app/pages/how-it-works.vue` — buy/sell step cards, features, categories, `lang=ts`, SEO meta done |
+| 5.6 | **Shipping & Return Policy** (`/shipping-policy`) | ✅ | `app/pages/shipping-policy.vue` — shipping methods, return policy, return steps, `lang=ts`, SEO meta done |
+| 5.7 | **Footer & Nav links update** | ✅ | `Footer.vue` updated (5 links), `MobileMenu.vue` updated (+ how-it-works/faq/contact), sitemap auto-discovered |
 
 ---
 
@@ -87,8 +87,8 @@
 |---|------|--------|--------|
 | 6.1 | **Mobile/Tablet responsive audit** | 🔧 | Navbar + index sudah responsive (`showMobileMenu`, grid cols responsive). **Belum audit:** checkout, orders, disputes, admin, profile/edit, chat. Breakpoints: `sm:640` `md:768` `lg:1024` |
 | 6.2 | **Hamburger menu QA** | 🔧 | `NavbarMobileMenu.vue` exist. **Perlu QA:** (a) semua link lengkap (termasuk legal pages baru), (b) scroll-lock saat open, (c) swipe-to-dismiss, (d) animation enter/leave |
-| 6.3 | **Animasi & Micro-interactions** | 🔧 | `animations.css` ada (scroll-reveal, fade, slide). `animejs` belum di-install — perlu keputusan: pakai CSS animations yang sudah ada atau upgrade ke anime.js. Prioritas: page transition, card hover, skeleton loading, toast animation |
-| 6.4 | **Ilustrasi SVG** | ❌ | Folder `public/img/illustrations/` ada tapi perlu isi: empty state, error state, onboarding, how-it-works visuals. Bisa generate manual atau via AI prompt |
+| 6.3 | **Animasi & Micro-interactions** | 🔧 | `animations.css` ada (scroll-reveal, fade, slide). `animejs.com` belum di-install — perlu keputusan: pakai CSS animations yang sudah ada atau upgrade ke anime.js. Prioritas: page transition, card hover, skeleton loading, toast animation |
+| 6.4 | **Ilustrasi SVG** | 🔧 | Folder `public/img/illustrations/` sudah berisi aset untuk help center, empty state, empty cart, error, auth, order, dan onboarding. Yang masih perlu: audit pemakaian aset di seluruh halaman dan tambah ilustrasi khusus untuk flow yang belum punya visual |
 | 6.5 | **Dark mode polish** | 🔧 | `useDarkMode.ts` composable ada + `useUserSettings.ts` persist. Perlu audit: semua page & component consistent dark/light, border colors, shadow opacity, image contrast |
 
 ---
@@ -118,11 +118,11 @@
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 8.1 | **Dashboard metrics UI** | 🔧 | `admin/stats.get.ts` return data (total users, GMV, disputes, flagged products), tapi `pages/admin/index.vue` belum display chart/cards — hanya empty dashboard |
-| 8.2 | **Product moderation queue** | 🔧 | `admin/products/index.get.ts` + `[id].patch.ts` API ada (ban/approve/flag). Frontend moderation UI belum ada |
-| 8.3 | **User management UI** | 🔧 | `admin/users/index.get.ts` + `[id].patch.ts` API ada (search, ban/suspend). Frontend UI belum ada |
-| 8.4 | **Report management UI** | 🔧 | `admin/reports/index.get.ts` + `[id].patch.ts` API ada. Frontend: `ReportModal.vue` bisa submit report, tapi admin side review UI belum ada |
-| 8.5 | **Dispute resolution UI** | ❌ | Admin flow: lihat dispute → review evidence → approve/reject refund. API stub di `disputes/[id].patch.ts`. Frontend admin dispute panel belum ada |
+| 8.1 | **Dashboard metrics UI** | 🔧 | `app/pages/admin/index.vue` sudah menampilkan overview cards untuk metrik utama, termasuk counter incident shipping unread untuk admin, alert ringkas jika ada incident operasional baru, dan daftar singkat incident shipping terbaru. Yang masih kurang: visualisasi chart yang lebih analitis dan insight historis, bukan hanya summary cards |
+| 8.2 | **Product moderation queue** | 🔧 | UI moderation produk sudah ada di `app/pages/admin/index.vue` dengan search, tab status, dan aksi approve/reject/ban. Yang masih bisa ditingkatkan: filtering lebih kaya, bulk action, dan context moderation yang lebih lengkap |
+| 8.3 | **User management UI** | 🔧 | UI manajemen user sudah ada di `app/pages/admin/index.vue` dengan search, badge role, ban, dan unban. Yang masih kurang: suspend granular, audit trail per aksi, dan filter yang lebih lengkap |
+| 8.4 | **Report management UI** | 🔧 | Review UI laporan sudah ada di `app/pages/admin/index.vue` dan terhubung ke API resolve/dismiss. Yang masih bisa ditambah: attachment/context lebih kaya dan workflow moderasi yang lebih mendalam |
+| 8.5 | **Dispute resolution UI** | 🔧 | Tab dispute admin sudah ada di `app/pages/admin/index.vue` dan bisa resolve `refund`, `partial`, atau `rejected`. Yang masih kurang: review evidence yang lebih lengkap, context order lebih detail, dan integrasi refund finansial end-to-end |
 | 8.6 | **Audit log viewer** | ❌ | Audit table exist di DB (migration), tapi viewer UI belum ada. Perlu: tabel log dengan filter (who, what, when) |
 
 ---
@@ -187,14 +187,14 @@
 
 ## 13. 🧪 Testing
 
-> **Status: ZERO test files.** Tidak ada `.test.ts`, `.spec.ts`, vitest config, atau test script di `package.json`.
+> **Status:** Vitest sudah aktif dengan 8 test file: `domain-rules`, `state-machine`, helper webhook Xendit, helper webhook Biteship, service webhook Xendit, service webhook Biteship, auth webhook, dan route webhook. Script test tersedia di `package.json`.
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 13.1 | **Setup Vitest** | ❌ | Install `vitest` + `@vue/test-utils` + `@nuxt/test-utils`. Buat `vitest.config.ts`. Tambah script `"test": "vitest"` di package.json |
-| 13.2 | **Unit tests — Domain rules** | ❌ | **Prioritas #1:** Test `domain-rules.ts` — `calculatePlatformFee()` (3 tiers), `validateOfferPrice()` (boundary cases), `isProductAvailable()`, `isValidMeetupLocation()`, `generateMeetupOTP()` |
-| 13.3 | **Unit tests — State machine** | ❌ | Test `state-machine.ts` — semua valid/invalid transitions untuk Order (10 states) dan Offer (8 states) |
-| 13.4 | **Integration tests — Webhook** | ❌ | Test `webhooks/xendit.post.ts` — mock Xendit payload → verify order status update + email sent |
+| 13.1 | **Setup Vitest** | ✅ | `vitest.config.ts` sudah ada dan script test sudah terpasang di `package.json` |
+| 13.2 | **Unit tests — Domain rules** | ✅ | `tests/domain-rules.test.ts` sudah meng-cover fungsi domain inti |
+| 13.3 | **Unit tests — State machine** | ✅ | `tests/state-machine.test.ts` sudah meng-cover transisi valid dan invalid utama |
+| 13.4 | **Integration tests — Webhook** | ✅ | Coverage webhook sekarang mencakup helper murni, orchestration service dengan dependency mock, aturan autentikasi callback/token/basic auth, dan route-level wiring Nitro/H3 untuk Xendit dan Biteship. Masih mungkin ditambah nanti dengan test yang lebih dekat ke runtime penuh, tetapi gap regresi utama untuk webhook sudah tertutup |
 | 13.5 | **Integration tests — Checkout flow** | ❌ | Test: create offer → accept → create invoice → payment → order confirmed → shipped → completed |
 | 13.6 | **E2E tests — Playwright** | ❌ | Setup Playwright. Prioritas: login flow, product upload, offer → checkout, chat basic flow |
 
@@ -220,8 +220,8 @@
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 15.1 | **Offline page** | 🔧 | SW redirect ke `/offline` saat offline, tapi `pages/offline.vue` belum ada konten yang helpful (hanya placeholder). Perlu: tampilan friendly + retry button + cached product browsing |
-| 15.2 | **Push notifications** | ❌ | Belum ada `Notification.requestPermission()` + push subscription. Bisa pakai Supabase Edge Functions + Web Push API |
+| 15.1 | **Offline page** | 🔧 | `app/pages/offline.vue` sudah ada dengan pesan offline dan tombol retry. Yang masih kurang: konten yang lebih membantu, integrasi cached browsing, dan pengalaman fallback yang lebih kaya dari sekadar retry manual |
+| 15.2 | **Push notifications** | 🔧 | Fondasi Web Push sudah ada: `usePushNotifications.ts`, service worker, endpoint subscribe/unsubscribe, dan endpoint `vapid-public-key`. Yang masih perlu: integrasi UI yang lebih menyeluruh, opt-in UX, dan validasi delivery end-to-end di production |
 | 15.3 | **App install banner** | ❌ | Belum ada custom install prompt UI. Browser auto-prompt sudah jalan karena manifest valid |
 | 15.4 | **App update notification** | ❌ | SW `sw-register.client.ts` log registration tapi belum handle `updatefound` event → notify user "Update tersedia, reload?" |
 | 15.5 | **APK / Play Store** | ❌ | Belum ada native wrapper (Capacitor / TWA). Termasuk: Play Store listing, screenshots, deskripsi |
@@ -232,17 +232,17 @@
 ## 16. 🧹 Code Quality & Documentation
 
 > TypeScript strict: `noUncheckedIndexedAccess: true`
-> CI: GitHub Actions → typecheck + build (fixed, 5 commits)
+> CI: GitHub Actions → test + typecheck + build
 > PKCE auth quirk: password recovery workaround via localStorage flag
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 16.1 | **Dead code cleanup** | ❌ | **Known stubs:** (a) Footer "Bantuan" → `#`, (b) Footer "Syarat" → `#`, (c) `server/api/cart/` endpoints empty, (d) `reviews/index.post.ts` stub, (e) `xendit-disburse.ts` incomplete, (f) `disputes/[id].patch.ts` stub |
-| 16.2 | **`.env.example`** | ❌ | Buat file dengan semua required env vars + komentar. Minimal 10+ vars: `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`, `XENDIT_API_KEY`, `XENDIT_WEBHOOK_TOKEN`, `BITESHIP_API_KEY`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `RESEND_API_KEY` |
-| 16.3 | **README.md update** | 🔧 | README ada (deskripsi, feature table, tech stack, tim). **Perlu tambah:** setup guide (clone → pnpm install → env → `supabase start` → dev), architecture diagram, API overview, deployment guide |
-| 16.4 | **OpenAPI spec** | ❌ | 60+ server endpoints belum ada OpenAPI 3.1 spec. Bisa generate dari route files atau manual |
+| 16.1 | **Dead code cleanup** | ❌ | **Sisa target nyata:** (a) flow cart belum punya route backend `server/api/cart/`, ~~(b) `reviews/index.post.ts` stub~~ ✅ implemented, ~~(c) `xendit-disburse.ts` incomplete~~ ✅ utility sudah dipakai di order/cron flow, ~~(d) `disputes/[id].patch.ts` stub~~ ✅ implemented, ~~(e) Footer "Bantuan" / "Syarat" placeholder~~ ✅ fixed, ~~(f) `contact.vue` handleSubmit stub~~ ✅ fixed |
+| 16.2 | **`.env.example`** | ✅ | File tersedia dan sudah memakai penamaan env terbaru: `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SECRET_KEY`, `R2_*`, `SENTRY_*`, `VAPID_*`, `RESEND_API_KEY`, `XENDIT_*`, `BITESHIP_KEY`, `BITESHIP_WEBHOOK_*`, `UPSTASH_REDIS_REST_*`, `SITE_URL` |
+| 16.3 | **README.md update** | ✅ | README sekarang mencakup setup lokal, architecture overview + Mermaid diagram, ringkasan API domain, dan deployment guide Vercel |
+| 16.4 | **OpenAPI spec** | 🔧 | Fondasi awal tersedia di `docs/api/openapi-public.yaml` untuk `contact` dan `push`. Endpoint lain masih belum terdokumentasi |
 | 16.5 | **Pre-commit hooks** | ❌ | Belum ada husky/lint-staged. Perlu: eslint + prettier + typecheck on commit |
-| 16.6 | **CONTRIBUTING.md** | ❌ | Belum ada. Konten: setup guide, branch naming, commit convention, PR template |
+| 16.6 | **CONTRIBUTING.md** | ✅ | `CONTRIBUTING.md` ditambahkan: setup lokal, naming branch, Conventional Commits, quality checks, dan PR checklist |
 
 ---
 

@@ -55,6 +55,15 @@ const emit = defineEmits<{
         <NuxtLink to="/about" @click="show = false" class="px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition font-medium">
           Tentang VivaThrift
         </NuxtLink>
+        <NuxtLink to="/how-it-works" @click="show = false" class="px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition font-medium">
+          Cara Kerja
+        </NuxtLink>
+        <NuxtLink to="/faq" @click="show = false" class="px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition font-medium">
+          Bantuan & FAQ
+        </NuxtLink>
+        <NuxtLink to="/contact" @click="show = false" class="px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition font-medium">
+          Kontak
+        </NuxtLink>
         <button @click="() => { emit('handle-sell'); show = false }" class="text-left px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition font-medium">
           Mulai Berjualan
         </button>

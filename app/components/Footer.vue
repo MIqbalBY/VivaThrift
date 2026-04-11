@@ -9,10 +9,12 @@
           <img src="/img/logo-its.png" alt="Institut Teknologi Sepuluh Nopember" width="36" height="36" loading="lazy" class="h-9 opacity-90 drop-shadow-sm" />
         </a>
       </div>
-      <div class="flex gap-6">
+      <div class="flex flex-wrap gap-6">
         <NuxtLink to="/about" class="text-white/70 text-sm hover:text-white transition">Tentang VivaThrift</NuxtLink>
-        <a href="#" class="text-white/70 text-sm hover:text-white transition">Bantuan</a>
-        <a href="#" class="text-white/70 text-sm hover:text-white transition">Syarat &amp; Ketentuan</a>
+        <NuxtLink to="/faq" class="text-white/70 text-sm hover:text-white transition">Bantuan</NuxtLink>
+        <NuxtLink to="/terms" class="text-white/70 text-sm hover:text-white transition">Syarat &amp; Ketentuan</NuxtLink>
+        <NuxtLink to="/privacy" class="text-white/70 text-sm hover:text-white transition">Privasi</NuxtLink>
+        <NuxtLink to="/contact" class="text-white/70 text-sm hover:text-white transition">Kontak</NuxtLink>
       </div>
     </div>
   </footer>

@@ -28,6 +28,7 @@ export default defineNuxtConfig({
     '~/assets/css/variables.css',
     '~/assets/css/dark-overrides.css',
     '~/assets/css/components.css',
+    '~/assets/css/help-center.css',
     '~/assets/css/animations.css',
     'leaflet/dist/leaflet.css',
   ],
@@ -38,6 +39,7 @@ export default defineNuxtConfig({
 
   modules: [
     '@sentry/nuxt/module',
+    '@nuxtjs/i18n',
     '@nuxtjs/supabase',
     '@nuxt/image',
     '@nuxt/fonts',
@@ -46,6 +48,13 @@ export default defineNuxtConfig({
     '@nuxtjs/sitemap',
     '@nuxtjs/robots',
   ],
+
+  i18n: {
+    defaultLocale: 'id',
+    locales: [{ code: 'id', name: 'Bahasa Indonesia', file: 'id.json' }],
+    langDir: 'i18n/locales/',
+    strategy: 'no_prefix',  // URL tetap tanpa /id/ prefix
+  },
 
   sentry: {
     org: process.env.SENTRY_ORG,
@@ -63,6 +72,7 @@ export default defineNuxtConfig({
   supabase: {
     url: process.env.SUPABASE_URL || 'https://placeholder.supabase.co',
     key: process.env.SUPABASE_KEY || 'placeholder-key',
+    secretKey: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_KEY || '',
     redirect: false,
   },
 

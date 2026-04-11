@@ -5,7 +5,8 @@
  */
 
 const SITE_URL = process.env.SITE_URL ?? 'https://www.vivathrift.store'
-const LOGO_URL = `${SITE_URL}/img/logo-vivathrift.png`
+// Logo always points to production — localhost won't work from email clients
+const LOGO_URL = 'https://www.vivathrift.store/img/logo-vivathrift.png'
 
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount)
@@ -226,5 +227,68 @@ export function emailOrderCompletedSeller(p: OrderCompletedSellerParams): { subj
   return {
     subject: `Pesanan Selesai — ${p.productTitle}`,
     html: layout('Pesanan Selesai', '#ecfdf5', '#065f46', 'Transaksi Berhasil!', body),
+  }
+}
+
+// ── Contact Form (to team) ──────────────────────────────────────────
+
+interface ContactFormParams {
+  name: string
+  email: string
+  subject: string
+  message: string
+}
+
+export function emailContactFormToTeam(p: ContactFormParams): { subject: string; html: string } {
+  const body = `
+    <p style="margin:0 0 16px 0;font-size:14px;color:#475569;line-height:1.7;">
+      Ada pesan masuk dari formulir kontak VivaThrift.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;border-radius:12px;padding:16px 20px;margin-bottom:16px;">
+      <tr><td>
+        <p style="margin:0 0 8px 0;font-size:13px;color:#64748b;font-weight:600;">Detail Pengirim:</p>
+        <p style="margin:0 0 4px 0;font-size:14px;color:#0f172a;"><strong>Nama:</strong> ${p.name}</p>
+        <p style="margin:0 0 4px 0;font-size:14px;color:#0f172a;"><strong>Email:</strong> <a href="mailto:${p.email}" style="color:#2563eb;">${p.email}</a></p>
+        <p style="margin:0;font-size:14px;color:#0f172a;"><strong>Topik:</strong> ${p.subject}</p>
+      </td></tr>
+    </table>
+    <p style="margin:0 0 8px 0;font-size:13px;color:#64748b;font-weight:600;">Pesan:</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f9ff;border-left:4px solid #2563eb;border-radius:4px;padding:16px 20px;margin-bottom:16px;">
+      <tr><td>
+        <p style="margin:0;font-size:14px;color:#0f172a;line-height:1.8;white-space:pre-line;">${p.message}</p>
+      </td></tr>
+    </table>
+    ${divider()}
+    <p style="margin:0;font-size:12px;color:#94a3b8;">Balas langsung ke <a href="mailto:${p.email}" style="color:#2563eb;">${p.email}</a></p>`
+
+  return {
+    subject: `[Kontak] ${p.subject} — dari ${p.name}`,
+    html: layout('Pesan Baru', '#eff6ff', '#1d4ed8', `Pesan dari ${p.name}`, body),
+  }
+}
+
+// ── Contact Form (auto-reply to user) ──────────────────────────────
+
+export function emailContactFormAutoReply(p: { name: string; subject: string }): { subject: string; html: string } {
+  const body = `
+    <p style="margin:0 0 16px 0;font-size:14px;color:#475569;line-height:1.7;">
+      Hai <strong>${p.name}</strong>, terima kasih telah menghubungi VivaThrift!
+    </p>
+    <p style="margin:0 0 16px 0;font-size:14px;color:#475569;line-height:1.7;">
+      Kami telah menerima pesanmu mengenai <strong>"${p.subject}"</strong>. Tim kami akan meninjau dan merespons dalam <strong>1–2 hari kerja</strong>.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;border-radius:12px;padding:16px 20px;margin-bottom:16px;">
+      <tr><td>
+        <p style="margin:0 0 8px 0;font-size:13px;color:#64748b;font-weight:600;">Sementara itu, kamu bisa:</p>
+        <p style="margin:0 0 4px 0;font-size:13px;color:#475569;">📖 Baca <a href="${SITE_URL}/faq" style="color:#2563eb;font-weight:600;">FAQ kami</a> untuk jawaban cepat</p>
+        <p style="margin:0;font-size:13px;color:#475569;">🛍️ Lanjut jelajahi produk di <a href="${SITE_URL}" style="color:#2563eb;font-weight:600;">VivaThrift</a></p>
+      </td></tr>
+    </table>
+    ${divider()}
+    <p style="margin:0;font-size:12px;color:#94a3b8;">Jika kamu tidak merasa mengirim pesan ini, abaikan saja email ini.</p>`
+
+  return {
+    subject: 'Pesan kamu sudah kami terima — VivaThrift',
+    html: layout('Konfirmasi Pesan', '#eff6ff', '#1d4ed8', 'Pesan Diterima!', body),
   }
 }

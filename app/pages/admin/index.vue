@@ -3,6 +3,7 @@ definePageMeta({ middleware: 'admin' })
 useSeoMeta({ title: 'Admin Dashboard — VivaThrift' })
 
 const { isDark } = useDarkMode()
+const { showNotifPanel } = useNavNotifications()
 
 const activeTab = ref<'overview' | 'users' | 'products' | 'reports' | 'disputes'>('overview')
 
@@ -109,6 +110,30 @@ function relativeDate(iso: string) {
   if (days < 7) return `${days} hari lalu`
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
+
+function relativeTime(iso?: string | null) {
+  if (!iso) return 'Belum ada'
+
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const diffMinutes = Math.floor(diffMs / 60000)
+  if (diffMinutes < 1) return 'Baru saja'
+  if (diffMinutes < 60) return `${diffMinutes} menit lalu`
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours} jam lalu`
+
+  return relativeDate(iso)
+}
+
+const rateLimitSummary = computed(() => stats.value?.rateLimitObservability ?? null)
+const rateLimitBackendLabel = computed(() => stats.value?.rateLimitBackend === 'upstash-rest' ? 'Upstash REST' : 'Memory only')
+const rateLimitScopeLabel = computed(() => stats.value?.rateLimitObservabilityScope === 'global-upstash' ? 'Global snapshot' : 'Instance snapshot')
+const rateLimitHealthTone = computed(() => {
+  if (!stats.value) return 'neutral'
+  if (stats.value.rateLimitBackend !== 'upstash-rest') return 'warning'
+  if (rateLimitSummary.value?.lastFallbackAt) return 'warning'
+  return 'good'
+})
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 const reportTab = ref<'pending' | 'resolved' | 'dismissed'>('pending')
@@ -223,13 +248,141 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports(); loadD
     </div>
 
     <!-- ═══ OVERVIEW TAB ═══ -->
-    <div v-if="activeTab === 'overview'" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div v-if="activeTab === 'overview'" class="space-y-4">
+      <div
+        class="rounded-2xl p-4"
+        :style="isDark
+          ? 'background:rgba(15,23,42,0.80);border:1px solid rgba(255,255,255,0.08);'
+          : 'background:rgba(255,255,255,0.92);border:1px solid rgba(226,232,240,0.7);box-shadow:0 2px 8px rgba(30,58,138,0.05);'"
+      >
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-gray-800'">Rate Limit Health</p>
+            <p class="text-xs mt-1" :class="isDark ? 'text-slate-400' : 'text-gray-500'">
+              {{ rateLimitScopeLabel }} untuk observability fallback rate limit dan reject 429.
+            </p>
+          </div>
+          <span
+            class="text-[11px] px-2 py-1 rounded-full font-bold"
+            :class="rateLimitHealthTone === 'good'
+              ? (isDark ? 'bg-emerald-900/30 text-emerald-300' : 'bg-emerald-100 text-emerald-700')
+              : rateLimitHealthTone === 'warning'
+                ? (isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-100 text-amber-700')
+                : (isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600')"
+          >
+            {{ rateLimitBackendLabel }}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3 mt-4">
+          <div class="rounded-xl px-3 py-3" :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
+            <p class="text-[11px] font-semibold uppercase tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Scope</p>
+            <p class="text-sm font-bold mt-1" :class="isDark ? 'text-white' : 'text-gray-800'">{{ rateLimitScopeLabel }}</p>
+          </div>
+          <div class="rounded-xl px-3 py-3" :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
+            <p class="text-[11px] font-semibold uppercase tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Backend</p>
+            <p class="text-sm font-bold mt-1" :class="isDark ? 'text-white' : 'text-gray-800'">{{ rateLimitBackendLabel }}</p>
+          </div>
+          <div class="rounded-xl px-3 py-3" :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
+            <p class="text-[11px] font-semibold uppercase tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Fallback Count</p>
+            <p class="text-sm font-bold mt-1" :class="isDark ? 'text-white' : 'text-gray-800'">{{ rateLimitSummary?.fallbackCount ?? 0 }}</p>
+            <p class="text-[11px] mt-1" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Terakhir: {{ relativeTime(rateLimitSummary?.lastFallbackAt) }}</p>
+          </div>
+          <div class="rounded-xl px-3 py-3" :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
+            <p class="text-[11px] font-semibold uppercase tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">429 Events</p>
+            <p class="text-sm font-bold mt-1" :class="isDark ? 'text-white' : 'text-gray-800'">{{ rateLimitSummary?.exceededCount ?? 0 }}</p>
+            <p class="text-[11px] mt-1" :class="isDark ? 'text-slate-500' : 'text-slate-400'">Terakhir: {{ relativeTime(rateLimitSummary?.lastExceededAt) }}</p>
+          </div>
+          <div class="rounded-xl px-3 py-3" :class="isDark ? 'bg-white/5' : 'bg-slate-50'">
+            <p class="text-[11px] font-semibold uppercase tracking-wide" :class="isDark ? 'text-slate-400' : 'text-slate-500'">Last 429 Path</p>
+            <p class="text-sm font-bold mt-1 break-all" :class="isDark ? 'text-white' : 'text-gray-800'">{{ rateLimitSummary?.lastExceededPath ?? 'Belum ada' }}</p>
+            <p class="text-[11px] mt-1 break-all" :class="isDark ? 'text-slate-500' : 'text-slate-400'">IP: {{ rateLimitSummary?.lastExceededIp ?? '—' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="(stats?.unreadShippingIncidents ?? 0) > 0"
+        class="rounded-2xl px-4 py-3 flex items-start justify-between gap-4"
+        :style="isDark
+          ? 'background:rgba(127,29,29,0.22);border:1px solid rgba(248,113,113,0.24);'
+          : 'background:rgba(254,242,242,0.98);border:1px solid rgba(252,165,165,0.45);'"
+      >
+        <div>
+          <p class="text-sm font-bold" :class="isDark ? 'text-red-300' : 'text-red-700'">Incident shipping perlu review</p>
+          <p class="text-xs mt-1" :class="isDark ? 'text-red-100/85' : 'text-red-600'">
+            Ada {{ stats?.unreadShippingIncidents }} notifikasi incident pengiriman yang belum dibaca untuk akun admin ini.
+          </p>
+        </div>
+        <button
+          class="px-3 py-2 rounded-lg text-xs font-bold text-white shrink-0"
+          style="background:linear-gradient(to right,#991b1b,#dc2626,#ef4444);"
+          @click="showNotifPanel = true"
+        >
+          Buka Notifikasi
+        </button>
+      </div>
+
+      <div
+        v-if="(stats?.recentShippingIncidents?.length ?? 0) > 0"
+        class="rounded-2xl p-4"
+        :style="isDark
+          ? 'background:rgba(15,23,42,0.80);border:1px solid rgba(248,113,113,0.18);'
+          : 'background:rgba(255,255,255,0.92);border:1px solid rgba(252,165,165,0.28);box-shadow:0 2px 8px rgba(30,58,138,0.05);'"
+      >
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <p class="text-sm font-bold" :class="isDark ? 'text-white' : 'text-gray-800'">Incident Shipping Terbaru</p>
+            <p class="text-xs mt-1" :class="isDark ? 'text-slate-400' : 'text-gray-500'">Lima incident terakhir untuk akun admin ini.</p>
+          </div>
+          <button
+            class="px-3 py-2 rounded-lg text-xs font-bold"
+            :class="isDark ? 'bg-slate-800 text-slate-100 hover:bg-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+            @click="showNotifPanel = true"
+          >
+            Lihat Semua
+          </button>
+        </div>
+
+        <div class="space-y-2">
+          <div
+            v-for="incident in stats?.recentShippingIncidents"
+            :key="incident.id"
+            class="rounded-xl px-3 py-3 flex items-start gap-3"
+            :style="isDark
+              ? 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);'
+              : 'background:rgba(248,250,252,0.9);border:1px solid rgba(226,232,240,0.7);'"
+          >
+            <div class="text-lg leading-none">🛠️</div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="text-sm font-semibold" :class="isDark ? 'text-white' : 'text-gray-800'">{{ incident.title }}</p>
+                <span
+                  class="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                  :class="incident.is_read
+                    ? (isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-600')
+                    : (isDark ? 'bg-red-900/40 text-red-300' : 'bg-red-100 text-red-700')"
+                >
+                  {{ incident.is_read ? 'READ' : 'NEW' }}
+                </span>
+              </div>
+              <p class="text-xs mt-1" :class="isDark ? 'text-slate-400' : 'text-gray-600'">{{ incident.body }}</p>
+              <p class="text-[11px] mt-2" :class="isDark ? 'text-slate-500' : 'text-gray-400'">
+                Order: {{ incident.reference_id || '—' }} · {{ relativeDate(incident.created_at) }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div v-for="(s, i) in [
         { label: 'Total Users', value: stats?.totalUsers, icon: '👥' },
         { label: 'Produk Aktif', value: stats?.totalProducts, icon: '📦' },
         { label: 'Total Pesanan', value: stats?.totalOrders, icon: '📋' },
         { label: 'Pesanan Selesai', value: stats?.completedOrders, icon: '✅' },
         { label: 'Total Revenue', value: stats?.totalRevenue != null ? formatRp(stats.totalRevenue) : '—', icon: '💰' },
+        { label: 'Incident Shipping', value: stats?.unreadShippingIncidents, icon: '🛠️' },
         { label: 'User Banned', value: stats?.bannedUsers, icon: '🚫' },
         { label: 'Produk Dimoderasi', value: stats?.moderatedProducts, icon: '⚠️' },
         { label: 'Laporan Pending', value: stats?.pendingReports, icon: '📢' },
@@ -243,6 +396,7 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports(); loadD
         <p class="text-xs mt-2 font-medium" :class="isDark ? 'text-slate-400' : 'text-gray-500'">{{ s.label }}</p>
         <p v-if="statsLoading" class="h-6 w-16 rounded animate-pulse mt-1" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'"></p>
         <p v-else class="text-lg font-bold mt-1" :class="isDark ? 'text-white' : 'text-gray-800'">{{ s.value ?? '—' }}</p>
+      </div>
       </div>
     </div>
 

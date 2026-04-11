@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "Memuat...",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "edit": "Edit",
+    "close": "Tutup",
+    "confirm": "Konfirmasi",
+    "back": "Kembali",
+    "next": "Selanjutnya",
+    "search": "Cari",
+    "filter": "Filter",
+    "sort": "Urutkan",
+    "all": "Semua",
+    "none": "Tidak ada",
+    "yes": "Ya",
+    "no": "Tidak",
+    "success": "Berhasil",
+    "error": "Terjadi kesalahan",
+    "required": "Wajib diisi"
+  },
+  "auth": {
+    "signin": "Masuk",
+    "signup": "Daftar",
+    "signout": "Keluar",
+    "email": "Email ITS",
+    "password": "Kata sandi",
+    "forgotPassword": "Lupa kata sandi?",
+    "noAccount": "Belum punya akun?",
+    "hasAccount": "Sudah punya akun?"
+  },
+  "product": {
+    "title": "Produk",
+    "price": "Harga",
+    "condition": "Kondisi",
+    "category": "Kategori",
+    "description": "Deskripsi",
+    "stock": "Stok",
+    "sell": "Jual Sekarang",
+    "buy": "Beli Sekarang",
+    "offer": "Tawar",
+    "wishlist": "Wishlist",
+    "addToCart": "Keranjang",
+    "soldOut": "Habis",
+    "new": "Baru",
+    "used": "Bekas"
+  },
+  "order": {
+    "title": "Pesanan",
+    "status": {
+      "pending_payment": "Menunggu Pembayaran",
+      "confirmed": "Dikonfirmasi",
+      "awaiting_meetup": "Menunggu COD",
+      "shipped": "Dikirim",
+      "completed": "Selesai",
+      "cancelled": "Dibatalkan",
+      "payment_failed": "Pembayaran Gagal",
+      "disputed": "Sengketa",
+      "resolved_refund": "Refund Selesai",
+      "resolved_release": "Dana Dilepas"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "send": "Kirim",
+    "placeholder": "Ketik pesan...",
+    "noMessages": "Belum ada pesan"
+  },
+  "notification": {
+    "title": "Notifikasi",
+    "empty": "Tidak ada notifikasi",
+    "markAllRead": "Tandai semua dibaca"
+  },
+  "error": {
+    "notFound": "Halaman tidak ditemukan",
+    "unauthorized": "Akses ditolak",
+    "serverError": "Server sedang bermasalah, coba lagi"
+  }
+}

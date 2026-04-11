@@ -11,13 +11,16 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "typecheck": "nuxt typecheck",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1025.0",
     "@aws-sdk/s3-request-presigner": "^3.1025.0",
     "@nuxt/fonts": "^0.14.0",
     "@nuxt/image": "^2.0.0",
+    "@nuxtjs/i18n": "^10.2.4",
     "@nuxtjs/robots": "^6.0.6",
     "@nuxtjs/sitemap": "^8.0.11",
     "@nuxtjs/supabase": "^2.0.4",
@@ -34,11 +37,18 @@
     "tailwindcss": "^4.2.2",
     "vue": "^3.5.32",
     "vue-advanced-cropper": "^2.8.9",
-    "vue-router": "^5.0.4"
+    "vue-router": "^5.0.4",
+    "web-push": "^3.6.7"
   },
   "pnpm": {
     "overrides": {
       "@vercel/nft": "^0.27.4"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@vercel/analytics>vue-router": "^5",
+        "@vercel/speed-insights>vue-router": "^5"
+      }
     },
     "ignoredBuiltDependencies": [
       "@parcel/watcher",
@@ -47,5 +57,10 @@
       "sharp",
       "vue-demi"
     ]
+  },
+  "devDependencies": {
+    "@types/web-push": "^3.6.4",
+    "@vue/language-core": "^3.2.6",
+    "vitest": "^4.1.4"
   }
 }

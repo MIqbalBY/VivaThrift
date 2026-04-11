@@ -54,86 +54,43 @@ const values = [
 </script>
 
 <template>
-  <div>
+  <div class="vt-info-page">
 
     <!-- ══════════════════════════════════════
          1. HERO + STATS BAND (one gradient)
          ══════════════════════════════════════ -->
-    <div class="vt-hero-wrapper relative pb-44 overflow-hidden">
+    <HelpCenterHero
+      badge="✨ Tentang VivaThrift"
+      title="Dari Mahasiswa ITS,"
+      highlight="Untuk Mahasiswa ITS."
+      description="Titik temu barang preloved dan kebutuhan ngampus paling aman, paling relevan, dan paling dekat dengan ritme hidup mahasiswa ITS."
+      variant="support"
+    >
+      <template #footer>
+        <div class="mt-7 flex flex-wrap gap-2 justify-center lg:justify-start">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">🛍️ Preloved Berkualitas</span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">♻️ Ekonomi Sirkular</span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">🔐 Khusus Mahasiswa ITS</span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">💸 Harga Mahasiswa</span>
+        </div>
+      </template>
+    </HelpCenterHero>
 
-      <!-- Banner-4 photo background -->
-      <img
-        src="/img/banner-4.png"
-        alt=""
-        width="2752"
-        height="1536"
-        fetchpriority="high"
-        class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-        style="object-position: center 20%;"
-        aria-hidden="true"
-      />
-      <!-- Photo overlay: maintains brand color + text legibility -->
-      <div class="vt-hero-photo-overlay absolute inset-0 pointer-events-none"></div>
-
-      <!-- HERO text -->
-      <section class="relative flex flex-col justify-center min-h-[520px] pt-28 overflow-hidden">
-        <!-- ITS Logo badge -->
-        <a href="https://www.its.ac.id/" target="_blank" rel="noopener noreferrer" class="absolute top-8 right-10 z-10 hidden md:flex items-center gap-3">
-          <img src="/img/logo-its.png" alt="ITS" width="56" height="56" class="h-14" />
-          <span class="text-white/80 text-xs font-semibold tracking-widest uppercase leading-tight">Institut Teknologi<br>Sepuluh Nopember</span>
-        </a>
-        <div class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 w-full flex flex-col gap-7 py-16">
-          <!-- Breadcrumb -->
-          <nav class="flex items-center gap-1.5 text-xs text-white/50" aria-label="Breadcrumb">
-            <NuxtLink to="/" class="hover:text-white/80 transition-colors">Beranda</NuxtLink>
-            <span>/</span>
-            <span class="text-white/70">Tentang</span>
-          </nav>
-
-          <!-- Eyebrow -->
-          <span class="vt-hero-enter vt-hero-enter-d1 vt-hero-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase w-fit">
-            ✨ Tentang VivaThrift
-          </span>
-
-          <!-- H1 -->
-          <h1 class="vt-hero-enter vt-hero-enter-d2 font-heading text-5xl sm:text-6xl md:text-7xl font-bold leading-[1.05] tracking-tight text-white max-w-3xl">
-            Dari <span class="vt-highlight">Mahasiswa ITS</span>,<br>Untuk <span class="vt-highlight">Mahasiswa ITS</span>.
-          </h1>
-
-          <!-- Subtitle -->
-          <p class="vt-hero-enter vt-hero-enter-d3 text-lg leading-relaxed text-white/70 max-w-xl">
-            Titik temu barang preloved dan kebutuhan ngampus paling aman se-Surabaya Timur.
-          </p>
-          <!-- Tag chips -->
-          <div class="vt-hero-enter vt-hero-enter-d4 flex flex-wrap gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">🛍️ Preloved Berkualitas</span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">♻️ Ekonomi Sirkular</span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">🔐 Khusus Mahasiswa ITS</span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">💸 Harga Mahasiswa</span>
+    <section class="vt-stats-band relative" :ref="reveal">
+      <div class="max-w-7xl mx-auto px-6 md:px-10 -mt-10 md:-mt-14 relative z-10">
+        <div class="vt-stats-shell grid grid-cols-2 md:grid-cols-4 rounded-[2rem] overflow-hidden">
+          <div
+            v-for="(s, i) in stats"
+            :key="s.label"
+            class="vt-stat-item flex flex-col justify-center gap-2 py-12 px-8"
+          >
+            <span class="text-3xl mb-1" aria-hidden="true">{{ s.icon }}</span>
+            <span class="font-heading text-5xl md:text-6xl font-bold tracking-tight leading-none vt-stat-value">{{ s.value }}</span>
+            <span class="text-xs leading-snug uppercase tracking-wider mt-1 vt-stat-label">{{ s.label }}</span>
           </div>
         </div>
-      </section>
-
-      <!-- STATS BAND -->
-      <section class="relative" :ref="reveal">
-        <div class="max-w-7xl mx-auto px-6 md:px-10">
-          <div class="grid grid-cols-2 md:grid-cols-4">
-            <div
-              v-for="(s, i) in stats"
-              :key="s.label"
-              class="vt-stat-item flex flex-col justify-center gap-2 py-12 px-8"
-            >
-              <span class="text-3xl mb-1" aria-hidden="true">{{ s.icon }}</span>
-              <span class="font-heading text-5xl md:text-6xl font-bold tracking-tight leading-none vt-stat-value">{{ s.value }}</span>
-              <span class="text-xs leading-snug uppercase tracking-wider mt-1 vt-stat-label">{{ s.label }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Bottom fade to page bg -->
-      <div class="vt-stats-fade absolute bottom-0 left-0 w-full h-44 pointer-events-none"></div>
-    </div>
+      </div>
+    </section>
 
     <!-- ══════════════════════════════════════
          3. CERITA KAMI
@@ -315,25 +272,21 @@ const values = [
 </template>
 
 <style scoped>
-/* ── Hero + Stats wrapper ── */
-.vt-hero-wrapper {
-  background: #071428; /* fallback while photo loads */
+.vt-stats-band {
+  background: #ffffff;
 }
-.dark .vt-hero-wrapper {
-  background: #060d1a;
+.dark .vt-stats-band {
+  background: #0f172a;
 }
-/* Photo overlay: brand-tinted gradient on top of photo for text legibility */
-.vt-hero-photo-overlay {
-  background: linear-gradient(170deg, rgba(7,20,40,0.88) 0%, rgba(3,69,161,0.72) 45%, rgba(14,165,233,0.45) 100%);
+.vt-stats-shell {
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96));
+  border: 1px solid rgba(15,23,42,0.08);
+  box-shadow: 0 28px 64px rgba(15,23,42,0.08);
 }
-.dark .vt-hero-photo-overlay {
-  background: linear-gradient(160deg, rgba(4,9,18,0.95) 0%, rgba(10,18,32,0.90) 50%, rgba(15,23,42,0.80) 100%);
-}
-.vt-stats-fade {
-  background: linear-gradient(to bottom, transparent, #ffffff);
-}
-.dark .vt-stats-fade {
-  background: linear-gradient(to bottom, transparent, #0f172a);
+.dark .vt-stats-shell {
+  background: linear-gradient(180deg, rgba(15,23,42,0.96), rgba(8,17,31,0.98));
+  border-color: rgba(148,163,184,0.12);
+  box-shadow: 0 28px 64px rgba(0,0,0,0.24);
 }
 .vt-stat-item {
   border-right: none;
@@ -383,13 +336,6 @@ const values = [
 .dark .vt-value-title {
   color: #f1f5f9;
 }
-.vt-divider {
-  border-color: rgba(0, 0, 0, 0.08);
-}
-.dark .vt-divider {
-  border-color: rgba(255, 255, 255, 0.07);
-}
-
 /* ── Team section: fades white → transparent (reveals wrapper CTA gradient) ── */
 .vt-team-section {
   position: relative;
@@ -524,14 +470,6 @@ const values = [
   color: rgba(255, 255, 255, 0.65);
 }
 
-/* ── Section eyebrow label (light navy / dark sky-blue) ── */
-.vt-label-accent {
-  color: #0369a1;
-}
-.dark .vt-label-accent {
-  color: #38bdf8;
-}
-
 /* ── Lower wrapper: shares CTA gradient as base ── */
 .vt-lower-wrapper {
   background: linear-gradient(160deg, #075985 0%, #0369a1 50%, #0ea5e9 100%);
@@ -554,21 +492,6 @@ const values = [
 }
 .dark .vt-cta-sub {
   color: #94a3b8;
-}
-.vt-cta-outline-btn {
-  background: none;
-  border: 2px solid rgba(255, 255, 255, 0.75);
-  color: #ffffff;
-}
-.dark .vt-cta-outline-btn {
-  border: 2px solid rgba(56, 189, 248, 0.65);
-  color: #38bdf8;
-}
-.vt-cta-outline-btn:hover {
-  border-color: rgba(30, 58, 138, 0.90);
-}
-.dark .vt-cta-outline-btn:hover {
-  background: rgba(56, 189, 248, 0.06);
 }
 
 /* ── Member card hover (light mode) ── */
