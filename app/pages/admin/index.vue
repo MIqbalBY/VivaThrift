@@ -93,7 +93,7 @@ async function moderateProduct(productId: string, action: 'approve' | 'reject' |
 
 function getProductImage(product: any) {
   const media = product.product_media
-  if (!media?.length) return null
+  if (!media?.length) return undefined
   const primary = media.find((m: any) => m.is_primary) ?? media[0]
   return mediaUrl(primary?.thumbnail_url ?? primary?.media_url ?? null)
 }
@@ -152,7 +152,7 @@ async function handleReport(reportId: string, action: string) {
 
 function getReportProductImage(report: any) {
   const media = report.reported_product?.product_media
-  if (!media?.length) return null
+  if (!media?.length) return undefined
   const primary = media.find((m: any) => m.is_primary) ?? media[0]
   return mediaUrl(primary?.thumbnail_url ?? primary?.media_url ?? null)
 }

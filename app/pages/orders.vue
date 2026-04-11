@@ -22,7 +22,7 @@ const reviewTarget = ref<{
   orderItemId: string
   productTitle: string
   sellerName: string
-  productImage: string | null
+  productImage: string | undefined
 } | null>(null)
 
 function openReviewModal(order: any, item: any) {

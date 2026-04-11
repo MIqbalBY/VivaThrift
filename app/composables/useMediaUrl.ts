@@ -29,8 +29,8 @@ const R2_DEV_ORIGIN = 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev'
  * Exported as both a standalone function (for use anywhere) and a composable
  * wrapper for components that prefer destructuring.
  */
-export function mediaUrl(url: string | null | undefined): string | null {
-  if (!url) return null
+export function mediaUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined
 
   // Strip query-string before comparing origin so ?t=... is preserved separately
   let base = url
