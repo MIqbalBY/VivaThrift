@@ -4,6 +4,8 @@ useSeoMeta({
   description: 'Syarat dan ketentuan penggunaan platform VivaThrift — marketplace preloved eksklusif mahasiswa ITS.',
 })
 
+const { reveal } = useScrollReveal()
+
 const lastUpdated = '1 April 2025'
 
 const sections = [
@@ -122,11 +124,11 @@ Tanggung jawab maksimal VivaThrift kepada pengguna dibatasi pada nilai transaksi
     <section class="vt-content-section py-16">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
         <div class="lg:grid lg:grid-cols-[260px_1fr] lg:gap-16">
-          <aside v-reveal class="hidden lg:block">
+          <aside :ref="reveal" class="hidden lg:block">
             <HelpTocCard :sections="sections" />
           </aside>
 
-          <div v-reveal class="flex flex-col gap-10">
+          <div :ref="reveal" class="flex flex-col gap-10">
             <div class="grid sm:grid-cols-3 gap-4">
               <div
                 v-for="item in [

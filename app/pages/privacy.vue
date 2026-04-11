@@ -4,6 +4,8 @@ useSeoMeta({
   description: 'Kebijakan privasi VivaThrift — bagaimana kami mengumpulkan, menggunakan, dan melindungi data pribadimu.',
 })
 
+const { reveal } = useScrollReveal()
+
 const lastUpdated = '1 April 2025'
 
 const sections = [
@@ -142,12 +144,12 @@ Penggunaan berkelanjutan Platform setelah perubahan berlaku dianggap sebagai per
         <div class="lg:grid lg:grid-cols-[260px_1fr] lg:gap-16">
 
           <!-- Sticky ToC -->
-          <aside v-reveal class="hidden lg:block">
+          <aside :ref="reveal" class="hidden lg:block">
             <HelpTocCard :sections="sections" />
           </aside>
 
           <!-- Main content -->
-          <div v-reveal class="flex flex-col gap-10">
+          <div :ref="reveal" class="flex flex-col gap-10">
             <!-- Privacy principles highlight -->
             <div class="grid sm:grid-cols-3 gap-4">
               <div v-for="p in [

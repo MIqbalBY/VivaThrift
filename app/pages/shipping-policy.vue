@@ -108,7 +108,7 @@ const returnSteps = [
          ══════════════════════════════════════ -->
     <section class="vt-section-light py-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
-        <div v-reveal class="text-center mb-14">
+        <div :ref="reveal" class="text-center mb-14">
           <span class="text-xs font-semibold tracking-widest uppercase mb-3 block vt-label-accent">Metode Pengiriman</span>
           <h2 class="vt-heading text-3xl md:text-4xl font-bold mb-3">Pilih Cara yang Paling Cocok</h2>
           <p class="vt-subheading text-base max-w-xl mx-auto">VivaThrift mendukung dua opsi pengiriman yang bisa disepakati antara pembeli dan penjual.</p>
@@ -118,7 +118,7 @@ const returnSteps = [
           <div
             v-for="m in shippingMethods"
             :key="m.title"
-            v-reveal
+            :ref="reveal"
             class="vt-method-card rounded-2xl p-8"
           >
             <div class="flex items-start justify-between gap-4 mb-5">
@@ -174,7 +174,7 @@ const returnSteps = [
          ══════════════════════════════════════ -->
     <section class="vt-section-alt py-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
-        <div v-reveal class="text-center mb-14">
+        <div :ref="reveal" class="text-center mb-14">
           <span class="text-xs font-semibold tracking-widest uppercase mb-3 block vt-label-accent">Kebijakan Retur</span>
           <h2 class="vt-heading text-3xl md:text-4xl font-bold mb-3">Kapan Pengembalian Bisa Diajukan?</h2>
           <p class="vt-subheading text-base max-w-xl mx-auto">Kami menjamin keadilan untuk pembeli dan penjual. Pahami kondisi yang memenuhi syarat pengembalian.</p>
@@ -184,7 +184,7 @@ const returnSteps = [
           <div
             v-for="r in returnPolicy"
             :key="r.title"
-            v-reveal
+            :ref="reveal"
             class="vt-return-card rounded-2xl p-6 flex gap-4"
             :class="r.eligible ? 'vt-return-eligible' : 'vt-return-ineligible'"
           >
@@ -203,7 +203,7 @@ const returnSteps = [
          ══════════════════════════════════════ -->
     <section class="vt-section-light py-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
-        <div v-reveal class="text-center mb-14">
+        <div :ref="reveal" class="text-center mb-14">
           <span class="text-xs font-semibold tracking-widest uppercase mb-3 block vt-label-accent">Proses Pengembalian</span>
           <h2 class="vt-heading text-3xl font-bold mb-3">Langkah-langkah Mengajukan Retur</h2>
           <p class="vt-subheading text-base max-w-lg mx-auto">Ikuti langkah berikut untuk proses pengembalian yang cepat dan lancar.</p>
@@ -213,7 +213,7 @@ const returnSteps = [
           <div
             v-for="step in returnSteps"
             :key="step.num"
-            v-reveal
+            :ref="reveal"
             class="vt-step-card rounded-2xl p-6"
           >
             <div class="flex items-center gap-3 mb-4">
@@ -233,7 +233,7 @@ const returnSteps = [
     <section class="vt-cta-wrapper py-24 relative overflow-hidden">
       <div class="vt-cta-glow absolute inset-0 pointer-events-none"></div>
       <div class="max-w-7xl mx-auto px-6 md:px-10 relative">
-        <div v-reveal class="text-center max-w-xl mx-auto">
+        <div :ref="reveal" class="text-center max-w-xl mx-auto">
           <p class="text-xs font-semibold tracking-widest uppercase mb-4 vt-label-cta">Masih ada pertanyaan?</p>
           <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Kami siap membantu</h2>
           <p class="text-white/75 text-base mb-8">Cek FAQ kami atau hubungi tim langsung untuk masalah pengiriman dan pengembalian.</p>

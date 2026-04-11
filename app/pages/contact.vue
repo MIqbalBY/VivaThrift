@@ -4,6 +4,8 @@ useSeoMeta({
   description: 'Hubungi tim VivaThrift — marketplace preloved eksklusif mahasiswa ITS Surabaya.',
 })
 
+const { reveal } = useScrollReveal()
+
 const form = reactive({
   name: '',
   email: '',
@@ -114,7 +116,7 @@ const quickLinks = [
         <div class="lg:grid lg:grid-cols-[340px_1fr] lg:gap-16">
 
           <!-- Left: contact info -->
-          <div v-reveal class="mb-12 lg:mb-0">
+          <div :ref="reveal" class="mb-12 lg:mb-0">
             <p class="text-xs font-semibold tracking-widest uppercase mb-2 vt-label-accent">Info Kontak</p>
             <h2 class="vt-heading text-2xl font-bold mb-6">Reach out ke kami</h2>
 
@@ -155,7 +157,7 @@ const quickLinks = [
           </div>
 
           <!-- Right: form -->
-          <div v-reveal>
+          <div :ref="reveal">
             <div class="vt-form-card rounded-2xl p-8 md:p-10">
 
               <!-- Success state -->

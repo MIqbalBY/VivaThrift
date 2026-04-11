@@ -148,7 +148,7 @@ const categories = [
          ══════════════════════════════════════ -->
     <section class="vt-section-light py-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
-        <div v-reveal class="text-center mb-14">
+        <div :ref="reveal" class="text-center mb-14">
           <span class="text-xs font-semibold tracking-widest uppercase mb-3 block vt-label-accent">Untuk Pembeli</span>
           <h2 class="vt-heading text-3xl md:text-4xl font-bold mb-3">Cara Membeli Barang</h2>
           <p class="vt-subheading text-base max-w-xl mx-auto">Belanja preloved dari sesama anak ITS dengan 4 langkah simpel.</p>
@@ -158,7 +158,7 @@ const categories = [
           <div
             v-for="(step, i) in buySteps"
             :key="step.num"
-            v-reveal
+            :ref="reveal"
             class="vt-step-card relative rounded-2xl p-7 flex flex-col"
           >
             <!-- Connector line (desktop) -->
@@ -180,7 +180,7 @@ const categories = [
          ══════════════════════════════════════ -->
     <section class="vt-section-alt py-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
-        <div v-reveal class="text-center mb-14">
+        <div :ref="reveal" class="text-center mb-14">
           <span class="text-xs font-semibold tracking-widest uppercase mb-3 block vt-label-accent">Untuk Penjual</span>
           <h2 class="vt-heading text-3xl md:text-4xl font-bold mb-3">Cara Menjual Barang</h2>
           <p class="vt-subheading text-base max-w-xl mx-auto">Uang jajan tambahan dari barang yang sudah tidak terpakai. Mulai dalam menit.</p>
@@ -190,7 +190,7 @@ const categories = [
           <div
             v-for="step in sellSteps"
             :key="step.num"
-            v-reveal
+            :ref="reveal"
             class="vt-step-card rounded-2xl p-7 flex flex-col"
           >
             <div class="flex items-center gap-3 mb-5">
@@ -209,7 +209,7 @@ const categories = [
          ══════════════════════════════════════ -->
     <section class="vt-section-light py-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
-        <div v-reveal class="text-center mb-14">
+        <div :ref="reveal" class="text-center mb-14">
           <span class="text-xs font-semibold tracking-widest uppercase mb-3 block vt-label-accent">Kenapa VivaThrift?</span>
           <h2 class="vt-heading text-3xl md:text-4xl font-bold mb-3">Fitur yang Melindungimu</h2>
           <p class="vt-subheading text-base max-w-xl mx-auto">Kami bangun platform dengan kepercayaan dan keamanan sebagai prioritas utama.</p>
@@ -219,7 +219,7 @@ const categories = [
           <div
             v-for="f in features"
             :key="f.title"
-            v-reveal
+            :ref="reveal"
             class="vt-feature-card rounded-2xl p-6 flex gap-4 hover:-translate-y-1 transition-transform duration-200"
           >
             <div class="text-2xl flex-shrink-0">{{ f.icon }}</div>
@@ -237,13 +237,13 @@ const categories = [
          ══════════════════════════════════════ -->
     <section class="vt-section-alt py-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
-        <div v-reveal class="text-center mb-10">
+        <div :ref="reveal" class="text-center mb-10">
           <span class="text-xs font-semibold tracking-widest uppercase mb-3 block vt-label-accent">Kategori</span>
           <h2 class="vt-heading text-3xl font-bold mb-3">Apa yang Bisa Dijual?</h2>
           <p class="vt-subheading text-base max-w-lg mx-auto">Hampir semua barang preloved boleh dijual, selama legal dan sesuai kondisi yang jujur.</p>
         </div>
 
-        <div v-reveal class="flex flex-wrap justify-center gap-3">
+        <div :ref="reveal" class="flex flex-wrap justify-center gap-3">
           <div
             v-for="cat in categories"
             :key="cat.label"
@@ -261,7 +261,7 @@ const categories = [
     <section class="vt-cta-wrapper py-24 relative overflow-hidden">
       <div class="vt-cta-glow absolute inset-0 pointer-events-none"></div>
       <div class="max-w-7xl mx-auto px-6 md:px-10 relative">
-        <div v-reveal class="text-center max-w-xl mx-auto">
+        <div :ref="reveal" class="text-center max-w-xl mx-auto">
           <p class="text-xs font-semibold tracking-widest uppercase mb-4 vt-label-cta">Siap mulai?</p>
           <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Bergabung dengan komunitas preloved ITS</h2>
           <p class="text-white/75 text-base mb-8">Daftar gratis dengan email ITS-mu dan mulai transaksi hari ini.</p>
