@@ -31,7 +31,7 @@ Pendaftaran menggunakan email selain email ITS tidak akan diproses. Jika kamu lu
     title: '3. Akun Pengguna',
     content: `Kamu bertanggung jawab penuh atas:
 
-• Kerahasiaan password akun — jangan bagikan ke siapapun.
+• Kerahasiaan password akun — jangan bagikan ke siapa pun.
 • Seluruh aktivitas yang terjadi di bawah akunmu.
 • Memastikan informasi profil akurat dan terkini.
 
@@ -45,17 +45,17 @@ VivaThrift berhak menangguhkan atau menghapus akun yang terbukti melanggar S&K i
 • Penjual wajib mendeskripsikan kondisi barang secara jujur dan akurat.
 • Harga yang tercantum adalah harga yang disepakati antara penjual dan pembeli.
 • Negosiasi harga diperbolehkan melalui fitur chat yang tersedia.
-• Pembayaran wajib dilakukan melalui mekanisme yang disediakan Platform (Xendit payment gateway — mendukung Virtual Account, QRIS, dan e-wallet).
-• Transaksi di luar Platform (COD tanpa pencatatan, transfer langsung tanpa bukti) sepenuhnya risiko pengguna.`,
+• Pembayaran wajib dilakukan melalui mekanisme yang disediakan Platform, termasuk Xendit untuk Virtual Account, QRIS, dan e-wallet.
+• Transaksi di luar Platform sepenuhnya menjadi risiko pengguna.`,
   },
   {
     id: 'pengiriman',
     title: '5. Pengiriman & COD',
     content: `Platform mendukung dua metode pemenuhan pesanan:
 
-COD Kampus: Transaksi tatap muka dalam lingkungan ITS. Disarankan di lokasi ramai dan pada jam aktif kampus. Platform tidak bertanggung jawab atas kejadian selama proses COD.
+COD Kampus: transaksi tatap muka dalam lingkungan ITS. Disarankan di lokasi ramai dan pada jam aktif kampus. Platform tidak bertanggung jawab atas kejadian selama proses COD.
 
-Pengiriman Kurir: Ongkos kirim ditanggung pembeli kecuali disepakati lain. Penjual wajib memberikan nomor resi pengiriman. Kerusakan atau kehilangan barang selama pengiriman menjadi tanggung jawab jasa kurir.`,
+Pengiriman Kurir: ongkos kirim ditanggung pembeli kecuali disepakati lain. Penjual wajib memberikan nomor resi pengiriman. Kerusakan atau kehilangan barang selama pengiriman menjadi tanggung jawab jasa kurir.`,
   },
   {
     id: 'larangan',
@@ -76,9 +76,9 @@ Pelanggaran akan mengakibatkan penangguhan atau penghapusan akun permanen.`,
     title: '7. Penyelesaian Sengketa',
     content: `Jika terjadi perselisihan antara penjual dan pembeli:
 
-1. Ajukan sengketa melalui fitur "Dispute" pada detail pesanan dalam 3 hari setelah transaksi selesai atau barang diterima.
-2. Sertakan bukti yang relevan (foto, screenshot chat, bukti transfer).
-3. Tim VivaThrift akan melakukan mediasi dalam 1-3 hari kerja.
+1. Ajukan sengketa melalui fitur Dispute pada detail pesanan dalam 3 hari setelah transaksi selesai atau barang diterima.
+2. Sertakan bukti yang relevan seperti foto, screenshot chat, dan bukti pembayaran.
+3. Tim VivaThrift akan melakukan mediasi dalam 1–3 hari kerja.
 4. Keputusan tim VivaThrift bersifat final dan mengikat.
 
 VivaThrift tidak menjamin pengembalian dana penuh dalam setiap kasus, namun akan berupaya menemukan solusi yang adil bagi semua pihak.`,
@@ -91,7 +91,7 @@ VivaThrift tidak menjamin pengembalian dana penuh dalam setiap kasus, namun akan
   {
     id: 'tanggung-jawab',
     title: '9. Batasan Tanggung Jawab',
-    content: `VivaThrift menyediakan Platform "sebagaimana adanya" tanpa jaminan apapun terkait ketersediaan, akurasi, atau kesesuaian untuk tujuan tertentu.
+    content: `VivaThrift menyediakan Platform sebagaimana adanya tanpa jaminan apa pun terkait ketersediaan, akurasi, atau kesesuaian untuk tujuan tertentu.
 
 Platform tidak bertanggung jawab atas:
 • Kerugian yang timbul dari transaksi antara pengguna.
@@ -110,9 +110,6 @@ Tanggung jawab maksimal VivaThrift kepada pengguna dibatasi pada nilai transaksi
 
 <template>
   <div class="vt-info-page">
-    <!-- ══════════════════════════════════════
-         HERO
-         ══════════════════════════════════════ -->
     <HelpCenterHero
       badge="📋 Dokumen Legal"
       title="Syarat &"
@@ -122,67 +119,51 @@ Tanggung jawab maksimal VivaThrift kepada pengguna dibatasi pada nilai transaksi
       variant="legal"
     />
 
-    <!-- ══════════════════════════════════════
-         TABLE OF CONTENTS + CONTENT
-         ══════════════════════════════════════ -->
-}
+    <section class="vt-content-section py-16">
+      <div class="max-w-7xl mx-auto px-6 md:px-10">
+        <div class="lg:grid lg:grid-cols-[260px_1fr] lg:gap-16">
+          <aside v-reveal class="hidden lg:block">
+            <HelpTocCard :sections="sections" />
+          </aside>
 
-/* ── Section cards ── */
-.vt-section-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.07);
-}
-.dark .vt-section-card {
-  background: #0f172a;
-  border-color: rgba(255, 255, 255, 0.06);
-}
-.vt-section-title {
-  color: #0f172a;
-}
-.dark .vt-section-title {
-  color: #f1f5f9;
-}
-.vt-section-body {
-  color: #475569;
-}
-.dark .vt-section-body {
-  color: #cbd5e1;
-}
-.vt-divider {
-  border-color: rgba(0, 0, 0, 0.08);
-}
-.dark .vt-divider {
-  border-color: rgba(255, 255, 255, 0.07);
-}
+          <div v-reveal class="flex flex-col gap-10">
+            <div class="grid sm:grid-cols-3 gap-4">
+              <div
+                v-for="item in [
+                  { icon: '📘', title: 'Aturan Jelas', desc: 'Hak dan kewajiban pengguna dijelaskan terbuka' },
+                  { icon: '🤝', title: 'Transaksi Fair', desc: 'Marketplace memfasilitasi proses beli dan jual yang aman' },
+                  { icon: '⚖️', title: 'Dispute Terkelola', desc: 'Ada jalur sengketa saat transaksi bermasalah' },
+                ]"
+                :key="item.title"
+                class="vt-principle-card rounded-2xl p-5 text-center"
+              >
+                <div class="text-2xl mb-2">{{ item.icon }}</div>
+                <p class="vt-principle-title font-semibold text-sm mb-1">{{ item.title }}</p>
+                <p class="vt-principle-desc text-xs leading-snug">{{ item.desc }}</p>
+              </div>
+            </div>
 
-/* ── Contact note ── */
-.vt-contact-note {
-  background: rgba(30, 58, 138, 0.05);
-  border: 1px solid rgba(30, 58, 138, 0.12);
-}
-.dark .vt-contact-note {
-  background: rgba(56, 189, 248, 0.09);
-  border-color: rgba(125, 211, 252, 0.18);
-}
-.vt-contact-title {
-  color: #0f172a;
-}
-.dark .vt-contact-title {
-  color: #f1f5f9;
-}
-.vt-contact-body {
-  color: #64748b;
-}
-.dark .vt-contact-body {
-  color: #cbd5e1;
-}
-.vt-contact-btn {
-  background: linear-gradient(135deg, #162d6e, #1e40af);
-  color: #ffffff;
-}
-.dark .vt-contact-btn {
-  background: linear-gradient(135deg, #0284c7, #0ea5e9, #38bdf8);
-  color: #ffffff;
-  box-shadow: 0 14px 34px rgba(14, 165, 233, 0.28);
-}
-</style>
+            <HelpSectionCard
+              v-for="section in sections"
+              :id="section.id"
+              :key="section.id"
+              :title="section.title"
+              :content="section.content"
+            />
+
+            <div class="vt-contact-note rounded-2xl p-8 text-center">
+              <p class="vt-contact-title font-semibold mb-2">Butuh klarifikasi soal syarat penggunaan?</p>
+              <p class="vt-contact-body text-sm mb-5">Hubungi tim VivaThrift jika ada ketentuan yang perlu dijelaskan lebih lanjut.</p>
+              <NuxtLink
+                to="/contact"
+                class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold vt-contact-btn transition-all hover:-translate-y-0.5"
+              >
+                Hubungi Kami →
+              </NuxtLink>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</template>

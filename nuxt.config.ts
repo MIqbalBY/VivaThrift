@@ -52,7 +52,7 @@ export default defineNuxtConfig({
   i18n: {
     defaultLocale: 'id',
     locales: [{ code: 'id', name: 'Bahasa Indonesia', file: 'id.json' }],
-    langDir: 'i18n/locales/',
+    langDir: 'locales',
     strategy: 'no_prefix',  // URL tetap tanpa /id/ prefix
   },
 
