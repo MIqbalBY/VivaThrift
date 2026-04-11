@@ -15,8 +15,8 @@ const stats = [
 
 const team = [
   { name: 'Muhammad Ichlas Rifqi F.', nrp: '5023221003', dept: 'Teknik Biomedik', faculty: 'FTEIC', initials: 'IR', color: '#1e3a8a' },
-  { name: 'Tiara Aryacitra Dhaneswari', nrp: '5023221053', dept: 'Teknik Biomedik', faculty: 'FTEIC', initials: 'TA', color: '#0369a1', photo: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev/team-photo/Tiara.jpeg' },
-  { name: 'Muhammad Iqbal Baiduri Yamani', nrp: '5026221103', dept: 'Sistem Informasi', faculty: 'FTEIC', initials: 'IB', color: '#1e3a8a', photo: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev/team-photo/Iqbal.png' },
+  { name: 'Tiara Aryacitra Dhaneswari', nrp: '5023221053', dept: 'Teknik Biomedik', faculty: 'FTEIC', initials: 'TA', color: '#0369a1', photo: mediaUrl('https://cdn.vivathrift.store/team-photo/Tiara.jpeg') },
+  { name: 'Muhammad Iqbal Baiduri Yamani', nrp: '5026221103', dept: 'Sistem Informasi', faculty: 'FTEIC', initials: 'IB', color: '#1e3a8a', photo: mediaUrl('https://cdn.vivathrift.store/team-photo/Iqbal.png') },
   { name: 'Ravarel Harsha Athalla', nrp: '5026221048', dept: 'Sistem Informasi', faculty: 'FTEIC', initials: 'RH', color: '#0369a1' },
   { name: 'Fathimah Humairoh', nrp: '5002221147', dept: 'Matematika', faculty: 'FSAD', initials: 'FH', color: '#15803d' },
 ]
@@ -241,7 +241,7 @@ const values = [
             <!-- Portrait avatar area — 1:1 square -->
             <div class="relative overflow-hidden aspect-square"
                  :style="`background: linear-gradient(160deg, ${member.color} 0%, #060d1a 100%);`">
-              <NuxtImg v-if="member.photo" :src="member.photo" :alt="member.name" width="300" height="300" loading="lazy" class="absolute inset-0 w-full h-full object-cover object-top" />
+              <img v-if="member.photo" :src="member.photo" :alt="member.name" width="300" height="300" loading="lazy" class="absolute inset-0 w-full h-full object-cover object-top" />
               <span v-else class="absolute inset-0 flex items-center justify-center font-heading text-8xl font-bold select-none"
                     style="color: rgba(255,255,255,0.20);">{{ member.initials }}</span>
               <div class="absolute bottom-0 left-0 w-full h-0.5" :style="`background: ${member.color}; opacity: 0.8;`"></div>
