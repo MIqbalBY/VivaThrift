@@ -595,14 +595,51 @@ watch(sentinelRef, () => nextTick(setupObserver))
 
       <!-- Product Grid Skeleton (initial load) -->
       <div v-if="productsLoading && products.length === 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
-        <div v-for="i in 12" :key="i" class="rounded-xl overflow-hidden animate-pulse" :class="isDark ? 'bg-slate-800/60' : 'bg-white/60'">
-          <div class="aspect-square" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
-          <div class="p-3 space-y-2.5">
-            <div class="h-4 rounded-full w-3/4" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
-            <div class="h-5 rounded-full w-1/2" :class="isDark ? 'bg-slate-600' : 'bg-gray-300'" />
-            <div class="flex items-center gap-2 pt-1">
-              <div class="w-8 h-8 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
-              <div class="h-3 rounded-full w-20" :class="isDark ? 'bg-slate-700' : 'bg-gray-200'" />
+        <div
+          v-for="i in 12"
+          :key="i"
+          class="vt-product-card rounded-xl border shadow-xs flex flex-col overflow-hidden animate-pulse"
+          :class="isDark ? 'border-white/10 bg-slate-900/70' : 'border-white/50 bg-white/70'"
+        >
+          <div class="relative overflow-hidden rounded-t-xl">
+            <div class="aspect-square w-full rounded-t-xl" :class="isDark ? 'bg-slate-800' : 'bg-slate-200'" />
+
+            <div class="absolute top-2 left-2 flex flex-col items-start gap-1">
+              <div class="h-5 w-16 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-white/80'" />
+              <div class="h-5 w-14 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-white/80'" />
+            </div>
+
+            <div class="absolute bottom-2 right-2">
+              <div class="h-5 w-[4.5rem] rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-white/80'" />
+            </div>
+          </div>
+
+          <div class="p-3 flex flex-col gap-2 flex-1">
+            <div class="space-y-2">
+              <div class="h-4 w-11/12 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-slate-200'" />
+              <div class="h-4 w-7/12 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-slate-200'" />
+            </div>
+
+            <div class="h-6 w-1/2 rounded-full" :class="isDark ? 'bg-slate-600' : 'bg-slate-300'" />
+
+            <div class="h-px w-full" :class="isDark ? 'bg-white/10' : 'bg-gray-100'" />
+
+            <div class="flex items-center gap-2 rounded-lg -mx-1 px-1 py-0.5">
+              <div class="w-8 h-8 rounded-full shrink-0" :class="isDark ? 'bg-slate-700' : 'bg-slate-200'" />
+              <div class="flex-1 min-w-0 space-y-1.5">
+                <div class="h-3 w-24 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-slate-200'" />
+                <div class="h-3 w-20 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-slate-200'" />
+                <div class="h-3 w-28 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-slate-200'" />
+              </div>
+            </div>
+
+            <div class="h-px w-full" :class="isDark ? 'bg-white/10' : 'bg-gray-100'" />
+
+            <div class="flex justify-end">
+              <div class="space-y-1.5 flex flex-col items-end">
+                <div class="h-3 w-16 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-slate-200'" />
+                <div class="h-3 w-12 rounded-full" :class="isDark ? 'bg-slate-700' : 'bg-slate-200'" />
+              </div>
             </div>
           </div>
         </div>

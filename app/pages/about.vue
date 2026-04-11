@@ -68,10 +68,10 @@ const values = [
     >
       <template #footer>
         <div class="mt-7 flex flex-wrap gap-2 justify-center lg:justify-start">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">🛍️ Preloved Berkualitas</span>
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">♻️ Ekonomi Sirkular</span>
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">🔐 Khusus Mahasiswa ITS</span>
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/75">💸 Harga Mahasiswa</span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/90">🛍️ Preloved Berkualitas</span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/90">♻️ Ekonomi Sirkular</span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/90">🔐 Khusus Mahasiswa ITS</span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/90">💸 Harga Mahasiswa</span>
         </div>
       </template>
     </HelpCenterHero>
@@ -110,17 +110,17 @@ const values = [
         <div class="flex flex-col gap-6">
           <div class="flex gap-3 items-start">
             <span class="text-2xl shrink-0 mt-0.5" aria-hidden="true">🔄</span>
-            <p class="text-base leading-relaxed text-gray-600 dark:text-slate-400">
+            <p class="text-base leading-relaxed text-gray-600 dark:text-slate-200">
               Setiap pergantian semester, siklus ini selalu berulang: <strong class="font-bold vt-story-bold">maba</strong> sibuk berburu buku SKPB dan alat praktikum yang lumayan menguras kantong, sementara <strong class="font-bold vt-story-bold">mahasiswa tingkat akhir</strong> kebingungan <em>decluttering</em> barang di kosan sebelum lulus.
             </p>
           </div>
           <div class="flex gap-3 items-start">
             <span class="text-2xl shrink-0 mt-0.5" aria-hidden="true">💡</span>
-            <p class="text-base leading-relaxed text-gray-600 dark:text-slate-400">
+            <p class="text-base leading-relaxed text-gray-600 dark:text-slate-200">
               Daripada dibuang atau berdebu di lemari, kenapa tidak diwariskan ke sesama yang membutuhkan? <span class="vt-brand-text font-himpun">VivaThrift</span> hadir untuk menjembatani hal tersebut — membangun ekosistem ekonomi sirkular lokal kampus yang <strong class="font-bold vt-story-bold">eksklusif, aman, dan ramah di kantong mahasiswa.</strong>
             </p>
           </div>
-          <p class="text-sm italic text-gray-600 dark:text-slate-400 mt-2 pl-4 border-l-2 border-sky-500/40">
+          <p class="text-sm italic text-gray-600 dark:text-slate-200 mt-2 pl-4 border-l-2 border-sky-500/40">
             ✍️ — Tim <span class="vt-brand-text font-himpun">VivaThrift</span>, ITS 2026
           </p>
         </div>
@@ -152,7 +152,7 @@ const values = [
             <span class="font-heading text-5xl font-bold select-none leading-none vt-value-num" :style="`color: ${v.accent}; opacity: 0.55;`">{{ v.num }}</span>
           </div>
           <h3 class="font-bold text-xl leading-snug vt-value-title pt-1">{{ v.title }}</h3>
-          <p class="text-sm leading-relaxed text-gray-600 dark:text-slate-400 pt-1">{{ v.desc }}</p>
+          <p class="text-sm leading-relaxed text-gray-600 dark:text-slate-200 pt-1">{{ v.desc }}</p>
         </div>
         <div class="border-t vt-divider"></div>
 
@@ -183,7 +183,7 @@ const values = [
           <h2 class="font-heading text-4xl md:text-5xl font-bold leading-tight vt-team-heading">
             Di Balik Layar<br><span class="vt-brand-text font-himpun">VivaThrift</span>
           </h2>
-          <p class="text-sm text-gray-600 dark:text-slate-400 max-w-md leading-relaxed mt-1">
+          <p class="text-sm text-gray-600 dark:text-slate-200 max-w-md leading-relaxed mt-1">
             Kolaborasi lima mahasiswa lintas departemen dari FTEIC dan FSAD ITS (Project Mata Kuliah Kewirausahaan Berbasis Teknologi 28 - Kelompok 1).
           </p>
         </div>
@@ -206,7 +206,7 @@ const values = [
             <!-- Info -->
             <div class="flex flex-col gap-1.5 p-4 vt-member-info">
               <p class="font-bold text-xs tracking-widest uppercase leading-snug vt-member-name">{{ member.name }}</p>
-              <p class="font-mono text-xs text-gray-600 dark:text-slate-400">{{ member.nrp }}</p>
+              <p class="font-mono text-xs text-gray-600 dark:text-slate-200">{{ member.nrp }}</p>
               <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
                 <!-- Faculty pill: yellow=FTEIC, green=FSAD -->
                 <span

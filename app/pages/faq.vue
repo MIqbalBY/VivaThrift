@@ -150,11 +150,11 @@ function selectCategory(categoryId: string) {
     <section class="vt-categories-section py-16 md:py-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
         <div class="flex items-end justify-between gap-4 mb-8 flex-wrap">
-          <div v-reveal>
+          <div :ref="reveal">
             <p class="vt-eyebrow text-xs font-semibold tracking-[0.18em] uppercase mb-3">Kategori bantuan</p>
             <h2 class="vt-section-title text-3xl md:text-4xl font-bold">Mulai dari topik yang paling relevan</h2>
           </div>
-          <div v-reveal class="flex flex-wrap gap-2">
+          <div :ref="reveal" class="flex flex-wrap gap-2">
             <button
               type="button"
               class="vt-filter-chip rounded-full px-4 py-2 text-sm font-semibold transition-all"
@@ -180,7 +180,7 @@ function selectCategory(categoryId: string) {
           <button
             v-for="category in visibleCategories"
             :key="category.id"
-            v-reveal
+            :ref="reveal"
             type="button"
             class="vt-category-card text-left rounded-3xl p-6 transition-all"
             @click="selectCategory(category.id)"
@@ -206,7 +206,7 @@ function selectCategory(categoryId: string) {
     <section class="vt-content-section pb-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10 grid xl:grid-cols-[1.05fr_0.95fr] gap-8 items-start">
         <div>
-          <div v-reveal class="mb-6">
+          <div :ref="reveal" class="mb-6">
             <p class="vt-eyebrow text-xs font-semibold tracking-[0.18em] uppercase mb-3">Topik populer</p>
             <h2 class="vt-section-title text-3xl md:text-4xl font-bold mb-3">Panduan cepat untuk masalah yang paling sering dicari</h2>
             <p class="vt-section-subtitle text-sm md:text-base leading-relaxed max-w-2xl">
@@ -216,7 +216,7 @@ function selectCategory(categoryId: string) {
 
           <HelpAccordionList v-if="accordionItems.length" :items="accordionItems" />
 
-          <div v-else v-reveal class="vt-empty-state rounded-3xl p-8 text-center">
+          <div v-else :ref="reveal" class="vt-empty-state rounded-3xl p-8 text-center">
             <div class="text-5xl mb-4">🧭</div>
             <h3 class="vt-empty-title text-xl font-bold mb-2">Belum ada hasil yang cocok</h3>
             <p class="vt-empty-desc text-sm leading-relaxed max-w-md mx-auto mb-5">
@@ -229,7 +229,7 @@ function selectCategory(categoryId: string) {
         </div>
 
         <aside class="flex flex-col gap-5 xl:sticky xl:top-24">
-          <div v-reveal class="vt-side-panel rounded-3xl p-6 md:p-7">
+          <div :ref="reveal" class="vt-side-panel rounded-3xl p-6 md:p-7">
             <p class="vt-eyebrow text-xs font-semibold tracking-[0.18em] uppercase mb-3">Quick access</p>
             <h3 class="vt-side-title text-2xl font-bold mb-2">Butuh jalur cepat?</h3>
             <p class="vt-side-copy text-sm leading-relaxed mb-5">
@@ -248,7 +248,7 @@ function selectCategory(categoryId: string) {
             </div>
           </div>
 
-          <div v-reveal class="vt-side-cta rounded-3xl p-6 md:p-7">
+          <div :ref="reveal" class="vt-side-cta rounded-3xl p-6 md:p-7">
             <p class="vt-eyebrow-dark text-xs font-semibold tracking-[0.18em] uppercase mb-3">Masih mentok?</p>
             <h3 class="text-2xl font-bold text-white mb-3">Hubungi admin VivaThrift</h3>
             <p class="text-white/78 text-sm leading-relaxed mb-6">
@@ -307,7 +307,7 @@ function selectCategory(categoryId: string) {
 .dark .vt-section-subtitle,
 .dark .vt-empty-desc,
 .dark .vt-side-copy {
-  color: #cbd5e1;
+  color: #e2e8f0;
 }
 
 .vt-filter-chip {
@@ -384,7 +384,7 @@ function selectCategory(categoryId: string) {
 }
 
 .dark .vt-category-desc {
-  color: #cbd5e1;
+  color: #e2e8f0;
 }
 
 .vt-category-link {

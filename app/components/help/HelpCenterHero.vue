@@ -44,10 +44,10 @@ const emit = defineEmits<{
               <span class="vt-help-hero-brand">{{ highlight }}</span>
             </template>
           </h1>
-          <p class="text-base md:text-lg text-white/78 leading-relaxed max-w-2xl" :class="{ 'mx-auto lg:mx-0': true }">
+          <p class="text-base md:text-lg text-white/88 leading-relaxed max-w-2xl" :class="{ 'mx-auto lg:mx-0': true }">
             {{ description }}
           </p>
-          <p v-if="meta" class="mt-4 text-xs text-white/58">{{ meta }}</p>
+          <p v-if="meta" class="mt-4 text-xs text-white/72">{{ meta }}</p>
 
           <div v-if="showSearch" class="vt-help-search-shell max-w-2xl rounded-2xl p-3 md:p-4 mt-8">
             <div class="vt-help-search-row flex items-center gap-3 rounded-xl px-4 py-3 md:px-5 md:py-4">

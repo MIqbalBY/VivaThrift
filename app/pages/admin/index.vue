@@ -7,6 +7,34 @@ const { showNotifPanel } = useNavNotifications()
 
 const activeTab = ref<'overview' | 'users' | 'products' | 'reports' | 'disputes'>('overview')
 
+const adminTabs = [
+  { key: 'overview', label: '📊 Overview' },
+  { key: 'users', label: '👥 Users' },
+  { key: 'products', label: '📦 Produk' },
+  { key: 'reports', label: '📢 Reports' },
+  { key: 'disputes', label: '⚠️ Dispute' },
+] as const
+
+const productTabs = [
+  { key: 'active', label: 'Aktif' },
+  { key: 'moderated', label: 'Dimoderasi' },
+  { key: 'banned', label: 'Banned' },
+] as const
+
+const reportTabs = [
+  { key: 'pending', label: 'Pending' },
+  { key: 'resolved', label: 'Resolved' },
+  { key: 'dismissed', label: 'Dismissed' },
+] as const
+
+const disputeTabs = [
+  { key: 'open', label: 'Terbuka' },
+  { key: 'in_review', label: 'Ditinjau' },
+  { key: 'resolved_refund', label: 'Refund' },
+  { key: 'resolved_partial', label: 'Partial' },
+  { key: 'resolved_rejected', label: 'Ditolak' },
+] as const
+
 // ── Overview stats ────────────────────────────────────────────────────────────
 const stats = ref<any>(null)
 const statsLoading = ref(true)
@@ -240,7 +268,7 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports(); loadD
 
     <!-- Tabs -->
     <div class="flex items-center gap-1 p-1 rounded-xl mb-6 w-fit" :style="isDark ? 'background:rgba(15,23,42,0.70);border:1px solid rgba(255,255,255,0.08);' : 'background:rgba(30,58,138,0.07);border:1px solid rgba(30,58,138,0.10);'">
-      <button v-for="t in ([{ key: 'overview', label: '📊 Overview' }, { key: 'users', label: '👥 Users' }, { key: 'products', label: '📦 Produk' }, { key: 'reports', label: '📢 Reports' }, { key: 'disputes', label: '⚠️ Dispute' }] as const)" :key="t.key" @click="activeTab = t.key"
+      <button v-for="t in adminTabs" :key="t.key" @click="activeTab = t.key"
         class="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
         :class="activeTab === t.key ? 'text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 hover:text-gray-700'"
         :style="activeTab === t.key ? 'background:linear-gradient(to right,#7f1d1d,#dc2626,#ef4444);' : ''"
@@ -461,10 +489,10 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports(); loadD
     <!-- ═══ PRODUCTS TAB ═══ -->
     <div v-if="activeTab === 'products'">
       <!-- Sub-tabs -->
-      <div class="flex items-center gap-2 mb-4">
-        <button v-for="pt in ([{ key: 'active', label: 'Aktif' }, { key: 'moderated', label: 'Dimoderasi' }, { key: 'banned', label: 'Banned' }] as const)" :key="pt.key" @click="productTab = pt.key"
-          class="px-3 py-1.5 rounded-full text-xs font-semibold border transition"
-          :class="productTab === pt.key ? 'text-white border-transparent' : isDark ? 'text-slate-400 border-slate-600 hover:text-white' : 'text-gray-500 border-gray-200 hover:text-blue-700'"
+      <div class="flex items-center gap-1 p-1 rounded-xl mb-4 w-fit flex-wrap" :style="isDark ? 'background:rgba(15,23,42,0.50);border:1px solid rgba(255,255,255,0.06);' : 'background:rgba(248,250,252,1);border:1px solid rgba(226,232,240,0.50);'">
+        <button v-for="pt in productTabs" :key="pt.key" @click="productTab = pt.key"
+          class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
+          :class="productTab === pt.key ? 'text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 hover:text-gray-700'"
           :style="productTab === pt.key ? 'background:linear-gradient(to right,#7f1d1d,#dc2626,#ef4444);' : ''"
         >{{ pt.label }}</button>
       </div>
@@ -546,10 +574,10 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports(); loadD
     <!-- ═══ REPORTS TAB ═══ -->
     <div v-if="activeTab === 'reports'">
       <!-- Sub-tabs -->
-      <div class="flex items-center gap-2 mb-4">
-        <button v-for="rt in ([{ key: 'pending', label: 'Pending' }, { key: 'resolved', label: 'Resolved' }, { key: 'dismissed', label: 'Dismissed' }] as const)" :key="rt.key" @click="reportTab = rt.key"
-          class="px-3 py-1.5 rounded-full text-xs font-semibold border transition"
-          :class="reportTab === rt.key ? 'text-white border-transparent' : isDark ? 'text-slate-400 border-slate-600 hover:text-white' : 'text-gray-500 border-gray-200 hover:text-red-700'"
+      <div class="flex items-center gap-1 p-1 rounded-xl mb-4 w-fit flex-wrap" :style="isDark ? 'background:rgba(15,23,42,0.50);border:1px solid rgba(255,255,255,0.06);' : 'background:rgba(248,250,252,1);border:1px solid rgba(226,232,240,0.50);'">
+        <button v-for="rt in reportTabs" :key="rt.key" @click="reportTab = rt.key"
+          class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
+          :class="reportTab === rt.key ? 'text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 hover:text-gray-700'"
           :style="reportTab === rt.key ? 'background:linear-gradient(to right,#7f1d1d,#dc2626,#ef4444);' : ''"
         >{{ rt.label }}</button>
       </div>
@@ -645,15 +673,10 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports(); loadD
       <!-- Status filter -->
       <div class="flex items-center gap-1 p-1 rounded-xl mb-4 w-fit flex-wrap"
         :style="isDark ? 'background:rgba(15,23,42,0.50);border:1px solid rgba(255,255,255,0.06);' : 'background:rgba(248,250,252,1);border:1px solid rgba(226,232,240,0.50);'">
-        <button v-for="dt in ([
-          { key: 'open', label: 'Terbuka' },
-          { key: 'in_review', label: 'Ditinjau' },
-          { key: 'resolved_refund', label: 'Refund' },
-          { key: 'resolved_partial', label: 'Partial' },
-          { key: 'resolved_rejected', label: 'Ditolak' },
-        ] as const)" :key="dt.key" @click="disputeTab = dt.key"
+        <button v-for="dt in disputeTabs" :key="dt.key" @click="disputeTab = dt.key"
           class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-          :class="disputeTab === dt.key ? 'bg-red-600 text-white' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 hover:text-gray-700'"
+          :class="disputeTab === dt.key ? 'text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 hover:text-gray-700'"
+          :style="disputeTab === dt.key ? 'background:linear-gradient(to right,#7f1d1d,#dc2626,#ef4444);' : ''"
         >{{ dt.label }}</button>
       </div>
 
