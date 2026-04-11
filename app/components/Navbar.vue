@@ -23,7 +23,7 @@ const { dbCategories, showCategory, categoryButtonRef, categoryLabel, handleCate
 const showMobileMenu = ref(false)
 const showLogoutConfirm = ref(false)
 const showProfileMenu = ref(false)
-const profileMenuRef = ref<HTMLElement | null>(null)
+const profileMenuRef = ref(null)
 
 const isAdmin = computed(() => ['admin', 'moderator'].includes(user.value?.app_metadata?.role))
 
