@@ -9,7 +9,7 @@
 // ── Order State Machine ────────────────────────────────────────────────────────
 
 const ORDER_TRANSITIONS: Record<string, string[]> = {
-  pending_payment:  ['confirmed', 'cancelled', 'payment_failed'],
+  pending_payment:  ['confirmed', 'awaiting_meetup', 'cancelled', 'payment_failed'],
   confirmed:        ['shipped', 'awaiting_meetup', 'cancelled'],
   awaiting_meetup:  ['completed', 'cancelled', 'disputed'],
   shipped:          ['completed', 'disputed'],

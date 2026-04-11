@@ -49,7 +49,7 @@ export default defineNuxtConfig({
   image: {
     quality: 80,
     format: ['webp', 'avif'],
-    domains: ['pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev'],
+    domains: ['cdn.vivathrift.store', 'pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev'],
   },
   fonts: {
     families: [
@@ -75,6 +75,8 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/manifest.webmanifest' },
+        { rel: 'preconnect', href: 'https://cdn.vivathrift.store' },
+        { rel: 'dns-prefetch', href: 'https://cdn.vivathrift.store' },
         { rel: 'preconnect', href: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev' },
         { rel: 'dns-prefetch', href: 'https://pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev' },
       ]

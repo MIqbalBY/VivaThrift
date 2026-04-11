@@ -4,6 +4,7 @@ import { assertTransition } from '../../utils/state-machine'
 import { createBiteshipOrder } from '../../utils/biteship'
 import { sendEmail } from '../../utils/send-email'
 import { emailOrderShipped, emailOrderCompletedSeller } from '../../utils/email-templates'
+import { disburseFunds } from '../../utils/xendit-disburse'
 
 // PATCH /api/orders/:id
 // Body: { action: 'ship', tracking_number: string, courier_name?: string }
@@ -285,54 +286,20 @@ export default defineEventHandler(async (event) => {
         .eq('id', order.offer_id)
     }
 
-    // ── Xendit Disbursement (same logic as 'complete') ────────────────────
-    let disbursementId: string | null = null
-    let disbursementSkipped = false
-    let disbursementError: string | null = null
-
-    const xenditKey  = process.env.XENDIT_KEY ?? ''
-    const seller     = order.seller as any
-    const hasBankInfo = seller?.bank_code && seller?.bank_account_number && seller?.bank_account_name
-
-    if (!xenditKey) {
-      disbursementSkipped = true
-      disbursementError   = 'XENDIT_KEY tidak dikonfigurasi.'
-    } else if (!hasBankInfo) {
-      disbursementSkipped = true
-      disbursementError   = 'Data rekening penjual belum dilengkapi.'
-    } else {
-      const sellerReceives = order.total_amount
-        - (order.shipping_cost ?? 0)
-        - (order.platform_fee ?? 0)
-      try {
-        const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
-        const disburseRes = await $fetch<{ id: string; status: string }>(
-          'https://api.xendit.co/disbursements',
-          {
-            method: 'POST',
-            headers: {
-              Authorization:  `Basic ${credentials}`,
-              'Content-Type': 'application/json',
-            },
-            body: {
-              external_id:         `vt_meetup_${orderId}`,
-              bank_code:           seller.bank_code,
-              account_holder_name: seller.bank_account_name,
-              account_number:      seller.bank_account_number,
-              description:         `VivaThrift - Pencairan Dana COD Meetup`,
-              amount:              sellerReceives,
-            },
-          },
-        )
-        disbursementId = disburseRes.id
-        await supabaseAdmin
-          .from('orders')
-          .update({ disbursement_id: disbursementId })
-          .eq('id', orderId)
-      } catch (e: any) {
-        disbursementError = e?.data?.message ?? e?.message ?? 'Disbursement gagal.'
-        console.error('[orders/confirm_meetup] Xendit disbursement failed:', disbursementError)
-      }
+    // ── Xendit Disbursement (seller + admin platform fee) ───────────────
+    const meetupSeller = order.seller as any
+    const disburse = await disburseFunds({
+      orderId,
+      externalIdPrefix: 'vt_meetup',
+      totalAmount:  order.total_amount,
+      shippingCost: order.shipping_cost ?? 0,
+      platformFee:  order.platform_fee ?? 0,
+      seller: meetupSeller,
+    })
+    if (disburse.sellerDisbursementId) {
+      await supabaseAdmin.from('orders')
+        .update({ disbursement_id: disburse.sellerDisbursementId })
+        .eq('id', orderId)
     }
 
     // Notify buyer (best-effort)
@@ -347,8 +314,7 @@ export default defineEventHandler(async (event) => {
     } catch { /* best-effort */ }
 
     // Email seller (best-effort, fire-and-forget)
-    const meetupSeller = order.seller as any
-    const meetupItem   = ((order as any).order_items ?? [])[0] as any
+    const meetupItem = ((order as any).order_items ?? [])[0] as any
     if (meetupSeller?.email) {
       const sellerReceives = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0)
       const mail = emailOrderCompletedSeller({
@@ -356,7 +322,7 @@ export default defineEventHandler(async (event) => {
         orderId,
         productTitle:       meetupItem?.product?.title ?? 'Produk',
         sellerReceives,
-        disbursementSkipped,
+        disbursementSkipped: disburse.skipped,
       })
       sendEmail({ to: meetupSeller.email, subject: mail.subject, html: mail.html }).catch(() => {})
     }
@@ -365,9 +331,10 @@ export default defineEventHandler(async (event) => {
       orderId,
       status: 'completed',
       meetup_confirmed: true,
-      disbursement_id: disbursementId,
-      disbursement_skipped: disbursementSkipped,
-      disbursement_error: disbursementError,
+      disbursement_id: disburse.sellerDisbursementId,
+      admin_fee_disbursement_id: disburse.adminDisbursementId,
+      disbursement_skipped: disburse.skipped,
+      disbursement_error: disburse.error,
     }
   }
 
@@ -392,61 +359,20 @@ export default defineEventHandler(async (event) => {
       .eq('id', order.offer_id)
   }
 
-  // ── Xendit Disbursement (pencairan dana ke seller) ─────────────────────────
-  let disbursementId: string | null = null
-  let disbursementSkipped = false
-  let disbursementError: string | null = null
-
-  const xenditKey  = process.env.XENDIT_KEY ?? ''
-  const seller     = order.seller as any
-  const hasBankInfo = seller?.bank_code && seller?.bank_account_number && seller?.bank_account_name
-
-  if (!xenditKey) {
-    disbursementSkipped = true
-    disbursementError   = 'XENDIT_KEY tidak dikonfigurasi.'
-    console.warn('[orders/complete] Disbursement skipped: XENDIT_KEY missing')
-  } else if (!hasBankInfo) {
-    disbursementSkipped = true
-    disbursementError   = 'Data rekening penjual belum dilengkapi.'
-    console.warn('[orders/complete] Disbursement skipped: seller bank info missing for seller', seller?.id)
-  } else {
-    // Seller menerima penuh harga barang (platform_fee sudah ditanggung pembeli)
-    const sellerReceives = order.total_amount
-      - (order.shipping_cost ?? 0)
-      - (order.platform_fee ?? 0)
-
-    try {
-      const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
-      const disburseRes = await $fetch<{ id: string; status: string }>(
-        'https://api.xendit.co/disbursements',
-        {
-          method: 'POST',
-          headers: {
-            Authorization:  `Basic ${credentials}`,
-            'Content-Type': 'application/json',
-          },
-          body: {
-            external_id:          `vt_complete_${orderId}`,
-            bank_code:            seller.bank_code,
-            account_holder_name:  seller.bank_account_name,
-            account_number:       seller.bank_account_number,
-            description:          `VivaThrift - Pencairan Dana Order`,
-            amount:               sellerReceives,
-          },
-        },
-      )
-
-      disbursementId = disburseRes.id
-
-      await supabaseAdmin
-        .from('orders')
-        .update({ disbursement_id: disbursementId })
-        .eq('id', orderId)
-    } catch (e: any) {
-      disbursementError = e?.data?.message ?? e?.message ?? 'Disbursement gagal.'
-      console.error('[orders/complete] Xendit disbursement failed:', disbursementError)
-      // Non-fatal — order is still completed; manual disbursement can be triggered later
-    }
+  // ── Xendit Disbursement (seller + admin platform fee) ──────────────────────
+  const seller = order.seller as any
+  const disburse = await disburseFunds({
+    orderId,
+    externalIdPrefix: 'vt_complete',
+    totalAmount:  order.total_amount,
+    shippingCost: order.shipping_cost ?? 0,
+    platformFee:  order.platform_fee ?? 0,
+    seller,
+  })
+  if (disburse.sellerDisbursementId) {
+    await supabaseAdmin.from('orders')
+      .update({ disbursement_id: disburse.sellerDisbursementId })
+      .eq('id', orderId)
   }
 
   // Notify seller (best-effort)
@@ -455,7 +381,7 @@ export default defineEventHandler(async (event) => {
       user_id:      order.seller_id,
       type:         'order_completed',
       title:        'Pesanan selesai!',
-      body:         disbursementSkipped
+      body:         disburse.skipped
         ? 'Pembeli telah menerima pesanan. Dana akan ditransfer setelah kamu melengkapi data rekening.'
         : 'Pembeli telah menerima pesanan. Pencairan dana sedang diproses.',
       reference_id: orderId,
@@ -463,25 +389,25 @@ export default defineEventHandler(async (event) => {
   } catch { /* best-effort */ }
 
   // Email seller (best-effort, fire-and-forget)
-  const sellerUser  = order.seller as any
   const completeItem = ((order as any).order_items ?? [])[0] as any
-  if (sellerUser?.email) {
+  if (seller?.email) {
     const sellerReceives = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0)
     const mail = emailOrderCompletedSeller({
-      sellerName:         sellerUser.name ?? 'Penjual',
+      sellerName:         seller.name ?? 'Penjual',
       orderId,
       productTitle:       completeItem?.product?.title ?? 'Produk',
       sellerReceives,
-      disbursementSkipped,
+      disbursementSkipped: disburse.skipped,
     })
-    sendEmail({ to: sellerUser.email, subject: mail.subject, html: mail.html }).catch(() => {})
+    sendEmail({ to: seller.email, subject: mail.subject, html: mail.html }).catch(() => {})
   }
 
   return {
     orderId,
     status: 'completed',
-    disbursement_id: disbursementId,
-    disbursement_skipped: disbursementSkipped,
-    disbursement_error: disbursementError,
+    disbursement_id: disburse.sellerDisbursementId,
+    admin_fee_disbursement_id: disburse.adminDisbursementId,
+    disbursement_skipped: disburse.skipped,
+    disbursement_error: disburse.error,
   }
 })

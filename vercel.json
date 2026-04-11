@@ -4,9 +4,20 @@
     "remotePatterns": [
       {
         "protocol": "https",
+        "hostname": "cdn.vivathrift.store",
+        "pathname": "/**"
+      },
+      {
+        "protocol": "https",
         "hostname": "pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev",
         "pathname": "/**"
       }
     ]
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 */6 * * *"
+    }
+  ]
 }
