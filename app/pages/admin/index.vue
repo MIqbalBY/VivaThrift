@@ -95,7 +95,7 @@ function getProductImage(product: any) {
   const media = product.product_media
   if (!media?.length) return null
   const primary = media.find((m: any) => m.is_primary) ?? media[0]
-  return primary?.thumbnail_url ?? primary?.media_url ?? null
+  return mediaUrl(primary?.thumbnail_url ?? primary?.media_url ?? null)
 }
 
 function formatRp(n: number) {
@@ -154,7 +154,7 @@ function getReportProductImage(report: any) {
   const media = report.reported_product?.product_media
   if (!media?.length) return null
   const primary = media.find((m: any) => m.is_primary) ?? media[0]
-  return primary?.thumbnail_url ?? primary?.media_url ?? null
+  return mediaUrl(primary?.thumbnail_url ?? primary?.media_url ?? null)
 }
 
 // ── Disputes ─────────────────────────────────────────────────────────────────
@@ -269,7 +269,7 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports(); loadD
             : 'background:rgba(255,255,255,0.80);border:1px solid rgba(226,232,240,0.50);'"
         >
           <div class="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-bold shrink-0" :style="isDark ? 'background:linear-gradient(135deg,#0ea5e9,#38bdf8);' : 'background:linear-gradient(135deg,#1e3a8a,#2563eb);'">
-            <img v-if="u.avatar_url" :src="u.avatar_url" class="w-full h-full object-cover" />
+            <img v-if="u.avatar_url" :src="mediaUrl(u.avatar_url)" class="w-full h-full object-cover" />
             <span v-else>{{ (u.name ?? '?')[0] }}</span>
           </div>
           <div class="flex-1 min-w-0">
@@ -417,7 +417,7 @@ onMounted(() => { loadStats(); loadUsers(); loadProducts(); loadReports(); loadD
             <!-- Target thumbnail -->
             <div class="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center">
               <img v-if="getReportProductImage(r)" :src="getReportProductImage(r)" class="w-full h-full object-cover" />
-              <img v-else-if="r.reported_user?.avatar_url" :src="r.reported_user.avatar_url" class="w-full h-full object-cover" />
+              <img v-else-if="r.reported_user?.avatar_url" :src="mediaUrl(r.reported_user.avatar_url)" class="w-full h-full object-cover" />
               <span v-else class="text-xl">{{ r.reported_product ? '📦' : '👤' }}</span>
             </div>
             <div class="flex-1 min-w-0">

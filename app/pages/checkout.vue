@@ -140,8 +140,8 @@ const productCover = computed(() => {
   const media = offer.value?.product?.product_media
   if (!media?.length) return null
   const primary = media.find((m: any) => m.is_primary) ?? media[0]!
-  if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return primary.thumbnail_url
-  return primary.media_url
+  if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return mediaUrl(primary.thumbnail_url)
+  return mediaUrl(primary.media_url)
 })
 
 const subtotal = computed(() =>

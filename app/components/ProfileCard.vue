@@ -7,6 +7,7 @@ const emit = defineEmits(['close'])
 const supabase = useSupabaseClient()
 const currentUser = useSupabaseUser()
 const { isDark } = useDarkMode()
+const { mediaUrl } = useMediaUrl()
 
 const loading = ref(true)
 const userProfile = ref(null)
@@ -149,7 +150,7 @@ onUnmounted(() => {
               ? 'border-color: rgba(14,165,233,0.4); background: linear-gradient(135deg, #0ea5e9, #38bdf8);'
               : 'border-color: rgba(30,58,138,0.15); background: linear-gradient(135deg, #1e3a8a, #2563eb);'"
           >
-            <img v-if="userProfile.avatar_url" :src="userProfile.avatar_url" width="96" height="96" loading="lazy" class="w-full h-full object-cover" />
+            <img v-if="userProfile.avatar_url" :src="mediaUrl(userProfile.avatar_url)" width="96" height="96" loading="lazy" class="w-full h-full object-cover" />
             <span v-else class="text-white text-2xl font-bold select-none">{{ userInitials }}</span>
           </div>
 

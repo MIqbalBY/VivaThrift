@@ -41,7 +41,7 @@ async function handleValidateAndCheckout() {
 
 function getImage(item) {
   const media = item.product?.product_media
-  return (media?.find(m => m.is_primary) ?? media?.[0])?.media_url ?? null
+  return mediaUrl((media?.find(m => m.is_primary) ?? media?.[0])?.media_url ?? null)
 }
 
 // Group items by seller
@@ -122,7 +122,7 @@ onMounted(load)
           <!-- Seller header -->
           <div class="flex items-center gap-2 px-4 py-3 border-b" :class="isDark ? 'border-white/8 bg-slate-800/50' : 'border-gray-100 bg-gray-50'">
             <div class="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-white text-[10px] font-bold shrink-0" :style="isDark ? 'background:linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background:linear-gradient(to right,#162d6e,#1e40af)'">
-              <img v-if="group.seller?.avatar_url" :src="group.seller.avatar_url" class="w-full h-full object-cover" />
+              <img v-if="group.seller?.avatar_url" :src="mediaUrl(group.seller.avatar_url)" class="w-full h-full object-cover" />
               <span v-else>{{ (group.seller?.name ?? '?')[0] }}</span>
             </div>
             <span class="text-xs font-semibold truncate" :class="isDark ? 'text-slate-300' : 'text-gray-700'">{{ group.seller?.name ?? 'Penjual' }}</span>

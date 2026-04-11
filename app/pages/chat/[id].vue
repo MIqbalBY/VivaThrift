@@ -56,8 +56,8 @@ const productCover = computed(() => {
   const media = chat.value?.product?.product_media
   if (!media?.length) return null
   const primary = media.find(m => m.is_primary) ?? media[0]
-  if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return primary.thumbnail_url
-  return primary.media_url
+  if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return mediaUrl(primary.thumbnail_url)
+  return mediaUrl(primary.media_url)
 })
 const productSlug = computed(() => chat.value?.product?.slug ?? chat.value?.product?.id)
 

@@ -4,6 +4,7 @@ const supabase = useSupabaseClient()
 const route = useRoute()
 const { isDark, toggle } = useDarkMode()
 const { fetchSettings: fetchUserSettings, resetSettings: resetUserSettings } = useUserSettings()
+const { mediaUrl } = useMediaUrl()
 
 // ── Composables ───────────────────────────────────────────────────
 const { userProfile, userAddress, profilePending, userInitials, fetchProfile, fetchNavAddress } = useNavProfile()
@@ -308,7 +309,7 @@ onUnmounted(() => {
               aria-label="Profil"
               :aria-expanded="showProfileMenu"
             >
-              <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" width="36" height="36" class="w-full h-full object-cover" />
+              <img v-if="userProfile?.avatar_url" :src="mediaUrl(userProfile.avatar_url)" alt="Avatar" width="36" height="36" class="w-full h-full object-cover" />
               <span v-else-if="profilePending" class="w-4 h-4 rounded-full border-2 border-white/50 border-t-white animate-spin"></span>
               <span v-else>{{ userInitials }}</span>
             </button>

@@ -29,8 +29,8 @@ function openReviewModal(order: any, item: any) {
   const media = item?.product?.product_media ?? []
   const primary = media.find((m: any) => m.is_primary) ?? media[0]
   const image = primary?.media_type?.startsWith('video') && primary.thumbnail_url
-    ? primary.thumbnail_url
-    : (primary?.media_url ?? null)
+    ? mediaUrl(primary.thumbnail_url)
+    : mediaUrl(primary?.media_url ?? null)
   reviewTarget.value = {
     orderItemId:  item.id,
     productTitle: item.product?.title ?? '—',

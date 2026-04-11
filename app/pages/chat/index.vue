@@ -76,8 +76,8 @@ function getProductCover(chat) {
   const media = chat.product?.product_media
   if (!media?.length) return null
   const primary = media.find(m => m.is_primary) ?? media[0]
-  if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return primary.thumbnail_url
-  return primary.media_url
+  if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return mediaUrl(primary.thumbnail_url)
+  return mediaUrl(primary.media_url)
 }
 
 function isBuyer(chat) {
@@ -248,7 +248,7 @@ async function hideChat(chatId) {
             ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8);'
             : 'background: linear-gradient(135deg,#1e3a8a,#2563eb);'"
         >
-          <img v-if="getOtherParty(chat)?.avatar_url" :src="getOtherParty(chat).avatar_url" width="40" height="40" loading="lazy" class="w-full h-full object-cover" />
+          <img v-if="getOtherParty(chat)?.avatar_url" :src="mediaUrl(getOtherParty(chat).avatar_url)" width="40" height="40" loading="lazy" class="w-full h-full object-cover" />
           <span v-else>{{ avatarInitials(getOtherParty(chat)?.name) }}</span>
         </div>
 

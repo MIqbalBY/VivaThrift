@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/nuxt'
 
 Sentry.init({
-  // DSN diambil otomatis dari runtimeConfig.public.sentry.dsn
-  dsn: process.env.SENTRY_DSN,
+  // DSN diambil dari runtimeConfig.public.sentry.dsn (tersedia di browser via Nuxt)
+  dsn: useRuntimeConfig().public.sentry.dsn as string,
 
   // Tracing: capture 20% request di production, 100% di dev
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,

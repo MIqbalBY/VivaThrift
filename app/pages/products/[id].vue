@@ -40,7 +40,7 @@ const primaryImage = computed(() => {
   const media = product.value?.product_media
   if (!media || media.length === 0) return ''
   const primary = media.find(m => m.is_primary) ?? media[0]
-  return primary.media_url ?? ''
+  return primary.media_url ? mediaUrl(primary.media_url) ?? '' : ''
 })
 
 const productDesc = computed(() => {
@@ -69,9 +69,9 @@ const allMedia = computed(() => {
   if (!media || media.length === 0) return []
   const primary = media.find(m => m.is_primary) ?? media[0]
   return [primary, ...media.filter(m => m !== primary)].map(m => ({
-    url: m.media_url,
+    url: mediaUrl(m.media_url),
     isVideo: m.media_type?.startsWith('video/') ?? false,
-    thumbnailUrl: m.thumbnail_url || null,
+    thumbnailUrl: mediaUrl(m.thumbnail_url || null),
   }))
 })
 
@@ -421,7 +421,7 @@ watch(currentUserId, (id, prevId) => {
           @click="profileCardUserId = product.users.id"
         >
           <div class="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'">
-            <img v-if="product.users.avatar_url" :src="product.users.avatar_url" width="48" height="48" loading="lazy" class="w-full h-full object-cover" />
+            <img v-if="product.users.avatar_url" :src="mediaUrl(product.users.avatar_url)" width="48" height="48" loading="lazy" class="w-full h-full object-cover" />
             <span v-else class="text-white text-xs font-bold select-none">{{ sellerInitials }}</span>
           </div>
           <div class="flex-1 min-w-0">
@@ -536,7 +536,7 @@ watch(currentUserId, (id, prevId) => {
               <div class="flex items-center gap-2 mb-1.5">
                 <div class="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-bold text-white shrink-0"
                   :style="isDark ? 'background:linear-gradient(135deg,#0ea5e9,#38bdf8);' : 'background:linear-gradient(135deg,#1e3a8a,#2563eb);'">
-                  <img v-if="review.reviewer?.avatar_url" :src="review.reviewer.avatar_url" class="w-full h-full object-cover" />
+                  <img v-if="review.reviewer?.avatar_url" :src="mediaUrl(review.reviewer.avatar_url)" class="w-full h-full object-cover" />
                   <span v-else>{{ (review.reviewer?.name ?? '?')[0] }}</span>
                 </div>
                 <span class="text-xs font-semibold truncate" :class="isDark ? 'text-slate-200' : 'text-gray-700'">{{ review.reviewer?.name ?? 'Anonim' }}</span>

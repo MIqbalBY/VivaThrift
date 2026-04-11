@@ -13,6 +13,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['toggle-search', 'show-profile'])
+const { mediaUrl } = useMediaUrl()
 
 function avatarInitial(name) {
   return (name ?? '?')[0].toUpperCase()
@@ -34,7 +35,7 @@ function avatarInitial(name) {
 
     <!-- Product thumbnail -->
     <NuxtLink :to="productSlug ? `/products/${productSlug}` : '#'" class="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 dark:bg-white/10 shrink-0">
-      <img v-if="productCover" :src="productCover" :alt="chat?.product?.title" width="48" height="48" loading="lazy" class="w-full h-full object-cover"/>
+      <img v-if="productCover" :src="mediaUrl(productCover)" :alt="chat?.product?.title" width="48" height="48" loading="lazy" class="w-full h-full object-cover"/>
       <div v-else class="w-full h-full flex items-center justify-center text-lg">📷</div>
     </NuxtLink>
 
@@ -50,7 +51,7 @@ function avatarInitial(name) {
           @click="emit('show-profile', otherParty.id)"
           class="shrink-0 w-7 h-7 rounded-full overflow-hidden bg-gray-200 dark:bg-white/10 hover:ring-2 ring-sky-400 transition"
         >
-          <img v-if="otherParty.avatar_url" :src="otherParty.avatar_url" :alt="otherParty.name" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
+          <img v-if="otherParty.avatar_url" :src="mediaUrl(otherParty.avatar_url)" :alt="otherParty.name" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
           <span v-else class="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-300">{{ avatarInitial(otherParty.name) }}</span>
         </button>
         <div class="min-w-0">

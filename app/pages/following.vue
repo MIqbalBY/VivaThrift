@@ -98,7 +98,7 @@ onMounted(() => fetchFollowing())
               ? 'background: linear-gradient(135deg,#0ea5e9,#38bdf8);'
               : 'background: linear-gradient(135deg,#1e3a8a,#2563eb);'"
           >
-            <img v-if="u.avatar_url" :src="u.avatar_url" width="48" height="48" class="w-full h-full object-cover" />
+            <img v-if="u.avatar_url" :src="mediaUrl(u.avatar_url)" width="48" height="48" class="w-full h-full object-cover" />
             <span v-else class="text-white text-sm font-bold select-none">{{ userInitials(u.name) }}</span>
           </div>
         </NuxtLink>

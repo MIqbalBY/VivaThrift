@@ -8,6 +8,7 @@ const { dbCategories, showCategory, categoryLabel, handleCategory } = useNavCate
 const navUnreadCount = useState('navUnreadCount', () => 0)
 const notifUnreadCount = useState('navNotifUnreadCount', () => 0)
 const showNotifPanel = useState('navShowNotifPanel', () => false)
+const { mediaUrl } = useMediaUrl()
 
 const isAdmin = computed(() => ['admin', 'moderator'].includes(user.value?.app_metadata?.role))
 
@@ -108,7 +109,7 @@ const emit = defineEmits<{
             <div class="flex items-center justify-between px-1">
               <div class="flex items-center gap-2">
                 <div class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-bold shrink-0" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'">
-                  <img v-if="userProfile?.avatar_url" :src="userProfile.avatar_url" alt="Avatar" width="48" height="48" class="w-full h-full object-cover" />
+                  <img v-if="userProfile?.avatar_url" :src="mediaUrl(userProfile.avatar_url)" alt="Avatar" width="48" height="48" class="w-full h-full object-cover" />
                   <span v-else-if="profilePending" class="w-3.5 h-3.5 rounded-full border-2 border-white/50 border-t-white animate-spin"></span>
                   <span v-else>{{ userInitials }}</span>
                 </div>

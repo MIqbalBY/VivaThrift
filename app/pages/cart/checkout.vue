@@ -145,7 +145,7 @@ const itemsBySeller = computed(() => {
 
 function getImage(item: any) {
   const media = item.product?.product_media
-  return (media?.find((m: any) => m.is_primary) ?? media?.[0])?.media_url ?? null
+  return mediaUrl((media?.find((m: any) => m.is_primary) ?? media?.[0])?.media_url ?? null)
 }
 
 async function handleCheckout() {
