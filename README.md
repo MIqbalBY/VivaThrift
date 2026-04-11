@@ -3,7 +3,7 @@
 
 # VivaThrift
 
-<img src="public/img/Logo%20VivaThrift.png" alt="VivaThrift Logo" width="120" />
+<img src="public/img/logo-vivathrift.png" alt="VivaThrift Logo" width="120" />
 
 **Dari Mahasiswa ITS, Untuk Mahasiswa ITS.**\
 Marketplace preloved eksklusif untuk civitas akademika Institut Teknologi Sepuluh Nopember.
