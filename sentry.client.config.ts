@@ -20,7 +20,11 @@ Sentry.init({
       maskAllText: false,
       blockAllMedia: false,
     }),
+    Sentry.consoleLoggingIntegration({ levels: ['log', 'warn', 'error'] }),
   ],
+
+  // Kirim console.log/warn/error sebagai logs ke Sentry
+  enableLogs: true,
 
   // Session Replay: 10% session normal, 100% saat error
   replaysSessionSampleRate: 0.1,
