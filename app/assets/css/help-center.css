@@ -304,6 +304,7 @@ html.dark .vt-help-quick-badge {
 }
 
 .vt-category-title,
+.vt-help-section-title,
 .vt-help-article-title,
 .vt-help-quick-title,
 .vt-principle-title,
@@ -316,6 +317,7 @@ html.dark .vt-help-quick-badge {
 }
 
 html.dark .vt-category-title,
+html.dark .vt-help-section-title,
 html.dark .vt-help-article-title,
 html.dark .vt-help-quick-title,
 html.dark .vt-principle-title,
@@ -413,6 +415,7 @@ html.dark .vt-label-accent {
 
 .vt-help-toc-link {
   color: #64748b;
+  font-weight: 500;
 }
 
 .vt-help-toc-link:hover {
@@ -421,7 +424,7 @@ html.dark .vt-label-accent {
 }
 
 html.dark .vt-help-toc-link {
-  color: #cbd5e1;
+  color: #e2e8f0;
 }
 
 html.dark .vt-help-toc-link:hover {
