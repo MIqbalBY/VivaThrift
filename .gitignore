@@ -39,3 +39,6 @@ test-results/
 
 # Supabase local CLI temp files (contains project ref, access tokens)
 supabase/.temp/
+
+# Sentry Config File
+.env.sentry-build-plugin

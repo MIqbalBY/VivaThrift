@@ -11,12 +11,17 @@ export default defineNuxtConfig({
     r2Region:          process.env.R2_REGION ?? 'auto',
     public: {
       r2PublicUrl: process.env.R2_PUBLIC_URL ?? '',
+      sentry: {
+        dsn: process.env.SENTRY_DSN ?? '',
+      },
     },
   },
+
   site: {
     url: 'https://www.vivathrift.store',
     name: 'VivaThrift',
   },
+
   css: [
     '~/assets/css/tailwind.css',
     '~/assets/css/fonts.css',
@@ -26,10 +31,13 @@ export default defineNuxtConfig({
     '~/assets/css/animations.css',
     'leaflet/dist/leaflet.css',
   ],
+
   compatibilityDate: '2026-04-04',
   devServer: { port: 3004 },
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
+
   modules: [
+    '@sentry/nuxt/module',
     '@nuxtjs/supabase',
     '@nuxt/image',
     '@nuxt/fonts',
@@ -38,25 +46,39 @@ export default defineNuxtConfig({
     '@nuxtjs/sitemap',
     '@nuxtjs/robots',
   ],
+
+  sentry: {
+    org: process.env.SENTRY_ORG ?? '',
+    project: process.env.SENTRY_PROJECT ?? '',
+    authToken: process.env.SENTRY_AUTH_TOKEN ?? '',
+  },
+
   vite: {
     plugins: [tailwindcss() as any],
+    optimizeDeps: {
+      include: ['@vue/devtools-core', '@vue/devtools-kit'],
+    },
   },
+
   supabase: {
     url: process.env.SUPABASE_URL || 'https://placeholder.supabase.co',
     key: process.env.SUPABASE_KEY || 'placeholder-key',
     redirect: false,
   },
+
   image: {
     quality: 80,
     format: ['webp', 'avif'],
     domains: ['cdn.vivathrift.store', 'pub-fd635ea6682d4ca4a516ca0f81bb25f8.r2.dev'],
   },
+
   fonts: {
     families: [
       { name: 'Inter', provider: 'google', weights: [400, 500, 600] },
       { name: 'Plus Jakarta Sans', provider: 'google', weights: [500, 600, 700] },
     ],
   },
+
   app: {
     head: {
       title: 'VivaThrift — Marketplace Preloved Khusus Mahasiswa ITS',
@@ -82,6 +104,7 @@ export default defineNuxtConfig({
       ]
     }
   },
+
   routeRules: {
     '/about': { prerender: true },
     '/img/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
@@ -93,9 +116,11 @@ export default defineNuxtConfig({
     // Ini mencegah ISR cache poisoning (sesi user A tersimpan & dikirim ke user B).
     '/**': { headers: { 'cache-control': 'private, no-store' } },
   },
+
   nitro: {
     compressPublicAssets: true,
   },
+
   sitemap: {
     sources: ['/api/__sitemap__/urls'],
     xslColumns: [
@@ -104,7 +129,12 @@ export default defineNuxtConfig({
     ],
     exclude: ['/auth/**', '/chat/**', '/checkout', '/profile/edit', '/products/create', '/products/edit/**'],
   },
+
   robots: {
     disallow: ['/auth/', '/chat/', '/checkout', '/profile/edit', '/products/create', '/products/edit/'],
+  },
+
+  sourcemap: {
+    client: 'hidden',
   },
 })
