@@ -13,7 +13,7 @@
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 1.1 | **Platform fee auto-disbursement ke rekening admin** | 🔧 | `disburseFunds()` di `server/utils/xendit-disburse.ts` sudah otomatis mengirim admin fee ke rekening admin via Xendit Disbursement API setiap order complete/meetup confirmed. Yang masih perlu: pastikan env `ADMIN_BANK_CODE`, `ADMIN_BANK_ACCOUNT_NUMBER`, `ADMIN_BANK_ACCOUNT_NAME` terisi di Vercel production (target: Bank Jago 1034 3858 8617 a.n. Muhammad Iqbal Baiduri Yamani) |
+| 1.1 | **Platform fee auto-disbursement ke rekening admin** | ✅ | `disburseFunds()` otomatis kirim admin fee via Xendit Disbursement API. Env vars `ADMIN_BANK_CODE`, `ADMIN_BANK_ACCOUNT_NUMBER`, `ADMIN_BANK_ACCOUNT_NAME` configurable (default: Bank Jago 1034 3858 8617 a.n. Muhammad Iqbal Baiduri Yamani). Set di Vercel production env |
 | 1.2 | **Seller payout completion** | ✅ | `server/utils/xendit-disburse.ts` fully rewritten: attempt tracking via `disbursement_attempts` table, webhook callback handler (`server/api/webhooks/xendit-disbursement.post.ts`), retry cron (`server/api/cron/retry-disbursements.post.ts`) setiap 2 jam dengan exponential backoff. 7 unit tests + 3 route tests + 3 cron tests |
 | 1.3 | **Refund flow untuk dispute** | ✅ | `server/api/disputes/[id].patch.ts` terintegrasi penuh: full refund via Xendit Refund API, partial refund + seller disbursement, rejected → restore order status dari `pre_dispute_status`. Refund callback ditangani di webhook Xendit existing. 4 integration tests |
 
@@ -281,7 +281,7 @@
 ### SPRINT 1 — Revenue & Production Blocking ✅ MOSTLY DONE
 
 ```text
-1.1  Platform fee disbursement   🔧 (logic done, env production belum diisi)
+1.1  Platform fee disbursement   ✅
 1.2  Seller payout completion    ✅
 2.1  Xendit production key       🔧
 2.2  Biteship production key     🔧
@@ -360,7 +360,7 @@
 
 | Kategori | ✅ Done | 🔧 Partial | ❌ Not Started | Total |
 |----------|---------|------------|----------------|-------|
-| Keuangan | 2 | 1 | 0 | 3 |
+| Keuangan | 3 | 0 | 0 | 3 |
 | Payment/Shipping | 0 | 3 | 1 | 4 |
 | Backend/Infra | 1 | 3 | 2 | 6 |
 | Disputes | 2 | 0 | 3 | 5 |
@@ -379,4 +379,4 @@
 | Analytics | 0 | 1 | 2 | 3 |
 | Konten | 0 | 0 | 1 | 1 |
 | Marketing | 0 | 0 | 4 | 4 |
-| **TOTAL** | **20** | **23** | **51** | **94** |
+| **TOTAL** | **21** | **22** | **51** | **94** |
