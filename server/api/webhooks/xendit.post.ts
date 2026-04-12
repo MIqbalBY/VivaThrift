@@ -41,18 +41,25 @@ export default defineEventHandler(async (event) => {
     status,
     payment_method:  paymentMethod,
     paid_amount:     paidAmount,
+    event:           eventType,
   } = body ?? {}
+  const refundId      = body?.data?.id ?? body?.refund_id ?? null
+  const failureReason = body?.data?.failure_reason ?? body?.failure_reason ?? null
 
-  if (!xenditInvoiceId) {
+  const isRefundEvent = eventType === 'refund.succeeded' || eventType === 'refund.failed'
+  if (!xenditInvoiceId && !isRefundEvent) {
     throw createError({ statusCode: 400, statusMessage: 'Missing invoice id in payload.' })
   }
 
   try {
     return await processXenditWebhook({
-      xenditInvoiceId,
+      xenditInvoiceId: xenditInvoiceId ?? '',
       status,
       paymentMethod,
       paidAmount,
+      event: eventType,
+      refundId,
+      failureReason,
     }, {
       markOrdersPaymentFailed: async (invoiceId, updatedAt) => {
         const { data } = await supabaseAdmin
@@ -194,6 +201,26 @@ export default defineEventHandler(async (event) => {
       renderBuyerEmail: emailOrderConfirmedBuyer,
       renderSellerEmail: emailNewOrderSeller,
       sendEmail,
+      findDisputeByRefundId: async (refundId) => {
+        const { data } = await supabaseAdmin
+          .from('disputes')
+          .select('id, refund_status')
+          .eq('xendit_refund_id', refundId)
+          .maybeSingle()
+        return data ?? null
+      },
+      updateDisputeRefundCompleted: async (disputeId) => {
+        await supabaseAdmin
+          .from('disputes')
+          .update({ refund_status: 'completed', refunded_at: new Date().toISOString() })
+          .eq('id', disputeId)
+      },
+      updateDisputeRefundFailed: async (disputeId, errorMessage) => {
+        await supabaseAdmin
+          .from('disputes')
+          .update({ refund_status: 'failed', refund_error: errorMessage })
+          .eq('id', disputeId)
+      },
       onWarning: (message, error) => {
         console.error(message, error)
       },

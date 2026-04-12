@@ -22,6 +22,9 @@ function createDeps(overrides: Partial<XenditWebhookDeps> = {}): XenditWebhookDe
     renderBuyerEmail: vi.fn(() => ({ subject: 'Buyer subject', html: '<p>buyer</p>' })),
     renderSellerEmail: vi.fn(() => ({ subject: 'Seller subject', html: '<p>seller</p>' })),
     sendEmail: vi.fn(async () => true),
+    findDisputeByRefundId: vi.fn(async () => null),
+    updateDisputeRefundCompleted: vi.fn(async () => {}),
+    updateDisputeRefundFailed: vi.fn(async () => {}),
     onWarning: vi.fn(),
     ...overrides,
   }
@@ -126,5 +129,74 @@ describe('processXenditWebhook', () => {
     expect(deps.restoreProduct).toHaveBeenCalledWith('product-1', 5)
     expect(deps.restoreOffer).toHaveBeenCalledWith('offer-1', '2026-04-11T13:00:00.000Z')
     expect(deps.sendEmail).not.toHaveBeenCalled()
+  })
+
+  describe('refund events', () => {
+    it('refund.succeeded → updates dispute refund_status=completed', async () => {
+      const deps = createDeps({
+        findDisputeByRefundId: vi.fn(async () => ({ id: 'dispute-1', refund_status: 'submitted' })),
+        updateDisputeRefundCompleted: vi.fn(async () => {}),
+      })
+
+      const result = await processXenditWebhook({
+        xenditInvoiceId: '',
+        status: null,
+        event: 'refund.succeeded',
+        refundId: 'refund-abc',
+      }, deps)
+
+      expect(deps.updateDisputeRefundCompleted).toHaveBeenCalledWith('dispute-1')
+      expect(result).toEqual({ received: true, action: 'refund_completed', disputeId: 'dispute-1' })
+    })
+
+    it('refund.failed → updates dispute refund_status=failed with error', async () => {
+      const deps = createDeps({
+        findDisputeByRefundId: vi.fn(async () => ({ id: 'dispute-1', refund_status: 'submitted' })),
+        updateDisputeRefundFailed: vi.fn(async () => {}),
+      })
+
+      const result = await processXenditWebhook({
+        xenditInvoiceId: '',
+        status: null,
+        event: 'refund.failed',
+        refundId: 'refund-abc',
+        failureReason: 'Invoice already refunded',
+      }, deps)
+
+      expect(deps.updateDisputeRefundFailed).toHaveBeenCalledWith('dispute-1', 'Invoice already refunded')
+      expect(result).toEqual({ received: true, action: 'refund_failed', disputeId: 'dispute-1' })
+    })
+
+    it('refund event with unknown refundId is ignored', async () => {
+      const deps = createDeps({
+        findDisputeByRefundId: vi.fn(async () => null),
+      })
+
+      const result = await processXenditWebhook({
+        xenditInvoiceId: '',
+        status: null,
+        event: 'refund.succeeded',
+        refundId: 'refund-unknown',
+      }, deps)
+
+      expect(result).toEqual({ received: true, action: 'refund_unknown', refundId: 'refund-unknown' })
+    })
+
+    it('refund.succeeded is idempotent when already completed', async () => {
+      const deps = createDeps({
+        findDisputeByRefundId: vi.fn(async () => ({ id: 'dispute-1', refund_status: 'completed' })),
+        updateDisputeRefundCompleted: vi.fn(async () => {}),
+      })
+
+      const result = await processXenditWebhook({
+        xenditInvoiceId: '',
+        status: null,
+        event: 'refund.succeeded',
+        refundId: 'refund-abc',
+      }, deps)
+
+      expect(deps.updateDisputeRefundCompleted).not.toHaveBeenCalled()
+      expect(result).toEqual({ received: true, action: 'refund_already_completed', disputeId: 'dispute-1' })
+    })
   })
 })

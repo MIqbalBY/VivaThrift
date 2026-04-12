@@ -42,6 +42,10 @@ export type XenditWebhookPayload = {
   status: string | null | undefined
   paymentMethod?: string | null
   paidAmount?: number | null
+  // ── Refund event fields (Xendit sends refund callbacks to same URL) ──
+  event?:         string | null
+  refundId?:      string | null
+  failureReason?: string | null
 }
 
 export type XenditWebhookDeps = {
@@ -80,6 +84,10 @@ export type XenditWebhookDeps = {
     shippingMethod: 'cod' | 'shipping'
   }) => { subject: string; html: string }
   sendEmail: (payload: { to: string; subject: string; html: string }) => Promise<unknown>
+  // ── Refund dispute deps ─────────────────────────────────────────────
+  findDisputeByRefundId:        (refundId: string) => Promise<{ id: string; refund_status: string | null } | null>
+  updateDisputeRefundCompleted: (disputeId: string) => Promise<void>
+  updateDisputeRefundFailed:    (disputeId: string, errorMessage: string) => Promise<void>
   onWarning?: (message: string, error: unknown) => void
 }
 
@@ -87,6 +95,33 @@ export async function processXenditWebhook(payload: XenditWebhookPayload, deps: 
   const now = deps.now?.() ?? new Date().toISOString()
   const paymentMethod = payload.paymentMethod ?? null
 
+  // ── Refund event branch ──────────────────────────────────────────────────
+  if (payload.event === 'refund.succeeded' || payload.event === 'refund.failed') {
+    const refundId = payload.refundId ?? ''
+    if (!refundId) {
+      return { received: true, action: 'refund_missing_id' }
+    }
+
+    const dispute = await deps.findDisputeByRefundId(refundId)
+    if (!dispute) {
+      return { received: true, action: 'refund_unknown', refundId }
+    }
+
+    if (payload.event === 'refund.succeeded') {
+      if (dispute.refund_status === 'completed') {
+        return { received: true, action: 'refund_already_completed', disputeId: dispute.id }
+      }
+      await deps.updateDisputeRefundCompleted(dispute.id)
+      return { received: true, action: 'refund_completed', disputeId: dispute.id }
+    }
+
+    // refund.failed
+    const reason = payload.failureReason ?? 'Refund failed'
+    await deps.updateDisputeRefundFailed(dispute.id, reason)
+    return { received: true, action: 'refund_failed', disputeId: dispute.id }
+  }
+
+  // ── Existing invoice branch ──────────────────────────────────────────────
   if (payload.status === 'EXPIRED' || payload.status === 'FAILED') {
     const failedOrders = await deps.markOrdersPaymentFailed(payload.xenditInvoiceId, now)
 

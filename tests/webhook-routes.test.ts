@@ -97,12 +97,12 @@ describe('webhook routes', () => {
     const { default: handler } = await import('../server/api/webhooks/xendit.post')
 
     await expect(handler({})).resolves.toEqual({ received: true, action: 'confirmed' })
-    expect(processXenditWebhook).toHaveBeenCalledWith({
+    expect(processXenditWebhook).toHaveBeenCalledWith(expect.objectContaining({
       xenditInvoiceId: 'inv-1',
       status: 'PAID',
       paymentMethod: 'EWALLET',
       paidAmount: 120000,
-    }, expect.any(Object))
+    }), expect.any(Object))
   })
 
   it('biteship route returns 401 when webhook auth fails', async () => {
