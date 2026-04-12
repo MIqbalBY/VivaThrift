@@ -17,46 +17,64 @@ export function useChatRealtime(
   function setupChatChannel() {
     if (roomRetryTimer) { clearTimeout(roomRetryTimer); roomRetryTimer = null }
     if (channel.value) { supabase.removeChannel(channel.value); channel.value = null }
+    const chatTopic = `chat:${chatId}:messages`
     channel.value = supabase
-      .channel(`chat-room-${chatId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
-        async (payload: any) => {
-          if (messages.value.some(m => m.id === payload.new.id)) return
+      .channel(chatTopic, { config: { private: true } })
+      .on('broadcast', { event: 'INSERT' }, async ({ payload }: any) => {
+          if (!payload?.new) return
+          const inserted = payload.new
+          if (messages.value.some(m => m.id === inserted.id)) return
           let offer = null
           let reply = null
-          if (payload.new.offer_id) {
+          if (inserted.offer_id) {
             const { data: offerData } = await supabase
               .from('offers')
               .select('id, offered_price, quantity, status')
-              .eq('id', payload.new.offer_id)
+              .eq('id', inserted.offer_id)
               .single()
             offer = offerData
           }
-          if (payload.new.reply_to_id) {
-            const local = messages.value.find(m => m.id === payload.new.reply_to_id)
+          if (inserted.reply_to_id) {
+            const local = messages.value.find(m => m.id === inserted.reply_to_id)
             if (local) {
               reply = { id: local.id, content: local.content, sender_id: local.sender_id, is_deleted: local.is_deleted, offer_id: local.offer_id, sender: local.sender ? { name: local.sender.name } : null }
             } else {
               const { data: replyData } = await supabase
                 .from('messages')
                 .select('id, content, sender_id, is_deleted, offer_id, sender:users!sender_id(name)')
-                .eq('id', payload.new.reply_to_id)
+                .eq('id', inserted.reply_to_id)
                 .single()
               reply = replyData
             }
           }
-          if (messages.value.some(m => m.id === payload.new.id)) return
-          const basic = { ...payload.new, offer, reply, sender: null }
+          if (messages.value.some(m => m.id === inserted.id)) return
+          const basic = { ...inserted, offer, reply, sender: null }
           messages.value.push(basic)
           clearUnreadDivider()
-          if (payload.new.sender_id !== myId.value) {
-            markMessagesAsRead(payload.new.created_at)
+          if (inserted.sender_id !== myId.value) {
+            markMessagesAsRead(inserted.created_at)
           }
           scrollToBottom()
+      })
+      .on('broadcast', { event: 'UPDATE' }, ({ payload }: any) => {
+        if (!payload?.new) return
+        const updated = payload.new
+        const idx = messages.value.findIndex(m => m.id === updated.id)
+        if (idx >= 0) {
+          messages.value[idx] = { ...messages.value[idx], ...updated }
         }
-      )
+        const { id, content, is_deleted } = updated
+        patchReplyRefs(id, { content, is_deleted })
+      })
+      .on('broadcast', { event: 'DELETE' }, ({ payload }: any) => {
+        const deleted = payload?.old
+        if (!deleted?.id) return
+        const idx = messages.value.findIndex(m => m.id === deleted.id)
+        if (idx >= 0) {
+          messages.value[idx] = { ...messages.value[idx], is_deleted: true, content: '$$DELETED$$' }
+        }
+        patchReplyRefs(deleted.id, { is_deleted: true, content: '$$DELETED$$' })
+      })
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'offers', filter: `chat_id=eq.${chatId}` },
@@ -75,45 +93,9 @@ export function useChatRealtime(
           if (p.status !== undefined) localProductStatus.value = p.status
         }
       )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
-        (payload: any) => {
-          const idx = messages.value.findIndex(m => m.id === payload.new.id)
-          if (idx >= 0) {
-            messages.value[idx] = { ...messages.value[idx], ...payload.new }
-          }
-          const { id, content, is_deleted } = payload.new
-          patchReplyRefs(id, { content, is_deleted })
-        }
-      )
-      .on('broadcast', { event: 'message-deleted' }, ({ payload }: any) => {
-        if (payload?.sender_id === myId.value) return
-        const idx = messages.value.findIndex(m => m.id === payload.msgId)
-        if (idx >= 0) {
-          messages.value[idx] = { ...messages.value[idx], is_deleted: true, content: '$$DELETED$$' }
-        }
-        patchReplyRefs(payload.msgId, { is_deleted: true, content: '$$DELETED$$' })
-      })
-      .on('broadcast', { event: 'message-edited' }, ({ payload }: any) => {
-        if (payload?.sender_id === myId.value) return
-        const idx = messages.value.findIndex(m => m.id === payload.msgId)
-        if (idx >= 0) {
-          messages.value[idx] = { ...messages.value[idx], content: payload.content, edited_at: payload.edited_at }
-        }
-        patchReplyRefs(payload.msgId, { content: payload.content })
-      })
       .on('broadcast', { event: 'offer-updated' }, ({ payload }: any) => {
         const msg = messages.value.find(m => m.offer_id === payload.offerId || m.offer?.id === payload.offerId)
         if (msg?.offer) msg.offer.status = payload.status
-      })
-      .on('broadcast', { event: 'new-message' }, ({ payload }: any) => {
-        if (!payload?.message || payload.message.sender_id === myId.value) return
-        if (messages.value.some(m => m.id === payload.message.id)) return
-        messages.value.push({ ...payload.message, offer: null, sender: null, reply: payload.reply ?? null })
-        clearUnreadDivider()
-        markMessagesAsRead(payload.message.created_at)
-        scrollToBottom()
       })
       .on('broadcast', { event: 'new-offer' }, ({ payload }: any) => {
         if (!payload?.message || payload.message.sender_id === myId.value) return

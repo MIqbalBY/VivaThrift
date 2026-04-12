@@ -179,7 +179,6 @@ export function useChatMessages(
       .update({ content: text, edited_at: editedAt })
       .eq('id', id)
       .eq('sender_id', myId.value)
-    channel.value?.send({ type: 'broadcast', event: 'message-edited', payload: { msgId: id, content: text, edited_at: editedAt, sender_id: myId.value } })
   }
 
   function patchReplyRefs(msgId: string, patch: Record<string, any>) {
@@ -214,7 +213,6 @@ export function useChatMessages(
         .eq('id', msgId)
         .eq('sender_id', myId.value)
     }
-    channel.value?.send({ type: 'broadcast', event: 'message-deleted', payload: { msgId, sender_id: myId.value } })
   }
 
   function deleteForMe(msgId: string) {
@@ -259,7 +257,6 @@ export function useChatMessages(
         messages.value.push({ ...newMsg, offer: null, sender: null, reply: replyMsg })
         scrollToBottom()
       }
-      channel.value?.send({ type: 'broadcast', event: 'new-message', payload: { message: newMsg, reply: replyMsg } })
     } catch (e) {
       messageText.value = text
       console.error(e)
