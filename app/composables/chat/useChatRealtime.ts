@@ -14,6 +14,14 @@ export function useChatRealtime(
   const channel = ref<any>(null)
   let roomRetryTimer: ReturnType<typeof setTimeout> | null = null
 
+  function pickRecord(payload: any, mode: 'new' | 'old') {
+    if (!payload) return null
+    if (mode === 'new') {
+      return payload.new ?? payload.record ?? payload.new_record ?? payload.data?.new ?? payload.data?.record ?? null
+    }
+    return payload.old ?? payload.old_record ?? payload.data?.old ?? payload.data?.old_record ?? null
+  }
+
   function setupChatChannel() {
     if (roomRetryTimer) { clearTimeout(roomRetryTimer); roomRetryTimer = null }
     if (channel.value) { supabase.removeChannel(channel.value); channel.value = null }
@@ -21,8 +29,8 @@ export function useChatRealtime(
     channel.value = supabase
       .channel(chatTopic, { config: { private: true } })
       .on('broadcast', { event: 'INSERT' }, async ({ payload }: any) => {
-          if (!payload?.new) return
-          const inserted = payload.new
+          const inserted = pickRecord(payload, 'new')
+          if (!inserted) return
           if (messages.value.some(m => m.id === inserted.id)) return
           let offer = null
           let reply = null
@@ -57,8 +65,8 @@ export function useChatRealtime(
           scrollToBottom()
       })
       .on('broadcast', { event: 'UPDATE' }, ({ payload }: any) => {
-        if (!payload?.new) return
-        const updated = payload.new
+        const updated = pickRecord(payload, 'new')
+        if (!updated) return
         const idx = messages.value.findIndex(m => m.id === updated.id)
         if (idx >= 0) {
           messages.value[idx] = { ...messages.value[idx], ...updated }
@@ -67,7 +75,7 @@ export function useChatRealtime(
         patchReplyRefs(id, { content, is_deleted })
       })
       .on('broadcast', { event: 'DELETE' }, ({ payload }: any) => {
-        const deleted = payload?.old
+        const deleted = pickRecord(payload, 'old')
         if (!deleted?.id) return
         const idx = messages.value.findIndex(m => m.id === deleted.id)
         if (idx >= 0) {
