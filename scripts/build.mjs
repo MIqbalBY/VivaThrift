@@ -1,5 +1,4 @@
 import { spawn } from 'node:child_process'
-import { resolve } from 'node:path'
 import { createInterface } from 'node:readline'
 
 const suppressedMessages = [
@@ -21,8 +20,22 @@ function pipeFiltered(stream, writer) {
   })
 }
 
-const nuxtEntrypoint = resolve(process.cwd(), 'node_modules', 'nuxt', 'dist', 'index.mjs')
-const child = spawn(process.execPath, [nuxtEntrypoint, 'build'], {
+const packageManagerEntrypoint = process.env.npm_execpath
+const packageManagerCommand = packageManagerEntrypoint
+  ? process.execPath
+  : process.platform === 'win32'
+    ? 'pnpm.cmd'
+    : 'pnpm'
+const buildArgs = packageManagerEntrypoint
+  ? [packageManagerEntrypoint, 'exec', 'nuxt', 'build']
+  : ['exec', 'nuxt', 'build']
+
+if (process.env.VERCEL && !process.env.NITRO_PRESET) {
+  buildArgs.push('--preset', 'vercel')
+}
+
+const child = spawn(packageManagerCommand, buildArgs, {
+  cwd: process.cwd(),
   env: process.env,
   stdio: ['inherit', 'pipe', 'pipe'],
 })
