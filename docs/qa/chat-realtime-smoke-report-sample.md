@@ -17,9 +17,9 @@ Referensi:
 - Tester: Rina QA
 - Observer/reviewer: Bayu Eng
 - Chat ID target: 8f16ea7e-0be1-4b57-b988-96e61f4a9d95
-- Akun A (buyer): smoke.buyer@student.its.ac.id
-- Akun B (seller): smoke.seller@student.its.ac.id
-- Akun C (non-participant, untuk access control): smoke.viewer@student.its.ac.id
+- Akun A (buyer): `smoke.buyer@student.its.ac.id`
+- Akun B (seller): `smoke.seller@student.its.ac.id`
+- Akun C (non-participant, untuk access control): `smoke.viewer@student.its.ac.id`
 
 ## Hasil Verifikasi SQL Precheck
 
