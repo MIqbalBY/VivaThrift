@@ -27,6 +27,32 @@ Runbook ini untuk verifikasi alur realtime chat setelah migrasi ke DB broadcast 
   - Window 1 login Akun A
   - Window 2 login Akun B
 
+## Verifikasi SQL Cepat (Opsional tapi Direkomendasikan)
+
+Jalankan query berikut di Supabase SQL Editor sebelum skenario manual:
+
+```sql
+select tgname
+from pg_trigger
+where tgrelid = 'public.messages'::regclass
+  and tgname = 'trg_messages_realtime_broadcast';
+
+select policyname, cmd
+from pg_policies
+where schemaname = 'realtime'
+  and tablename = 'messages'
+  and policyname in (
+    'realtime_chat_messages_select',
+    'realtime_chat_messages_insert'
+  )
+order by policyname;
+```
+
+Lulus jika:
+
+- Trigger `trg_messages_realtime_broadcast` ada.
+- Policy `realtime_chat_messages_select` dan `realtime_chat_messages_insert` ada.
+
 ## Skenario 1: New Message Realtime
 
 1. Buka chat room yang sama di Window 1 dan Window 2.
