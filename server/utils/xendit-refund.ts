@@ -2,6 +2,8 @@
 // Pure function wrapper around the Xendit /refunds endpoint.
 // Used by the dispute resolution endpoint when an admin approves a refund.
 
+import { getXenditSecretKey } from './xendit-config'
+
 export interface XenditRefundParams {
   invoiceId:  string
   amount:     number
@@ -19,7 +21,7 @@ export interface XenditRefundResult {
  * Creates a refund through Xendit's Refund API.
  *
  * Behavior:
- *   - If XENDIT_KEY is not configured → returns skipped (no error thrown)
+ *   - If XENDIT_KEY / XENDIT_SECRET_KEY is not configured → returns skipped (no error thrown)
  *   - If invoiceId is empty → returns skipped
  *   - If the Xendit API returns an error → throws (caller handles revert)
  *   - On success → returns the Xendit refund id
@@ -27,7 +29,7 @@ export interface XenditRefundResult {
  * Refund amount is paid back to the buyer's original payment method.
  */
 export async function createXenditRefund(params: XenditRefundParams): Promise<XenditRefundResult> {
-  const xenditKey = process.env.XENDIT_KEY ?? ''
+  const xenditKey = getXenditSecretKey()
 
   if (!xenditKey) {
     return { skipped: true, xenditRefundId: null, error: 'XENDIT_KEY tidak dikonfigurasi.' }

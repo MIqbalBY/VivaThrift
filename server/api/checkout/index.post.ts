@@ -1,6 +1,7 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { resolveServerUser } from '../../utils/resolve-server-uid'
 import { supabaseAdmin } from '../../utils/supabase-admin'
+import { getXenditSecretKey } from '../../utils/xendit-config'
 import {
   PRODUCT_UNAVAILABLE_STATUSES,
   isValidMeetupLocation,
@@ -202,7 +203,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── 6. Call Xendit API — create Invoice ───────────────────────────────────
-  const xenditKey = process.env.XENDIT_KEY ?? ''
+  const xenditKey = getXenditSecretKey()
   const siteUrl   = process.env.SITE_URL ?? 'https://vivathrift.store'
   const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
 

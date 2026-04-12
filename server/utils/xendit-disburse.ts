@@ -4,6 +4,7 @@
 // in the disbursement_attempts table via the injected AttemptStore.
 
 import { buildAttemptInsertRow, type AttemptStore } from './disbursement-attempts'
+import { getXenditSecretKey } from './xendit-config'
 
 export interface DisbursementResult {
   sellerDisbursementId: string | null
@@ -59,7 +60,7 @@ export interface DisburseFundsParams {
  * block. Retry cron handles failed rows.
  */
 export async function disburseFunds(params: DisburseFundsParams): Promise<DisbursementResult> {
-  const xenditKey = process.env.XENDIT_KEY ?? ''
+  const xenditKey = getXenditSecretKey()
 
   if (!xenditKey) {
     console.warn('[disburse] XENDIT_KEY tidak dikonfigurasi.')

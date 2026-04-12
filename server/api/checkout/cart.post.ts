@@ -1,6 +1,7 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { resolveServerUser } from '../../utils/resolve-server-uid'
 import { supabaseAdmin } from '../../utils/supabase-admin'
+import { getXenditSecretKey } from '../../utils/xendit-config'
 import {
   isValidMeetupLocation,
   generateMeetupOTP,
@@ -221,7 +222,7 @@ export default defineEventHandler(async (event) => {
   // ── 7. Buat satu Xendit Invoice untuk total keseluruhan ───────────────────
   // external_id = semua order ID dipisah underscore
   // Webhook akan update semua orders berdasarkan xendit_invoice_id
-  const xenditKey   = process.env.XENDIT_KEY ?? ''
+  const xenditKey   = getXenditSecretKey()
   const siteUrl     = process.env.SITE_URL ?? 'https://vivathrift.store'
   const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
   const externalId  = orderIds.join('_')

@@ -3,6 +3,7 @@ import { sendEmail } from '../../utils/send-email'
 import { emailOrderConfirmedBuyer, emailNewOrderSeller } from '../../utils/email-templates'
 import { processXenditWebhook } from '../../utils/xendit-webhook-handler'
 import { verifyXenditCallbackToken } from '../../utils/webhook-auth'
+import { getXenditCallbackToken } from '../../utils/xendit-config'
 
 // POST /api/webhooks/xendit
 //
@@ -23,7 +24,7 @@ export default defineEventHandler(async (event) => {
   // ── Security: verify Xendit callback token ────────────────────────────────
   const authResult = verifyXenditCallbackToken({
     receivedToken: getHeader(event, 'x-callback-token'),
-    expectedToken: process.env.XENDIT_CALLBACK_TOKEN,
+    expectedToken: getXenditCallbackToken(),
   })
 
   if (!authResult.ok) {

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../../utils/supabase-admin'
 import { resolveServerUid } from '../../utils/resolve-server-uid'
+import { getXenditSecretKey } from '../../utils/xendit-config'
 
 // GET /api/checkout/verify?order_id=ORDER_ID
 // Called from /cart/success to verify Xendit paid status and update order.
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── Call Xendit API to fetch invoice status ──────────────────────────────
-  const xenditKey   = process.env.XENDIT_KEY ?? ''
+  const xenditKey   = getXenditSecretKey()
   const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
 
   try {

@@ -2,6 +2,7 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 import { processXenditDisbursementWebhook } from '../../utils/xendit-disbursement-webhook-handler'
 import { verifyXenditCallbackToken } from '../../utils/webhook-auth'
 import { createSupabaseAttemptStore } from '../../utils/disbursement-attempts'
+import { getXenditCallbackToken } from '../../utils/xendit-config'
 
 // POST /api/webhooks/xendit-disbursement
 //
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
   // ── Security: verify Xendit callback token ────────────────────────────────
   const authResult = verifyXenditCallbackToken({
     receivedToken: getHeader(event, 'x-callback-token'),
-    expectedToken: process.env.XENDIT_CALLBACK_TOKEN,
+    expectedToken: getXenditCallbackToken(),
   })
 
   if (!authResult.ok) {
