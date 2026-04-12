@@ -3,10 +3,10 @@
   "type": "module",
   "private": true,
   "engines": {
-    "node": "22.x"
+    "node": ">=22 <25"
   },
   "scripts": {
-    "build": "nuxt build",
+    "build": "node scripts/build.mjs",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",

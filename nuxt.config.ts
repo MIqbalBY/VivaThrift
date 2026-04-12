@@ -1,4 +1,10 @@
 import tailwindcss from '@tailwindcss/vite'
+import { createLogger } from 'vite'
+
+const viteLogger = createLogger()
+const suppressedWarnings = [
+  '[plugin @tailwindcss/vite:generate:build] Sourcemap is likely to be incorrect',
+]
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -60,14 +66,29 @@ export default defineNuxtConfig({
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
     authToken: process.env.SENTRY_AUTH_TOKEN,
+    telemetry: false,
+    sourcemaps: {
+      disable: true,
+    },
   },
 
   vite: {
+    customLogger: {
+      ...viteLogger,
+      warn(message, options) {
+        if (suppressedWarnings.some((entry) => message.includes(entry))) {
+          return
+        }
+        viteLogger.warn(message, options)
+      },
+    },
     plugins: [tailwindcss() as any],
     optimizeDeps: {
       include: ['@vue/devtools-core', '@vue/devtools-kit'],
     },
     build: {
+      sourcemap: false,
+      chunkSizeWarningLimit: 1500,
       rollupOptions: {
         onwarn(warning, warn) {
           if (
@@ -158,6 +179,7 @@ export default defineNuxtConfig({
   },
 
   sourcemap: {
-    client: 'hidden',
+    client: false,
+    server: false,
   },
 })
