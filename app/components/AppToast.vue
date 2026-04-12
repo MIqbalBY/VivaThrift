@@ -1,6 +1,7 @@
 <script setup>
 const { toasts, dismiss } = useToast()
 const { isDark } = useDarkMode()
+const isMounted = ref(false)
 
 const iconMap = {
   success: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
@@ -25,10 +26,14 @@ function gradientFor(type) {
     info:    'background: linear-gradient(135deg, #1e3a8a, #2563eb);',
   }[type]
 }
+
+onMounted(() => {
+  isMounted.value = true
+})
 </script>
 
 <template>
-  <Teleport to="body">
+  <Teleport v-if="isMounted" to="body">
     <div class="fixed top-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full">
       <TransitionGroup
         enter-active-class="transition-all duration-300 ease-out"

@@ -9,13 +9,19 @@ const emit = defineEmits<{
   navigate: [chatId: string, id: number]
 }>()
 
+const isMounted = ref(false)
+
 function getNotifInitial(name: string) {
   return (name ?? '?').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
 }
+
+onMounted(() => {
+  isMounted.value = true
+})
 </script>
 
 <template>
-  <Teleport to="body">
+  <Teleport v-if="isMounted" to="body">
     <div class="fixed bottom-5 right-5 z-[9997] flex flex-col-reverse gap-2.5 items-end" style="max-width:320px; width:calc(100vw - 40px); pointer-events:none;">
       <TransitionGroup name="vt-notif" tag="div" class="flex flex-col-reverse gap-2.5 w-full">
         <div

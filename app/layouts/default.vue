@@ -5,9 +5,6 @@ const { settings: userSettings } = useUserSettings()
 const supabase = useSupabaseClient()
 let presenceUid = null
 
-// Lazy-load Footer since it's below the fold
-const LazyFooter = defineAsyncComponent(() => import('~/components/Footer.vue'))
-
 onMounted(async () => {
   init()
   const { data: { session } } = await supabase.auth.getSession()
@@ -40,7 +37,7 @@ onBeforeUnmount(() => cleanupPresence())
     <main class="flex-1">
       <slot />
     </main>
-    <LazyFooter />
+    <Footer />
     <AppToast />
   </div>
 </template>

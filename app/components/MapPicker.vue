@@ -23,8 +23,10 @@ let markerInstance = null
 onMounted(async () => {
   if (!mapEl.value) return
 
-  // Dynamic import — hindari SSR error
-  const L = (await import('leaflet')).default
+  // Dynamic import — hindari SSR error dan hanya load CSS saat komponen dipakai
+  await import('leaflet/dist/leaflet.css')
+  const leafletModule = await import('leaflet')
+  const L = leafletModule.default ?? leafletModule
 
   // Custom SVG pin icon — tidak butuh asset eksternal
   const pinIcon = L.divIcon({

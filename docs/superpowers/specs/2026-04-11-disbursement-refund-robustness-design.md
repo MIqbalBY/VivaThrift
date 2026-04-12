@@ -9,7 +9,7 @@
 
 ## Context
 
-VivaThrift is a C2C thrift marketplace for Universitas Brawijaya students. Buyers pay via Xendit Invoice, and after order completion the platform disburses funds: the seller gets `total_amount - shipping_cost - platform_fee`, and the admin (Bank Jago `103438588617` a.n. Muhammad Iqbal Baiduri Yamani) gets `platform_fee`.
+VivaThrift is a C2C thrift marketplace for Institut Teknologi Sepuluh Nopember students. Buyers pay via Xendit Invoice, and after order completion the platform disburses funds: the seller gets `total_amount - shipping_cost - platform_fee`, and the admin (Bank Jago `103438588617` a.n. Muhammad Iqbal Baiduri Yamani) gets `platform_fee`.
 
 The current implementation in [server/utils/xendit-disburse.ts](../../../server/utils/xendit-disburse.ts) already handles both recipients, but lacks:
 

@@ -120,19 +120,23 @@ function handleOutsideClick(e: MouseEvent) {
             <span class="text-xs text-gray-400 font-medium">Pencarian Terakhir</span>
             <button @click="clearRecent" class="text-xs text-blue-600 hover:underline">Hapus Semua</button>
           </div>
-          <button
+          <div
             v-for="item in filteredRecent"
             :key="item"
-            @click="selectRecent(item)"
             class="w-full flex items-center justify-between gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition group"
           >
-            <div class="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              @click="selectRecent(item)"
+              class="flex min-w-0 flex-1 items-center gap-2 text-left"
+            >
               <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               <span class="truncate">{{ item }}</span>
-            </div>
+            </button>
             <button
+              type="button"
               @click="(e: any) => removeRecent(item, e)"
               class="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-gray-500 transition shrink-0"
             >
@@ -140,7 +144,7 @@ function handleOutsideClick(e: MouseEvent) {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
-          </button>
+          </div>
         </template>
 
       </div>
