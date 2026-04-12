@@ -1,6 +1,6 @@
 # VivaThrift — Master TODO List
 
-> **Last updated:** 12 April 2026
+> **Last updated:** 13 April 2026
 > **Tech Stack:** Nuxt 4.4.2 · Vue 3.5.32 · TypeScript 6.0.2 · Supabase · Xendit · Biteship · Vercel
 > **Legend:** ✅ Done · 🔧 Partial · ❌ Not Started
 
@@ -14,8 +14,8 @@
 | # | Item | Status | Detail |
 |---|------|--------|--------|
 | 1.1 | **Platform fee auto-disbursement ke rekening admin** | ✅ | `disburseFunds()` otomatis kirim admin fee via Xendit Disbursement API. Env vars `ADMIN_BANK_CODE`, `ADMIN_BANK_ACCOUNT_NUMBER`, `ADMIN_BANK_ACCOUNT_NAME` configurable (default: Bank Jago 1034 3858 8617 a.n. Muhammad Iqbal Baiduri Yamani). Set di Vercel production env |
-| 1.2 | **Seller payout completion** | ✅ | `server/utils/xendit-disburse.ts` fully rewritten: attempt tracking via `disbursement_attempts` table, webhook callback handler (`server/api/webhooks/xendit-disbursement.post.ts`), retry cron (`server/api/cron/retry-disbursements.post.ts`) setiap 2 jam dengan exponential backoff. 7 unit tests + 3 route tests + 3 cron tests |
-| 1.3 | **Refund flow untuk dispute** | ✅ | `server/api/disputes/[id].patch.ts` terintegrasi penuh: full refund via Xendit Refund API, partial refund + seller disbursement, rejected → restore order status dari `pre_dispute_status`. Refund callback ditangani di webhook Xendit existing. 4 integration tests |
+| 1.2 | **Seller payout completion** | ✅ | Model settlement sudah dialihkan ke seller wallet ledger (`server/utils/seller-wallet.ts`) saat order selesai (complete/auto-complete/dispute partial). Penarikan dana dilakukan seller via endpoint withdraw (`server/api/seller/wallet/withdraw.post.ts`) yang memanggil Xendit Disbursement saat withdraw, lengkap dengan idempotency dan rollback metadata |
+| 1.3 | **Refund flow untuk dispute** | ✅ | `server/api/disputes/[id].patch.ts` terintegrasi penuh: full refund via Xendit Refund API, partial refund + credit sisa ke seller wallet, rejected → restore order status dari `pre_dispute_status`. Refund callback ditangani di webhook Xendit existing. 4 integration tests |
 
 ---
 
@@ -55,7 +55,7 @@
 | # | Item | Status | Detail |
 |---|------|--------|--------|
 | 4.1 | **Dispute creation endpoint** | ✅ | `server/api/disputes/index.post.ts` sudah membuat dispute, memvalidasi buyer + status order, mencegah dispute aktif ganda, dan mengirim notifikasi best-effort ke seller |
-| 4.2 | **Dispute resolution endpoint** | ✅ | `server/api/disputes/[id].patch.ts` fully rewritten: cancel (buyer), resolve refund/partial/rejected (admin). Full refund → Xendit Refund API + order resolved_refund. Partial → refund + seller disbursement. Rejected → restore order ke pre_dispute_status. `index.post.ts` snapshot pre_dispute_status saat dispute dibuka. 4 integration tests |
+| 4.2 | **Dispute resolution endpoint** | ✅ | `server/api/disputes/[id].patch.ts` fully rewritten: cancel (buyer), resolve refund/partial/rejected (admin). Full refund → Xendit Refund API + order resolved_refund. Partial → refund + credit sisa ke seller wallet. Rejected → restore order ke pre_dispute_status. `index.post.ts` snapshot pre_dispute_status saat dispute dibuka. 4 integration tests |
 | 4.3 | **Evidence upload** | ❌ | `evidence_urls TEXT[]` ada di schema, tapi UI untuk upload bukti (foto/video) di `disputes.vue` belum ada. Bisa pakai existing `useR2Upload.ts` composable |
 | 4.4 | **Dispute notification emails** | ❌ | Belum ada email ke admin/buyer/seller saat dispute dibuat, di-review, atau resolved. Template engine: `server/utils/email-templates.ts` + `send-email.ts` (Resend) |
 | 4.5 | **Auto-escalation timer** | ❌ | SLA 14 hari ada di `ORDER_SLA_HOURS.disputed = 336`, tapi belum ada cron/trigger yang auto-escalate dispute jika timeout |
@@ -187,7 +187,7 @@
 
 ## 13. 🧪 Testing
 
-> **Status:** Vitest aktif dengan 17 test file, 157 tests passing. Mencakup: domain-rules, state-machine, webhook (Xendit + Biteship helper/service/route/auth), Xendit refund, disbursement attempts, Xendit disburse, disbursement webhook handler + route, retry cron, dispute resolve route, dan rate-limit observability.
+> **Status:** Vitest aktif dengan 17 test file, 165 tests passing. Mencakup: domain-rules, state-machine, webhook (Xendit + Biteship helper/service/route/auth), Xendit refund, disbursement attempts, settlement wallet flow, disbursement webhook handler + route, retry cron, dispute resolve route, dan rate-limit observability.
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
@@ -242,7 +242,7 @@
 | 16.2 | **`.env.example`** | ✅ | File tersedia dan sudah memakai penamaan env terbaru: `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SECRET_KEY`, `R2_*`, `SENTRY_*`, `VAPID_*`, `RESEND_API_KEY`, `XENDIT_*`, `BITESHIP_KEY`, `BITESHIP_WEBHOOK_*`, `UPSTASH_REDIS_REST_*`, `SITE_URL` |
 | 16.3 | **README.md update** | ✅ | README sekarang mencakup setup lokal, architecture overview + Mermaid diagram, ringkasan API domain, dan deployment guide Vercel |
 | 16.4 | **OpenAPI spec** | 🔧 | Fondasi awal tersedia di `docs/api/openapi-public.yaml` untuk `contact` dan `push`. Endpoint lain masih belum terdokumentasi |
-| 16.5 | **Pre-commit hooks** | ❌ | Belum ada husky/lint-staged. Perlu: eslint + prettier + typecheck on commit |
+| 16.5 | **Pre-commit hooks** | 🔧 | Husky sudah mulai dipasang (script `prepare` + `.husky/pre-commit` menjalankan `npm test`). Yang belum: lint-staged + langkah lint/format/typecheck yang lebih granular |
 | 16.6 | **CONTRIBUTING.md** | ✅ | `CONTRIBUTING.md` ditambahkan: setup lokal, naming branch, Conventional Commits, quality checks, dan PR checklist |
 
 ---
@@ -317,7 +317,7 @@
 13.5 Disbursement & refund tests ✅
 16.1 Dead code cleanup           ❌
 16.2 .env.example                ✅
-16.5 Pre-commit hooks            ❌
+16.5 Pre-commit hooks            🔧
 ```
 
 ### SPRINT 5 — Polish & UX (1 minggu)
@@ -375,8 +375,8 @@
 | Testing | 5 | 0 | 2 | 7 |
 | Performance | 2 | 1 | 2 | 5 |
 | PWA/Mobile | 0 | 1 | 5 | 6 |
-| Code Quality | 0 | 1 | 5 | 6 |
+| Code Quality | 3 | 2 | 1 | 6 |
 | Analytics | 0 | 1 | 2 | 3 |
 | Konten | 0 | 0 | 1 | 1 |
 | Marketing | 0 | 0 | 4 | 4 |
-| **TOTAL** | **21** | **22** | **51** | **94** |
+| **TOTAL** | **24** | **23** | **44** | **91** |

@@ -132,6 +132,10 @@ function scrollToCatalog() {
 // -- Feed mode: "Semua" vs "Dari yang Diikuti" --------------------
 const feedMode = ref('all') // 'all' | 'following'
 const followingIds = ref([])
+const followingSellerIds = computed(() => {
+  const ids = followingIds.value.filter(id => id && id !== user.value?.id)
+  return [...new Set(ids)]
+})
 
 async function fetchFollowingIds() {
   if (!user.value) return
@@ -186,8 +190,8 @@ function buildQuery() {
   if (activeMaxPrice.value != null)     query = query.lte('price', activeMaxPrice.value)
 
   // Feed mode: filter to only sellers the user follows
-  if (feedMode.value === 'following' && followingIds.value.length > 0) {
-    query = query.in('seller_id', followingIds.value)
+  if (feedMode.value === 'following') {
+    query = query.in('seller_id', followingSellerIds.value)
   }
 
   return { query, sort }
@@ -226,6 +230,13 @@ async function fetchProducts(reset = true) {
     hasMore.value = true
   }
 
+  // In following mode, keep feed strict to followed accounts only.
+  if (feedMode.value === 'following' && followingSellerIds.value.length === 0) {
+    hasMore.value = false
+    productsLoading.value = false
+    return
+  }
+
   const { query, sort } = buildQuery()
   let q = query
 
@@ -262,7 +273,7 @@ async function fetchProducts(reset = true) {
 
 // Re-fetch from scratch when filters change
 watch(
-  [activeCategory, activeSearch, activeCondition, activeSort, activeNegotiable, activeCod, activeMinPrice, activeMaxPrice, feedMode],
+  [activeCategory, activeSearch, activeCondition, activeSort, activeNegotiable, activeCod, activeMinPrice, activeMaxPrice, feedMode, followingSellerIds],
   () => fetchProducts(true),
 )
 
