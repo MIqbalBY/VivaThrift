@@ -315,6 +315,7 @@ Jika deploy baru bermasalah:
 
 - Lihat `CONTRIBUTING.md` untuk workflow kontribusi, branch naming, commit format, dan PR checklist.
 - Lihat `SECURITY.md` untuk responsible disclosure dan alur pelaporan kerentanan.
+- Lihat `docs/qa/README.md` untuk index QA bundle (chat realtime, checkout/Xendit, template report, dan checklist uji).
 - Lihat `docs/runbooks/deploy-vercel.md` untuk prosedur deploy, verifikasi pasca-deploy, dan rollback production.
 - Lihat `docs/runbooks/supabase-migrations.md` untuk prosedur migration database, sinkronisasi type, dan rollback schema Supabase.
 - Lihat `docs/api/openapi-public.yaml` untuk fondasi OpenAPI 3.1 endpoint `contact` dan `push`.
