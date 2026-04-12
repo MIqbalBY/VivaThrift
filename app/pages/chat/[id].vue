@@ -154,7 +154,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onClickOutsideDeleteMenu)
 })
 
-function onClickOutsideDeleteMenu(e: Event) {
+function onClickOutsideDeleteMenu(e) {
   if (!deleteMenuMsgId.value) return
   const target = e?.target
   if (!(target instanceof Element) || !target.closest('[data-delete-menu]')) {
