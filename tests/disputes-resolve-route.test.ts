@@ -83,8 +83,7 @@ describe('disputes resolve route', () => {
     vi.doUnmock('../server/utils/resolve-server-uid')
     vi.doUnmock('../server/utils/assert-admin')
     vi.doUnmock('../server/utils/xendit-refund')
-    vi.doUnmock('../server/utils/xendit-disburse')
-    vi.doUnmock('../server/utils/disbursement-attempts')
+    vi.doUnmock('../server/utils/seller-wallet')
   })
 
   it('full refund: calls refund API, updates dispute + order, returns 200', async () => {
@@ -98,15 +97,8 @@ describe('disputes resolve route', () => {
     const createXenditRefund = vi.fn(async () => ({ skipped: false, xenditRefundId: 'refund-abc', error: null }))
     vi.doMock('../server/utils/xendit-refund', () => ({ createXenditRefund }))
 
-    const disburseFunds = vi.fn(async () => ({
-      sellerDisbursementId: null,
-      adminDisbursementId: 'xd-admin',
-      skipped: false,
-      error: null,
-    }))
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
+    vi.doMock('../server/utils/seller-wallet', () => ({
+      creditSellerWallet: vi.fn(async () => ({ credited: false, amount: 0 })),
     }))
 
     const { default: handler } = await import('../server/api/disputes/[id].patch')
@@ -132,9 +124,8 @@ describe('disputes resolve route', () => {
       throw new Error('Invoice already refunded')
     })
     vi.doMock('../server/utils/xendit-refund', () => ({ createXenditRefund }))
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds: vi.fn() }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
+    vi.doMock('../server/utils/seller-wallet', () => ({
+      creditSellerWallet: vi.fn(async () => ({ credited: false, amount: 0 })),
     }))
 
     const { default: handler } = await import('../server/api/disputes/[id].patch')
@@ -145,7 +136,7 @@ describe('disputes resolve route', () => {
     })
   })
 
-  it('partial refund: refund API called with partial amount, seller disburse also triggered', async () => {
+  it('partial refund: refund API called with partial amount, seller wallet credit is triggered', async () => {
     vi.stubGlobal('readBody', vi.fn(async () => ({
       action: 'resolve',
       resolution: 'partial',
@@ -160,23 +151,19 @@ describe('disputes resolve route', () => {
     const createXenditRefund = vi.fn(async () => ({ skipped: false, xenditRefundId: 'refund-partial', error: null }))
     vi.doMock('../server/utils/xendit-refund', () => ({ createXenditRefund }))
 
-    const disburseFunds = vi.fn(async () => ({
-      sellerDisbursementId: 'xd-seller-partial',
-      adminDisbursementId: 'xd-admin-partial',
-      skipped: false,
-      error: null,
-    }))
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
-    }))
+    const creditSellerWallet = vi.fn(async () => ({ credited: true, amount: 68000 }))
+    vi.doMock('../server/utils/seller-wallet', () => ({ creditSellerWallet }))
 
     const { default: handler } = await import('../server/api/disputes/[id].patch')
 
     const result = await handler({})
     expect(result).toMatchObject({ id: 'dispute-1', status: 'resolved_partial' })
     expect(createXenditRefund).toHaveBeenCalledWith(expect.objectContaining({ amount: 30000 }))
-    expect(disburseFunds).toHaveBeenCalled()
+    expect(creditSellerWallet).toHaveBeenCalledWith(expect.objectContaining({
+      sellerId: 'seller-1',
+      orderId: 'order-1',
+      txType: 'partial_refund_credit',
+    }))
   })
 
   it('rejected: order restored to pre_dispute_status (shipped), no Xendit calls', async () => {
@@ -189,18 +176,15 @@ describe('disputes resolve route', () => {
 
     const createXenditRefund = vi.fn()
     vi.doMock('../server/utils/xendit-refund', () => ({ createXenditRefund }))
-    const disburseFunds = vi.fn()
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
-    }))
+    const creditSellerWallet = vi.fn()
+    vi.doMock('../server/utils/seller-wallet', () => ({ creditSellerWallet }))
 
     const { default: handler } = await import('../server/api/disputes/[id].patch')
 
     const result = await handler({})
     expect(result).toMatchObject({ id: 'dispute-1', status: 'resolved_rejected', orderRestoredTo: 'shipped' })
     expect(createXenditRefund).not.toHaveBeenCalled()
-    expect(disburseFunds).not.toHaveBeenCalled()
+    expect(creditSellerWallet).not.toHaveBeenCalled()
     expect(chains.orders_update).toHaveBeenCalled()
   })
 })

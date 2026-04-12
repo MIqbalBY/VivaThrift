@@ -11,7 +11,7 @@
 
 VivaThrift is a C2C thrift marketplace for Institut Teknologi Sepuluh Nopember students. Buyers pay via Xendit Invoice, and after order completion the platform disburses funds: the seller gets `total_amount - shipping_cost - platform_fee`, and the admin (Bank Jago `103438588617` a.n. Muhammad Iqbal Baiduri Yamani) gets `platform_fee`.
 
-The current implementation in [server/utils/xendit-disburse.ts](../../../server/utils/xendit-disburse.ts) already handles both recipients, but lacks:
+The current implementation in [server/utils/Xendit-disburse.ts](../../../server/utils/xendit-disburse.ts) already handles both recipients, but lacks:
 
 1. **Observability** into disbursement outcomes (Xendit sends async status callbacks that are not processed)
 2. **Retry logic** for failed disbursement calls
@@ -369,7 +369,7 @@ Tests for `xendit-disbursement-webhook-handler.ts`:
 - COMPLETED → attempt updated, order disbursement_id set if all complete
 - FAILED → attempt updated, retry eligible
 - Duplicate COMPLETED → idempotent (no double update)
-- Unknown xendit disbursement id → ok=true, updated=false
+- Unknown Xendit disbursement id → ok=true, updated=false
 - Malformed payload → throws handled upstream
 
 Tests for `xendit-disbursement-webhook-route.ts`:
@@ -436,10 +436,10 @@ New cases for `state-machine.test.ts`:
 
 ## References
 
-- [server/utils/xendit-disburse.ts](../../../server/utils/xendit-disburse.ts) — current disbursement utility
+- [server/utils/Xendit-disburse.ts](../../../server/utils/xendit-disburse.ts) — current disbursement utility
 - [server/api/disputes/[id].patch.ts](../../../server/api/disputes/%5Bid%5D.patch.ts) — dispute resolution endpoint
 - [server/utils/state-machine.ts](../../../server/utils/state-machine.ts) — order lifecycle
-- [server/api/webhooks/xendit.post.ts](../../../server/api/webhooks/xendit.post.ts) — invoice webhook pattern to mirror
+- [server/api/webhooks/Xendit.post.ts](../../../server/api/webhooks/xendit.post.ts) — invoice webhook pattern to mirror
 - [tests/webhook-routes.test.ts](../../../tests/webhook-routes.test.ts) — route test pattern to mirror
 - [Xendit Disbursement API](https://developers.xendit.co/api-reference/#create-disbursement)
 - [Xendit Refund API](https://developers.xendit.co/api-reference/#create-refund)

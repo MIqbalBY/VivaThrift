@@ -50,7 +50,7 @@
 
 > State machine: `server/utils/state-machine.ts` → `disputed → resolved_refund | resolved_partial | shipped | awaiting_meetup`
 > SLA: 14 hari (336 jam) auto-escalate
-> Database: tabel `disputes` (id, order_id, reason, evidence_urls, status, refund_amount, resolution_note, xendit\_refund\_id, refund\_status, refund\_error, refunded\_at)
+> Database: tabel `disputes` (id, order_id, reason, evidence_urls, status, refund_amount, resolution_note, Xendit\_refund\_id, refund\_status, refund\_error, refunded\_at)
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|

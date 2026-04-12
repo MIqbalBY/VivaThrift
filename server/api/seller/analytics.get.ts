@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     // Completed orders + revenue
     supabaseAdmin
       .from('orders')
-      .select('total_amount, platform_fee, shipping_cost')
+      .select('total_amount, platform_fee, shipping_cost, payment_gateway_fee')
       .eq('seller_id', sellerId)
       .eq('status', 'completed'),
 
@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     // Monthly revenue (last 6 months)
     supabaseAdmin
       .from('orders')
-      .select('total_amount, platform_fee, shipping_cost, completed_at')
+      .select('total_amount, platform_fee, shipping_cost, payment_gateway_fee, completed_at')
       .eq('seller_id', sellerId)
       .eq('status', 'completed')
       .gte('completed_at', new Date(Date.now() - 180 * 86400000).toISOString()),
@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
   // ── Compute metrics ────────────────────────────────────────────────────────
   const completedOrders = completedRes.data ?? []
   const totalRevenue = completedOrders.reduce((sum, o) =>
-    sum + (o.total_amount ?? 0) - (o.shipping_cost ?? 0) - (o.platform_fee ?? 0), 0)
+    sum + (o.total_amount ?? 0) - (o.shipping_cost ?? 0) - (o.platform_fee ?? 0) - (o.payment_gateway_fee ?? 0), 0)
 
   const ratings = (avgRatingRes.data ?? []).map((r: any) => r.rating_seller).filter(Boolean)
   const avgRating = ratings.length > 0
@@ -102,7 +102,7 @@ export default defineEventHandler(async (event) => {
   for (const o of (monthlyRes.data ?? []) as any[]) {
     if (!o.completed_at) continue
     const month = o.completed_at.slice(0, 7) // "2026-04"
-    const net = (o.total_amount ?? 0) - (o.shipping_cost ?? 0) - (o.platform_fee ?? 0)
+    const net = (o.total_amount ?? 0) - (o.shipping_cost ?? 0) - (o.platform_fee ?? 0) - (o.payment_gateway_fee ?? 0)
     monthlyMap.set(month, (monthlyMap.get(month) ?? 0) + net)
   }
   const monthlyRevenue = [...monthlyMap.entries()]

@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
     const { data: order } = await supabaseAdmin
       .from('orders')
       .select(`
-        id, total_amount, shipping_cost, platform_fee, seller_id,
+        id, total_amount, shipping_cost, platform_fee, payment_gateway_fee, seller_id,
         seller:users!seller_id ( bank_code, bank_account_number, bank_account_name )
       `)
       .eq('id', row.order_id)
@@ -58,6 +58,7 @@ export default defineEventHandler(async (event) => {
         totalAmount:      order.total_amount,
         shippingCost:     order.shipping_cost ?? 0,
         platformFee:      order.platform_fee ?? 0,
+        paymentGatewayFee: order.payment_gateway_fee ?? 0,
         seller:           sellerForDisburse,
         attemptStore:     store,
         attemptNo:        row.attempt_no + 1,

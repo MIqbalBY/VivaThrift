@@ -56,6 +56,9 @@
       "esbuild",
       "sharp",
       "vue-demi"
+    ],
+    "onlyBuiltDependencies": [
+      "supabase"
     ]
   },
   "devDependencies": {
@@ -63,6 +66,7 @@
     "@vue/language-core": "^3.2.6",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
+    "supabase": "^2.89.1",
     "vite": "^7.3.1",
     "vitest": "^4.1.4"
   }

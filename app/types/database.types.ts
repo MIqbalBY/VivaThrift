@@ -484,7 +484,9 @@ export type Database = {
           meetup_otp: string | null
           offer_id: string | null
           payment_method: string | null
+          payment_gateway_fee: number
           payment_url: string | null
+          platform_fee: number
           seller_id: string
           shipped_at: string | null
           shipping_address_id: string | null
@@ -509,7 +511,9 @@ export type Database = {
           meetup_otp?: string | null
           offer_id?: string | null
           payment_method?: string | null
+          payment_gateway_fee?: number
           payment_url?: string | null
+          platform_fee?: number
           seller_id: string
           shipped_at?: string | null
           shipping_address_id?: string | null
@@ -534,7 +538,9 @@ export type Database = {
           meetup_otp?: string | null
           offer_id?: string | null
           payment_method?: string | null
+          payment_gateway_fee?: number
           payment_url?: string | null
+          platform_fee?: number
           seller_id?: string
           shipped_at?: string | null
           shipping_address_id?: string | null

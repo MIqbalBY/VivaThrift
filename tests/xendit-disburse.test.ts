@@ -35,14 +35,17 @@ function createFakeStore(): AttemptStore & { rows: AttemptRow[] } {
 
 describe('disburseFunds', () => {
   const originalEnv = process.env.XENDIT_KEY
+  const originalAutoDisburseAdminFee = process.env.XENDIT_AUTO_DISBURSE_ADMIN_FEE
   const originalFetch = globalThis.$fetch
 
   beforeEach(() => {
     process.env.XENDIT_KEY = 'test-key'
+    delete process.env.XENDIT_AUTO_DISBURSE_ADMIN_FEE
   })
 
   afterEach(() => {
     process.env.XENDIT_KEY = originalEnv
+    process.env.XENDIT_AUTO_DISBURSE_ADMIN_FEE = originalAutoDisburseAdminFee
     globalThis.$fetch = originalFetch
     vi.restoreAllMocks()
   })
@@ -83,7 +86,31 @@ describe('disburseFunds', () => {
     expect(store.insert).not.toHaveBeenCalled()
   })
 
-  it('happy path: inserts + submits seller + admin fee attempts', async () => {
+  it('happy path (default): inserts + submits seller attempt only', async () => {
+    const store = createFakeStore()
+    globalThis.$fetch = vi.fn()
+      .mockResolvedValueOnce({ id: 'xd-seller' }) as unknown as typeof globalThis.$fetch
+
+    const result = await disburseFunds({ ...baseParams(), attemptStore: store })
+
+    expect(result.sellerDisbursementId).toBe('xd-seller')
+    expect(result.adminDisbursementId).toBeNull()
+    expect(result.skipped).toBe(false)
+    expect(result.error).toBeNull()
+
+    expect(store.insert).toHaveBeenCalledTimes(1)
+    expect(store.updateSubmitted).toHaveBeenCalledTimes(1)
+    expect(store.rows[0]).toMatchObject({
+      recipient_type: 'seller',
+      amount: 98000, // 120000 - 20000 - 2000
+      status: 'submitted',
+      xendit_disbursement_id: 'xd-seller',
+    })
+  })
+
+  it('disburses admin fee when XENDIT_AUTO_DISBURSE_ADMIN_FEE is enabled', async () => {
+    process.env.XENDIT_AUTO_DISBURSE_ADMIN_FEE = 'true'
+
     const store = createFakeStore()
     globalThis.$fetch = vi.fn()
       .mockResolvedValueOnce({ id: 'xd-seller' })
@@ -93,17 +120,9 @@ describe('disburseFunds', () => {
 
     expect(result.sellerDisbursementId).toBe('xd-seller')
     expect(result.adminDisbursementId).toBe('xd-admin')
-    expect(result.skipped).toBe(false)
-    expect(result.error).toBeNull()
 
     expect(store.insert).toHaveBeenCalledTimes(2)
     expect(store.updateSubmitted).toHaveBeenCalledTimes(2)
-    expect(store.rows[0]).toMatchObject({
-      recipient_type: 'seller',
-      amount: 98000, // 120000 - 20000 - 2000
-      status: 'submitted',
-      xendit_disbursement_id: 'xd-seller',
-    })
     expect(store.rows[1]).toMatchObject({
       recipient_type: 'admin_fee',
       amount: 2000,
@@ -136,6 +155,8 @@ describe('disburseFunds', () => {
   })
 
   it('admin API error after seller success: seller submitted, admin failed', async () => {
+    process.env.XENDIT_AUTO_DISBURSE_ADMIN_FEE = '1'
+
     const store = createFakeStore()
     let call = 0
     globalThis.$fetch = vi.fn(async () => {
@@ -171,7 +192,27 @@ describe('disburseFunds', () => {
     expect(store.insert).toHaveBeenCalledTimes(1) // only seller
   })
 
+  it('reduces seller disbursement by paymentGatewayFee when present', async () => {
+    const store = createFakeStore()
+    globalThis.$fetch = vi.fn().mockResolvedValueOnce({ id: 'xd-seller-gw' }) as unknown as typeof globalThis.$fetch
+
+    const result = await disburseFunds({
+      ...baseParams(),
+      paymentGatewayFee: 1500,
+      attemptStore: store,
+    })
+
+    expect(result.sellerDisbursementId).toBe('xd-seller-gw')
+    expect(store.rows[0]).toMatchObject({
+      recipient_type: 'seller',
+      amount: 96500, // 120000 - 20000 - 2000 - 1500
+      status: 'submitted',
+    })
+  })
+
   it('supports custom attemptNo (for retry scenarios)', async () => {
+    process.env.XENDIT_AUTO_DISBURSE_ADMIN_FEE = 'yes'
+
     const store = createFakeStore()
     globalThis.$fetch = vi.fn()
       .mockResolvedValueOnce({ id: 'xd-seller-retry' })

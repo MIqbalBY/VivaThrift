@@ -2,6 +2,7 @@
 definePageMeta({ middleware: 'auth' })
 
 const route       = useRoute()
+const runtimeConfig = useRuntimeConfig()
 const supabase    = useSupabaseClient()
 const currentUser = useSupabaseUser()
 const { isDark }  = useDarkMode()
@@ -22,6 +23,7 @@ const stockDepleted = ref(false)
 // ── Shipping / meetup state (declared before watchers to avoid TDZ) ──────────
 const destPostal           = ref<string>('')
 const shippingMethod       = ref<'cod' | 'shipping'>('cod')
+const paymentChannel       = ref<string>('qris')
 const meetupLocation       = ref<string>('rektorat')
 const customMeetupLocation = ref<string>('')
 const rates                = ref<any[]>([])
@@ -159,7 +161,14 @@ function calcPlatformFee(sub: number): number {
   return Math.round(sub * 0.005)
 }
 const platformFee = computed(() => calcPlatformFee(subtotal.value))
-
+const feeByChannelMap = computed<Record<string, { percent?: number; flat?: number }>>(() => {
+  try {
+    const parsed = JSON.parse(String(runtimeConfig.public.xenditPaymentFeeByChannelJson ?? '{}'))
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+})
 const total = computed(() => subtotal.value + ongkirAmount.value + platformFee.value)
 
 // ── Ongkir calculator ─────────────────────────────────────────────────────────
@@ -215,6 +224,7 @@ async function placeOrder() {
     const body: any = {
       offerId:        offer.value!.id,
       shippingMethod: shippingMethod.value,
+      paymentChannel: paymentChannel.value,
     }
     if (shippingMethod.value === 'cod') {
       const loc = meetupLocation.value === 'other' ? customMeetupLocation.value.trim() : meetupLocation.value
@@ -525,6 +535,29 @@ async function placeOrder() {
             </label>
           </div>
         </div>
+      </div>
+
+      <!-- ── Payment Channel ── -->
+      <div
+        class="rounded-2xl p-5 mb-5"
+        :style="isDark
+          ? 'background:rgba(15,25,50,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.10);'
+          : 'background:rgba(255,255,255,0.70);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.5);box-shadow:0 4px 20px rgba(30,58,138,0.10);'"
+      >
+        <p class="text-sm font-semibold mb-3" :class="isDark ? 'text-white' : 'text-gray-700'">Metode Pembayaran</p>
+        <select
+          v-model="paymentChannel"
+          class="w-full rounded-xl px-3 py-2 text-sm border outline-none transition"
+          :class="isDark
+            ? 'bg-slate-800 border-white/10 text-white focus:border-sky-500'
+            : 'bg-white border-gray-200 text-gray-800 focus:border-blue-500'"
+        >
+          <option value="qris">QRIS</option>
+          <option value="bca_va">Virtual Account BCA</option>
+          <option value="bni_va">Virtual Account BNI</option>
+          <option value="bri_va">Virtual Account BRI</option>
+          <option value="mandiri_va">Virtual Account Mandiri</option>
+        </select>
       </div>
 
       <!-- Info banner -->

@@ -2,6 +2,7 @@
 const siteUrl = 'https://www.vivathrift.store'
 const defaultTitle = 'VivaThrift — Marketplace Preloved Khusus Mahasiswa ITS'
 const defaultDesc = 'Cari dan jual barang preloved berkualitas khusus untuk mahasiswa ITS. Fashion, elektronik, buku, dan lainnya dengan harga terjangkau.'
+const defaultOgImage = `${siteUrl}/img/logo-vivathrift.png`
 
 useSeoMeta({
   titleTemplate: (title) => title?.includes('VivaThrift') ? title : `${title} — VivaThrift`,
@@ -9,13 +10,13 @@ useSeoMeta({
   ogType: 'website',
   ogTitle: defaultTitle,
   ogDescription: defaultDesc,
-  ogImage: `${siteUrl}/thumbnail.png`,
+  ogImage: defaultOgImage,
   ogUrl: siteUrl,
   ogSiteName: 'VivaThrift',
   twitterCard: 'summary_large_image',
   twitterTitle: defaultTitle,
   twitterDescription: defaultDesc,
-  twitterImage: `${siteUrl}/thumbnail.png`,
+  twitterImage: defaultOgImage,
 })
 
 const { public: { gaId } } = useRuntimeConfig()

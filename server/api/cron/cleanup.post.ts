@@ -1,6 +1,5 @@
 import { supabaseAdmin } from '../../utils/supabase-admin'
-import { disburseFunds } from '../../utils/xendit-disburse'
-import { createSupabaseAttemptStore } from '../../utils/disbursement-attempts'
+import { creditSellerWallet } from '../../utils/seller-wallet'
 
 // POST /api/cron/cleanup
 //
@@ -90,7 +89,7 @@ export default defineEventHandler(async (event) => {
     .from('orders')
     .select(`
       id, total_amount, shipping_cost, platform_fee, offer_id, seller_id, buyer_id,
-      seller:users!seller_id ( bank_code, bank_account_number, bank_account_name )
+      payment_gateway_fee
     `)
     .eq('status', 'shipped')
     .lt('shipped_at', shipCutoff)
@@ -110,22 +109,15 @@ export default defineEventHandler(async (event) => {
         .eq('id', order.offer_id)
     }
 
-    // Disburse funds (seller + admin fee)
-    const disburse = await disburseFunds({
-      orderId:         order.id,
-      externalIdPrefix: 'vt_autocomplete',
-      totalAmount:     order.total_amount,
-      shippingCost:    order.shipping_cost ?? 0,
-      platformFee:     order.platform_fee ?? 0,
-      seller:          order.seller,
-      attemptStore:    createSupabaseAttemptStore(supabaseAdmin),
+    // Credit seller wallet (split-cost model)
+    const grossSellerAmount = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0)
+    await creditSellerWallet({
+      sellerId: order.seller_id,
+      orderId: order.id,
+      grossSellerAmount,
+      paymentGatewayFee: order.payment_gateway_fee ?? 0,
+      txType: 'order_credit',
     })
-
-    if (disburse.sellerDisbursementId) {
-      await supabaseAdmin.from('orders')
-        .update({ disbursement_id: disburse.sellerDisbursementId })
-        .eq('id', order.id)
-    }
 
     // Notify both parties
     try {
@@ -139,9 +131,7 @@ export default defineEventHandler(async (event) => {
         {
           user_id: order.seller_id, type: 'order_completed',
           title: 'Pesanan otomatis selesai',
-          body: disburse.skipped
-            ? 'Pesanan otomatis selesai setelah 7 hari. Lengkapi data rekening untuk pencairan dana.'
-            : 'Pesanan otomatis selesai setelah 7 hari. Pencairan dana sedang diproses.',
+          body: 'Pesanan otomatis selesai setelah 7 hari. Saldo penjualan sudah masuk ke wallet seller-mu.',
           reference_id: order.id,
         },
       ])

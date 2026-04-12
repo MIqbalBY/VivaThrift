@@ -2,10 +2,13 @@ import { serverSupabaseClient } from '#supabase/server'
 import { resolveServerUser } from '../../utils/resolve-server-uid'
 import { supabaseAdmin } from '../../utils/supabase-admin'
 import { getXenditSecretKey } from '../../utils/xendit-config'
+import { getXenditPaymentMethodsForChannel } from '../../utils/xendit-payment-methods'
+import { isSupportedPaymentChannel } from '../../utils/xendit-payment-methods'
 import {
   isValidMeetupLocation,
   generateMeetupOTP,
   calculatePlatformFee,
+  calculatePaymentChargeBreakdown,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
 
@@ -35,6 +38,13 @@ export default defineEventHandler(async (event) => {
   const user = await resolveServerUser(event)
 
   const body = await readBody(event)
+  const paymentChannel = String(body?.paymentChannel ?? '').trim().toLowerCase()
+  if (!paymentChannel) {
+    throw createError({ statusCode: 400, statusMessage: 'paymentChannel harus diisi.' })
+  }
+  if (!isSupportedPaymentChannel(paymentChannel)) {
+    throw createError({ statusCode: 400, statusMessage: 'paymentChannel tidak didukung.' })
+  }
 
   // ── Shipping method validation ──────────────────────────────────────────
   const shippingMethod: ShippingMethod | undefined = body?.shippingMethod
@@ -146,10 +156,7 @@ export default defineEventHandler(async (event) => {
     group.total += (p.price ?? 0) * item.quantity
   }
 
-  const grandTotal = [...sellerMap.values()].reduce(
-    (sum, g) => sum + g.total + calculatePlatformFee(g.total),
-    0,
-  ) + shippingCost
+  let grandTotal = 0
 
   // ── 6. Buat orders per seller ─────────────────────────────────────────────
   const orderIds: string[] = []
@@ -164,14 +171,20 @@ export default defineEventHandler(async (event) => {
     const orderShippingCost = costPerSeller + (sellerIndex === 0 ? remainderCost : 0)
     const meetupOtp = shippingMethod === 'cod' ? generateMeetupOTP() : null
     const platformFee = calculatePlatformFee(group.total)
+    const baseAmount = group.total + orderShippingCost + platformFee
+    const paymentGatewayFee = calculatePaymentChargeBreakdown(baseAmount, paymentChannel).total
+    const orderTotalAmount = baseAmount
+    grandTotal += orderTotalAmount
 
     const { data: order, error: ordErr } = await supabaseAdmin
       .from('orders')
       .insert({
         buyer_id:        user.id,
         seller_id:       sellerId,
-        total_amount:    group.total + orderShippingCost + platformFee,
+        total_amount:    orderTotalAmount,
         platform_fee:    platformFee,
+        payment_gateway_fee: paymentGatewayFee,
+        payment_method:  paymentChannel,
         status:          'pending_payment',
         shipping_method: shippingMethod,
         shipping_cost:   orderShippingCost,
@@ -223,6 +236,7 @@ export default defineEventHandler(async (event) => {
   // external_id = semua order ID dipisah underscore
   // Webhook akan update semua orders berdasarkan xendit_invoice_id
   const xenditKey   = getXenditSecretKey()
+  const xenditPaymentMethods = getXenditPaymentMethodsForChannel(paymentChannel)
   const siteUrl     = process.env.SITE_URL ?? 'https://vivathrift.store'
   const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
   const externalId  = orderIds.join('_')
@@ -251,6 +265,7 @@ export default defineEventHandler(async (event) => {
           failure_redirect_url: `${siteUrl}/cart/checkout?payment_failed=1`,
           currency:             'IDR',
           invoice_duration:     900, // 15 menit
+          payment_methods:      xenditPaymentMethods,
         },
       }
     )

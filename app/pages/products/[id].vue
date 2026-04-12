@@ -4,6 +4,7 @@ const supabase = useSupabaseClient()
 const currentUser = useSupabaseUser()
 const { isDark } = useDarkMode()
 const { reveal } = useScrollReveal()
+const siteUrl = 'https://www.vivathrift.store'
 
 // Resolve user ID reliably — mirrors the pattern in checkout.vue.
 // getSession() is awaited at setup time so SSR + hydration both get the value.
@@ -38,9 +39,18 @@ const cleanTitle = computed(() => product.value?.title ? stripUrls(product.value
 
 const primaryImage = computed(() => {
   const media = product.value?.product_media
-  if (!media || media.length === 0) return ''
+  if (!media || media.length === 0) return `${siteUrl}/img/logo-vivathrift.png`
   const primary = media.find(m => m.is_primary) ?? media[0]
-  return primary.media_url ? mediaUrl(primary.media_url) ?? '' : ''
+  if (!primary) return `${siteUrl}/img/logo-vivathrift.png`
+
+  // For video listings, use thumbnail for richer social/search previews.
+  if (primary.media_type?.startsWith('video/')) {
+    const thumb = primary.thumbnail_url ? mediaUrl(primary.thumbnail_url) : null
+    if (thumb) return thumb
+  }
+
+  const img = primary.media_url ? mediaUrl(primary.media_url) : null
+  return img ?? `${siteUrl}/img/logo-vivathrift.png`
 })
 
 const productDesc = computed(() => {
@@ -57,6 +67,7 @@ useSeoMeta({
   ogTitle: computed(() => cleanTitle.value || 'Produk — VivaThrift'),
   ogDescription: productDesc,
   ogImage: primaryImage,
+  ogUrl: computed(() => `${siteUrl}${route.fullPath}`),
   ogType: 'product',
   twitterCard: 'summary_large_image',
   twitterTitle: computed(() => cleanTitle.value || 'Produk — VivaThrift'),

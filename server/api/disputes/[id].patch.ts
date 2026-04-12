@@ -2,8 +2,7 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 import { resolveServerUid } from '../../utils/resolve-server-uid'
 import { assertAdmin } from '../../utils/assert-admin'
 import { createXenditRefund } from '../../utils/xendit-refund'
-import { disburseFunds } from '../../utils/xendit-disburse'
-import { createSupabaseAttemptStore } from '../../utils/disbursement-attempts'
+import { creditSellerWallet } from '../../utils/seller-wallet'
 
 // PATCH /api/disputes/:id
 // Body: { action: 'resolve', resolution: 'refund'|'partial'|'rejected', refund_amount?, resolution_note? }
@@ -71,9 +70,8 @@ export default defineEventHandler(async (event) => {
   const { data: order } = await supabaseAdmin
     .from('orders')
     .select(`
-      id, status, total_amount, shipping_cost, platform_fee,
-      xendit_invoice_id, pre_dispute_status,
-      seller:users!seller_id ( bank_code, bank_account_number, bank_account_name )
+      id, status, total_amount, shipping_cost, platform_fee, payment_gateway_fee,
+      xendit_invoice_id, pre_dispute_status
     `)
     .eq('id', dispute.order_id)
     .single() as unknown as { data: any }
@@ -84,7 +82,6 @@ export default defineEventHandler(async (event) => {
 
   const now = new Date().toISOString()
   const resolutionNote = String(body?.resolution_note ?? '').trim()
-  const attemptStore = createSupabaseAttemptStore(supabaseAdmin)
 
   // ── Branch: rejected → restore order status ──────────────────────────────
   if (resolution === 'rejected') {
@@ -126,6 +123,7 @@ export default defineEventHandler(async (event) => {
   const totalAmount  = Number(order.total_amount ?? 0)
   const shippingCost = Number(order.shipping_cost ?? 0)
   const platformFee  = Number(order.platform_fee ?? 0)
+  const paymentGatewayFee = Number(order.payment_gateway_fee ?? 0)
 
   let refundAmount: number
   let targetDisputeStatus: string
@@ -188,27 +186,18 @@ export default defineEventHandler(async (event) => {
     .update({ status: targetOrderStatus, updated_at: new Date().toISOString() })
     .eq('id', order.id)
 
-  // ── Disbursements ──────────────────────────────────────────────────────
-  // Full refund → admin keeps fee in Xendit balance, no disbursement needed.
-  // Partial refund → seller gets (total - refund - shipping - platform_fee) + admin gets fee.
+  // ── Seller settlement ──────────────────────────────────────────────────
+  // Full refund → admin keeps platform fee in Xendit balance, no disbursement needed.
+  // Partial refund → seller gets (total - refund - shipping - platform_fee - payment_gateway_fee) + admin gets fee.
   if (resolution === 'partial') {
-    const sellerBank = order.seller ?? {}
-    const sellerForDisburse = {
-      bank_code:           sellerBank.bank_code,
-      account_holder_name: sellerBank.bank_account_name,
-      account_number:      sellerBank.bank_account_number,
-    }
-
-    const sellerReceives = totalAmount - refundAmount - shippingCost - platformFee
+    const sellerReceives = totalAmount - refundAmount - shippingCost - platformFee - paymentGatewayFee
     if (sellerReceives > 0) {
-      await disburseFunds({
-        orderId:          order.id,
-        externalIdPrefix: 'vt_partial',
-        totalAmount:      totalAmount - refundAmount,
-        shippingCost,
-        platformFee,
-        seller:           sellerForDisburse,
-        attemptStore,
+      await creditSellerWallet({
+        sellerId: dispute.seller_id,
+        orderId: order.id,
+        grossSellerAmount: sellerReceives,
+        paymentGatewayFee: 0,
+        txType: 'partial_refund_credit',
       })
     }
   }

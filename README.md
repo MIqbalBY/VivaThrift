@@ -112,6 +112,13 @@ Jika fitur terkait aktif, isi juga:
 - `SITE_URL`
 - `XENDIT_KEY` atau `XENDIT_SECRET_KEY`
 - `XENDIT_CALLBACK_TOKEN` atau `XENDIT_WEBHOOK_TOKEN`
+- `XENDIT_PAYMENT_FEE_PERCENT` (opsional, default `0`)
+- `XENDIT_PAYMENT_FEE_FLAT` (opsional, default `0`)
+- `XENDIT_PAYMENT_FEE_BY_CHANNEL_JSON` (opsional, default `{}`)
+- `XENDIT_PAYMENT_FEE_TAX_PERCENT` (opsional, default `11`)
+- `XENDIT_DISBURSEMENT_FEE_SELLER_FLAT` (opsional, default `2500`)
+- `XENDIT_DISBURSEMENT_FEE_ADMIN_FLAT` (opsional, default `2500`)
+- `XENDIT_AUTO_DISBURSE_ADMIN_FEE` (opsional, default `false`)
 - `BITESHIP_KEY`
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
@@ -253,6 +260,13 @@ Jika fitur aktif, tambahkan juga:
 - `RESEND_API_KEY`
 - `XENDIT_KEY` atau `XENDIT_SECRET_KEY`
 - `XENDIT_CALLBACK_TOKEN` atau `XENDIT_WEBHOOK_TOKEN`
+- `XENDIT_PAYMENT_FEE_PERCENT` (opsional, default `0`)
+- `XENDIT_PAYMENT_FEE_FLAT` (opsional, default `0`)
+- `XENDIT_PAYMENT_FEE_BY_CHANNEL_JSON` (opsional, default `{}`)
+- `XENDIT_PAYMENT_FEE_TAX_PERCENT` (opsional, default `11`)
+- `XENDIT_DISBURSEMENT_FEE_SELLER_FLAT` (opsional, default `2500`)
+- `XENDIT_DISBURSEMENT_FEE_ADMIN_FLAT` (opsional, default `2500`)
+- `XENDIT_AUTO_DISBURSE_ADMIN_FEE` (opsional, default `false`)
 - `BITESHIP_KEY`
 - `BITESHIP_WEBHOOK_TOKEN` atau `BITESHIP_WEBHOOK_BASIC_*` jika auth webhook Biteship diaktifkan
 - `UPSTASH_REDIS_REST_URL`

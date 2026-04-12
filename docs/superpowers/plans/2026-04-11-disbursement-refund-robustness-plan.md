@@ -14,8 +14,8 @@
 
 ## Preflight Notes
 
-- **Pattern to mirror:** [server/utils/xendit-webhook-handler.ts](../../../server/utils/xendit-webhook-handler.ts) + [server/api/webhooks/xendit.post.ts](../../../server/api/webhooks/xendit.post.ts). Pure handler receives a `deps` object; route wires `supabaseAdmin` into that object.
-- **Test pattern to mirror:** [tests/xendit-webhook-handler.test.ts](../../../tests/xendit-webhook-handler.test.ts) (`createDeps` factory with `vi.fn`) and [tests/webhook-routes.test.ts](../../../tests/webhook-routes.test.ts) (`vi.doMock` + `vi.stubGlobal` for route wiring).
+- **Pattern to mirror:** [server/utils/Xendit-webhook-handler.ts](../../../server/utils/xendit-webhook-handler.ts) + [server/api/webhooks/Xendit.post.ts](../../../server/api/webhooks/xendit.post.ts). Pure handler receives a `deps` object; route wires `supabaseAdmin` into that object.
+- **Test pattern to mirror:** [tests/Xendit-webhook-handler.test.ts](../../../tests/xendit-webhook-handler.test.ts) (`createDeps` factory with `vi.fn`) and [tests/webhook-routes.test.ts](../../../tests/webhook-routes.test.ts) (`vi.doMock` + `vi.stubGlobal` for route wiring).
 - **No existing tests for `xendit-disburse.ts`**: Task 4 introduces the first test file for it, then Task 5 refactors the utility under TDD.
 - **Existing call sites for `disburseFunds`** (must keep working):
   - [server/api/orders/[id].patch.ts:291](../../../server/api/orders/%5Bid%5D.patch.ts#L291) — `confirm_meetup` action
@@ -76,16 +76,16 @@ tests/
 |-------|------|---------------|----------------|
 | 1 | Create SQL migration | migration file | Foundation — later tasks reference columns |
 | 2 | Update state machine + tests | state-machine.ts, state-machine.test.ts | Isolated; dispute code depends on it |
-| 3 | Pure refund utility + tests | xendit-refund.ts, xendit-refund.test.ts | No deps on anything else |
+| 3 | Pure refund utility + tests | Xendit-refund.ts, Xendit-refund.test.ts | No deps on anything else |
 | 4 | Attempt store helpers + tests | disbursement-attempts.ts, disbursement-attempts.test.ts | Data layer for disbursement refactor |
-| 5 | Refactor xendit-disburse + tests | xendit-disburse.ts, xendit-disburse.test.ts | Uses store from Task 4 |
+| 5 | Refactor Xendit-disburse + tests | Xendit-disburse.ts, Xendit-disburse.test.ts | Uses store from Task 4 |
 | 6 | Wire refactored disburse into existing call sites | orders/[id].patch.ts, cron/cleanup.post.ts | Keep existing callers green |
-| 7 | Disbursement webhook handler + tests | xendit-disbursement-webhook-handler.ts, handler test | Uses store from Task 4 |
-| 8 | Disbursement webhook route + tests | xendit-disbursement.post.ts, route test | Wires handler to HTTP |
+| 7 | Disbursement webhook handler + tests | Xendit-disbursement-webhook-handler.ts, handler test | Uses store from Task 4 |
+| 8 | Disbursement webhook route + tests | Xendit-disbursement.post.ts, route test | Wires handler to HTTP |
 | 9 | Retry cron route + tests | retry-disbursements.post.ts, cron test | Uses store from Task 4 |
-| 10 | Extend xendit.post.ts for refund events | xendit-webhook-handler.ts, xendit.post.ts | Uses refund status columns from Task 1 |
+| 10 | Extend Xendit.post.ts for refund events | Xendit-webhook-handler.ts, Xendit.post.ts | Uses refund status columns from Task 1 |
 | 11 | Dispute resolution integration + tests | disputes/[id].patch.ts, disputes/index.post.ts, disputes-resolve-route.test.ts | Uses Tasks 2, 3, 5 |
-| 12 | vercel.json cron registration | vercel.json | Last — after route exists |
+| 12 | Vercel.json cron registration | Vercel.json | Last — after route exists |
 | 13 | Full suite regression | — | Final verification |
 
 ---
@@ -93,6 +93,7 @@ tests/
 ## Task 1: Create SQL migration
 
 **Files:**
+
 - Create: `supabase/migrations/20260411000002_disbursement_refund_tracking.sql`
 
 - [ ] **Step 1.1: Write the migration file**
@@ -180,6 +181,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 2: Update state machine + tests
 
 **Files:**
+
 - Modify: `server/utils/state-machine.ts:11-22`
 - Modify: `tests/state-machine.test.ts:47-53`
 
@@ -297,6 +299,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 3: Xendit refund utility + tests
 
 **Files:**
+
 - Create: `server/utils/xendit-refund.ts`
 - Create: `tests/xendit-refund.test.ts`
 
@@ -507,6 +510,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 4: Disbursement attempt store helpers + tests
 
 **Files:**
+
 - Create: `server/utils/disbursement-attempts.ts`
 - Create: `tests/disbursement-attempts.test.ts`
 
@@ -759,6 +763,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 5: Refactor `xendit-disburse.ts` with attempt tracking + tests
 
 **Files:**
+
 - Modify: `server/utils/xendit-disburse.ts`
 - Create: `tests/xendit-disburse.test.ts` (first test file for this utility)
 
@@ -1135,6 +1140,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 6: Wire refactored `disburseFunds` into existing call sites
 
 **Files:**
+
 - Modify: `server/api/orders/[id].patch.ts` (2 call sites: lines ~291 and ~364)
 - Modify: `server/api/cron/cleanup.post.ts` (1 call site: line ~113)
 
@@ -1358,6 +1364,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 7: Disbursement webhook handler + tests
 
 **Files:**
+
 - Create: `server/utils/xendit-disbursement-webhook-handler.ts`
 - Create: `tests/xendit-disbursement-webhook-handler.test.ts`
 
@@ -1619,6 +1626,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 8: Disbursement webhook HTTP route + tests
 
 **Files:**
+
 - Create: `server/api/webhooks/xendit-disbursement.post.ts`
 - Create: `tests/xendit-disbursement-webhook-route.test.ts`
 
@@ -1814,6 +1822,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 9: Retry disbursements cron + tests
 
 **Files:**
+
 - Create: `server/api/cron/retry-disbursements.post.ts`
 - Create: `tests/retry-disbursements-cron.test.ts`
 
@@ -2078,6 +2087,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 10: Extend `xendit.post.ts` for refund events
 
 **Files:**
+
 - Modify: `server/utils/xendit-webhook-handler.ts` (extend payload + deps)
 - Modify: `server/api/webhooks/xendit.post.ts` (wire refund deps)
 - Modify: `tests/xendit-webhook-handler.test.ts` (add refund event tests)
@@ -2361,6 +2371,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 11: Dispute resolution integration + tests
 
 **Files:**
+
 - Modify: `server/api/disputes/index.post.ts` (capture `pre_dispute_status` on dispute creation)
 - Modify: `server/api/disputes/[id].patch.ts` (integrate refund + disbursement + state restore)
 - Create: `tests/disputes-resolve-route.test.ts`
@@ -2913,6 +2924,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 12: Register retry cron in `vercel.json`
 
 **Files:**
+
 - Modify: `vercel.json`
 
 - [ ] **Step 12.1: Read the current `vercel.json`**
@@ -2972,6 +2984,7 @@ Ref: spec 2026-04-11-disbursement-refund-robustness-design.md"
 ## Task 13: Full suite regression + coverage check
 
 **Files:**
+
 - None (verification only)
 
 - [ ] **Step 13.1: Run typecheck**
@@ -3042,10 +3055,10 @@ git commit -m "test: fix regressions / uncovered branches from full suite run"
 ## Reference — key files
 
 - [Spec](../specs/2026-04-11-disbursement-refund-robustness-design.md)
-- [server/utils/xendit-disburse.ts](../../../server/utils/xendit-disburse.ts)
-- [server/utils/xendit-webhook-handler.ts](../../../server/utils/xendit-webhook-handler.ts)
-- [server/api/webhooks/xendit.post.ts](../../../server/api/webhooks/xendit.post.ts)
+- [server/utils/Xendit-disburse.ts](../../../server/utils/xendit-disburse.ts)
+- [server/utils/Xendit-webhook-handler.ts](../../../server/utils/xendit-webhook-handler.ts)
+- [server/api/webhooks/Xendit.post.ts](../../../server/api/webhooks/xendit.post.ts)
 - [server/api/disputes/[id].patch.ts](../../../server/api/disputes/%5Bid%5D.patch.ts)
 - [server/utils/state-machine.ts](../../../server/utils/state-machine.ts)
 - [tests/webhook-routes.test.ts](../../../tests/webhook-routes.test.ts) — route test pattern
-- [tests/xendit-webhook-handler.test.ts](../../../tests/xendit-webhook-handler.test.ts) — handler test pattern
+- [tests/Xendit-webhook-handler.test.ts](../../../tests/xendit-webhook-handler.test.ts) — handler test pattern

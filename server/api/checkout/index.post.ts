@@ -2,11 +2,14 @@ import { serverSupabaseClient } from '#supabase/server'
 import { resolveServerUser } from '../../utils/resolve-server-uid'
 import { supabaseAdmin } from '../../utils/supabase-admin'
 import { getXenditSecretKey } from '../../utils/xendit-config'
+import { getXenditPaymentMethodsForChannel } from '../../utils/xendit-payment-methods'
+import { isSupportedPaymentChannel } from '../../utils/xendit-payment-methods'
 import {
   PRODUCT_UNAVAILABLE_STATUSES,
   isValidMeetupLocation,
   generateMeetupOTP,
   calculatePlatformFee,
+  calculatePaymentChargeBreakdown,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
 
@@ -35,8 +38,15 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const offerId: string | undefined = body?.offerId
+  const paymentChannel = String(body?.paymentChannel ?? '').trim().toLowerCase()
   if (!offerId || typeof offerId !== 'string') {
     throw createError({ statusCode: 400, statusMessage: 'offerId harus diisi.' })
+  }
+  if (!paymentChannel) {
+    throw createError({ statusCode: 400, statusMessage: 'paymentChannel harus diisi.' })
+  }
+  if (!isSupportedPaymentChannel(paymentChannel)) {
+    throw createError({ statusCode: 400, statusMessage: 'paymentChannel tidak didukung.' })
   }
 
   // ── Shipping method validation ──────────────────────────────────────────
@@ -128,7 +138,9 @@ export default defineEventHandler(async (event) => {
   const sellerId: string = chat?.seller_id ?? product?.seller_id
   const subtotal: number    = offer.offered_price * offer.quantity
   const platformFee: number = calculatePlatformFee(subtotal)
-  const totalAmount: number = subtotal + platformFee + shippingCost
+  const baseAmount: number = subtotal + platformFee + shippingCost
+  const paymentGatewayFee: number = calculatePaymentChargeBreakdown(baseAmount, paymentChannel).total
+  const totalAmount: number = baseAmount
 
   // ── 5. INSERT order ───────────────────────────────────────────────────────
   let orderId: string
@@ -154,6 +166,8 @@ export default defineEventHandler(async (event) => {
           seller_id:       sellerId,
           total_amount:    totalAmount,
           platform_fee:    platformFee,
+          payment_gateway_fee: paymentGatewayFee,
+          payment_method:    paymentChannel,
           status:          'pending_payment',
           offer_id:        offerId,
           shipping_method: shippingMethod,
@@ -204,6 +218,7 @@ export default defineEventHandler(async (event) => {
 
   // ── 6. Call Xendit API — create Invoice ───────────────────────────────────
   const xenditKey = getXenditSecretKey()
+  const xenditPaymentMethods = getXenditPaymentMethodsForChannel(paymentChannel)
   const siteUrl   = process.env.SITE_URL ?? 'https://vivathrift.store'
   const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
 
@@ -231,6 +246,7 @@ export default defineEventHandler(async (event) => {
           failure_redirect_url: `${siteUrl}/checkout?offer_id=${offerId}&payment_failed=1`,
           currency:             'IDR',
           invoice_duration:     900, // 15 menit
+          payment_methods:      xenditPaymentMethods,
         },
       },
     )

@@ -1,6 +1,8 @@
 // ── Xendit Disbursement utility ─────────────────────────────────────────────
 // Shared by order complete & confirm_meetup actions, and retry cron.
-// Creates disbursements to seller + platform admin and tracks each attempt
+// Creates disbursements to seller and tracks each attempt.
+// Admin fee disbursement is optional (opt-in via env) so fee can remain
+// in Xendit balance for manual withdrawal.
 // in the disbursement_attempts table via the injected AttemptStore.
 
 import { buildAttemptInsertRow, type AttemptStore } from './disbursement-attempts'
@@ -23,12 +25,19 @@ function getAdminBank() {
   }
 }
 
+function shouldAutoDisburseAdminFee() {
+  const raw = process.env.XENDIT_AUTO_DISBURSE_ADMIN_FEE
+  if (!raw) return false
+  return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase())
+}
+
 export interface DisburseFundsParams {
   orderId:          string
   externalIdPrefix: string
   totalAmount:      number
   shippingCost:     number
   platformFee:      number
+  paymentGatewayFee?: number
   seller: {
     bank_code?:           string | null
     account_holder_name?: string | null
@@ -47,8 +56,8 @@ export interface DisburseFundsParams {
 
 /**
  * Disburse funds after order completion:
- *   1) Seller receives: total_amount - shipping_cost - platform_fee
- *   2) Admin receives: platform_fee (if > 0)
+ *   1) Seller receives: total_amount - shipping_cost - platform_fee - payment_gateway_fee
+ *   2) Admin receives: platform_fee (if > 0 AND auto-disburse enabled)
  *
  * Attempt tracking:
  *   - A row is inserted in disbursement_attempts BEFORE each Xendit call.
@@ -75,9 +84,11 @@ export async function disburseFunds(params: DisburseFundsParams): Promise<Disbur
   }
 
   const attemptNo      = params.attemptNo ?? 1
+  const autoAdminFee   = shouldAutoDisburseAdminFee()
   const credentials    = Buffer.from(`${xenditKey}:`).toString('base64')
   const headers        = { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/json' }
-  const sellerReceives = params.totalAmount - params.shippingCost - params.platformFee
+  const paymentGatewayFee = params.paymentGatewayFee ?? 0
+  const sellerReceives = params.totalAmount - params.shippingCost - params.platformFee - paymentGatewayFee
 
   let sellerDisbursementId: string | null = null
   let adminDisbursementId:  string | null = null
@@ -114,8 +125,8 @@ export async function disburseFunds(params: DisburseFundsParams): Promise<Disbur
     return { sellerDisbursementId: null, adminDisbursementId: null, skipped: false, error }
   }
 
-  // ── 2) Disburse platform fee to admin (only if >0) ─────────────────────────
-  if (params.platformFee > 0) {
+  // ── 2) Disburse platform fee to admin (opt-in; otherwise keep in balance) ──
+  if (params.platformFee > 0 && autoAdminFee) {
     const adminAttempt = await params.attemptStore.insert(buildAttemptInsertRow({
       orderId:       params.orderId,
       recipientType: 'admin_fee',
@@ -146,6 +157,8 @@ export async function disburseFunds(params: DisburseFundsParams): Promise<Disbur
       await params.attemptStore.updateFailed(adminAttempt.id, adminErr)
       // Non-fatal — seller already got paid; admin fee is retryable.
     }
+  } else if (params.platformFee > 0 && !autoAdminFee) {
+    console.info('[disburse] Admin fee ditahan di saldo Xendit (auto disburse OFF).')
   }
 
   return { sellerDisbursementId, adminDisbursementId, skipped: false, error }

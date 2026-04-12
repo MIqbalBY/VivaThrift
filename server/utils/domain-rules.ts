@@ -145,11 +145,116 @@ export function calculatePlatformFee(subtotal: number): number {
   return Math.round(subtotal * 0.005)
 }
 
+// ── Payment Gateway Fee (Xendit) ───────────────────────────────────────────
+//
+// Dibebankan ke pembeli agar fee platform tetap bersih.
+// Rumus: round(baseAmount * percent / 100) + flat
+// Nilai percent dan flat dikontrol via env untuk menyesuaikan dashboard Xendit.
+
+function toSafeNumber(value: string | undefined, fallback = 0): number {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
+interface GatewayFeeRule {
+  percent: number
+  flat: number
+}
+
+function parseGatewayFeeByChannelMap(): Record<string, GatewayFeeRule> {
+  const raw = process.env.XENDIT_PAYMENT_FEE_BY_CHANNEL_JSON
+  if (!raw) return {}
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, { percent?: unknown; flat?: unknown }>
+    const entries = Object.entries(parsed)
+    const normalized: Record<string, GatewayFeeRule> = {}
+    for (const [key, val] of entries) {
+      const percent = Math.max(0, Number(val?.percent ?? 0))
+      const flat = Math.max(0, Math.round(Number(val?.flat ?? 0)))
+      if (!Number.isFinite(percent) || !Number.isFinite(flat)) continue
+      normalized[key.toLowerCase()] = { percent, flat }
+    }
+    return normalized
+  } catch {
+    console.warn('[domain-rules] XENDIT_PAYMENT_FEE_BY_CHANNEL_JSON invalid, fallback to global fee.')
+    return {}
+  }
+}
+
+export function calculatePaymentGatewayFee(baseAmount: number, channel?: string | null): number {
+  const safeBase = Math.max(0, Math.round(baseAmount))
+  if (safeBase <= 0) return 0
+
+  const byChannel = parseGatewayFeeByChannelMap()
+  const channelKey = String(channel ?? '').trim().toLowerCase()
+  const selected = channelKey ? byChannel[channelKey] : undefined
+
+  const percent = selected?.percent ?? Math.max(0, toSafeNumber(process.env.XENDIT_PAYMENT_FEE_PERCENT, 0))
+  const flat = selected?.flat ?? Math.max(0, Math.round(toSafeNumber(process.env.XENDIT_PAYMENT_FEE_FLAT, 0)))
+  const feeFromPercent = Math.round((safeBase * percent) / 100)
+
+  return feeFromPercent + flat
+}
+
 export interface CommissionResult {
   subtotal: number
   platformFee: number
   /** Jumlah yang ditransfer ke penjual = subtotal penuh (fee sudah ditanggung pembeli) */
   sellerReceives: number
+}
+
+export interface PaymentChargeBreakdown {
+  gatewayFeeBase: number
+  gatewayFeeTax: number
+  sellerDisbursementFee: number
+  adminDisbursementFee: number
+  total: number
+}
+
+function isTruthyEnv(value: string | undefined): boolean {
+  if (!value) return false
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
+}
+
+export function calculatePaymentChargeBreakdown(baseAmount: number, channel?: string | null): PaymentChargeBreakdown {
+  const safeBase = Math.max(0, Math.round(baseAmount))
+  if (safeBase <= 0) {
+    return {
+      gatewayFeeBase: 0,
+      gatewayFeeTax: 0,
+      sellerDisbursementFee: 0,
+      adminDisbursementFee: 0,
+      total: 0,
+    }
+  }
+
+  const byChannel = parseGatewayFeeByChannelMap()
+  const channelKey = String(channel ?? '').trim().toLowerCase()
+  const selected = channelKey ? byChannel[channelKey] : undefined
+
+  const percent = selected?.percent ?? Math.max(0, toSafeNumber(process.env.XENDIT_PAYMENT_FEE_PERCENT, 0))
+  const flat = selected?.flat ?? Math.max(0, Math.round(toSafeNumber(process.env.XENDIT_PAYMENT_FEE_FLAT, 0)))
+  const taxPercent = Math.max(0, toSafeNumber(process.env.XENDIT_PAYMENT_FEE_TAX_PERCENT, 11))
+  const sellerDisbursementFee = Math.max(0, Math.round(toSafeNumber(process.env.XENDIT_DISBURSEMENT_FEE_SELLER_FLAT, 2500)))
+  const autoAdminDisburse = isTruthyEnv(process.env.XENDIT_AUTO_DISBURSE_ADMIN_FEE)
+  const adminDisbursementFee = autoAdminDisburse
+    ? Math.max(0, Math.round(toSafeNumber(process.env.XENDIT_DISBURSEMENT_FEE_ADMIN_FLAT, 2500)))
+    : 0
+
+  const gatewayFeeBase = Math.round((safeBase * percent) / 100) + flat
+  const gatewayFeeTax = Math.round((gatewayFeeBase * taxPercent) / 100)
+  // Split-cost model: buyer is charged only payment processing fee + tax.
+  // Disbursement fees are charged later at seller/admin withdrawal time.
+  const total = gatewayFeeBase + gatewayFeeTax
+
+  return {
+    gatewayFeeBase,
+    gatewayFeeTax,
+    sellerDisbursementFee,
+    adminDisbursementFee,
+    total,
+  }
 }
 
 /** @deprecated Gunakan calculatePlatformFee secara langsung. */

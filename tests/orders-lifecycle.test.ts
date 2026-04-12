@@ -100,8 +100,7 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
     vi.doUnmock('../server/utils/biteship')
     vi.doUnmock('../server/utils/send-email')
     vi.doUnmock('../server/utils/email-templates')
-    vi.doUnmock('../server/utils/xendit-disburse')
-    vi.doUnmock('../server/utils/disbursement-attempts')
+    vi.doUnmock('../server/utils/seller-wallet')
   })
 
   // ── Ship action ────────────────────────────────────────────────────────────
@@ -122,9 +121,8 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
       emailOrderShipped: vi.fn(() => ({ subject: 'Shipped', html: '<p>Shipped</p>' })),
       emailOrderCompletedSeller: vi.fn(),
     }))
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds: vi.fn() }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
+    vi.doMock('../server/utils/seller-wallet', () => ({
+      creditSellerWallet: vi.fn(async () => ({ credited: true, amount: 98000 })),
     }))
 
     const { default: handler } = await import('../server/api/orders/[id].patch')
@@ -150,9 +148,8 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
       emailOrderShipped: vi.fn(),
       emailOrderCompletedSeller: vi.fn(),
     }))
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds: vi.fn() }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
+    vi.doMock('../server/utils/seller-wallet', () => ({
+      creditSellerWallet: vi.fn(async () => ({ credited: true, amount: 98000 })),
     }))
 
     const { default: handler } = await import('../server/api/orders/[id].patch')
@@ -164,12 +161,7 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
   it('complete: buyer confirms receipt, triggers disbursement', async () => {
     vi.stubGlobal('readBody', vi.fn(async () => ({ action: 'complete' })))
 
-    const disburseFunds = vi.fn(async () => ({
-      sellerDisbursementId: 'xd-seller-1',
-      adminDisbursementId: 'xd-admin-1',
-      skipped: false,
-      error: null,
-    }))
+    const creditSellerWallet = vi.fn(async () => ({ credited: true, amount: 98000 }))
 
     const { from } = createOrderMock({ order: { status: 'shipped' } })
     vi.doMock('../server/utils/supabase-admin', () => ({ supabaseAdmin: { from } }))
@@ -181,10 +173,7 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
       emailOrderShipped: vi.fn(),
       emailOrderCompletedSeller: vi.fn(() => ({ subject: 'Done', html: '<p>Done</p>' })),
     }))
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
-    }))
+    vi.doMock('../server/utils/seller-wallet', () => ({ creditSellerWallet }))
 
     const { default: handler } = await import('../server/api/orders/[id].patch')
     const result = await handler({})
@@ -192,14 +181,14 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
     expect(result).toMatchObject({
       orderId: 'order-1',
       status: 'completed',
-      disbursement_id: 'xd-seller-1',
-      admin_fee_disbursement_id: 'xd-admin-1',
+      wallet_credited: true,
+      wallet_credit_amount: 98000,
     })
-    expect(disburseFunds).toHaveBeenCalledWith(expect.objectContaining({
+    expect(creditSellerWallet).toHaveBeenCalledWith(expect.objectContaining({
+      sellerId: 'seller-1',
       orderId: 'order-1',
-      totalAmount: 120000,
-      shippingCost: 20000,
-      platformFee: 2000,
+      grossSellerAmount: 98000,
+      txType: 'order_credit',
     }))
   })
 
@@ -216,9 +205,8 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
       emailOrderShipped: vi.fn(),
       emailOrderCompletedSeller: vi.fn(),
     }))
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds: vi.fn() }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
+    vi.doMock('../server/utils/seller-wallet', () => ({
+      creditSellerWallet: vi.fn(async () => ({ credited: true, amount: 98000 })),
     }))
 
     const { default: handler } = await import('../server/api/orders/[id].patch')
@@ -230,12 +218,7 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
   it('confirm_meetup: seller confirms with OTP, triggers disbursement', async () => {
     vi.stubGlobal('readBody', vi.fn(async () => ({ action: 'confirm_meetup', otp: '1234' })))
 
-    const disburseFunds = vi.fn(async () => ({
-      sellerDisbursementId: 'xd-meetup-seller',
-      adminDisbursementId: 'xd-meetup-admin',
-      skipped: false,
-      error: null,
-    }))
+    const creditSellerWallet = vi.fn(async () => ({ credited: true, amount: 98000 }))
 
     const { from } = createOrderMock({
       order: {
@@ -254,10 +237,7 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
       emailOrderShipped: vi.fn(),
       emailOrderCompletedSeller: vi.fn(() => ({ subject: 'Done', html: '<p>Done</p>' })),
     }))
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
-    }))
+    vi.doMock('../server/utils/seller-wallet', () => ({ creditSellerWallet }))
 
     const { default: handler } = await import('../server/api/orders/[id].patch')
     const result = await handler({})
@@ -266,9 +246,10 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
       orderId: 'order-1',
       status: 'completed',
       meetup_confirmed: true,
-      disbursement_id: 'xd-meetup-seller',
+      wallet_credited: true,
+      wallet_credit_amount: 98000,
     })
-    expect(disburseFunds).toHaveBeenCalled()
+    expect(creditSellerWallet).toHaveBeenCalled()
   })
 
   it('confirm_meetup: wrong OTP gets 422', async () => {
@@ -290,9 +271,8 @@ describe('orders lifecycle (ship → complete → disburse)', () => {
       emailOrderShipped: vi.fn(),
       emailOrderCompletedSeller: vi.fn(),
     }))
-    vi.doMock('../server/utils/xendit-disburse', () => ({ disburseFunds: vi.fn() }))
-    vi.doMock('../server/utils/disbursement-attempts', () => ({
-      createSupabaseAttemptStore: vi.fn(() => ({})),
+    vi.doMock('../server/utils/seller-wallet', () => ({
+      creditSellerWallet: vi.fn(async () => ({ credited: true, amount: 98000 })),
     }))
 
     const { default: handler } = await import('../server/api/orders/[id].patch')

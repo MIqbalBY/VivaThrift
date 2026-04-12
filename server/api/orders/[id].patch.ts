@@ -4,8 +4,7 @@ import { assertTransition } from '../../utils/state-machine'
 import { createBiteshipOrder } from '../../utils/biteship'
 import { sendEmail } from '../../utils/send-email'
 import { emailOrderShipped, emailOrderCompletedSeller } from '../../utils/email-templates'
-import { disburseFunds } from '../../utils/xendit-disburse'
-import { createSupabaseAttemptStore } from '../../utils/disbursement-attempts'
+import { creditSellerWallet } from '../../utils/seller-wallet'
 
 // PATCH /api/orders/:id
 // Body: { action: 'ship', tracking_number: string, courier_name?: string }
@@ -56,7 +55,7 @@ export default defineEventHandler(async (event) => {
     .from('orders')
     .select(`
       id, status, total_amount, offer_id, seller_id, buyer_id,
-      shipping_method, shipping_cost, platform_fee, meetup_otp, meetup_location, courier_code, courier_service,
+      shipping_method, shipping_cost, platform_fee, payment_gateway_fee, meetup_otp, meetup_location, courier_code, courier_service,
       seller:users!seller_id (
         id, name, email, bank_code, bank_account_number, bank_account_name
       ),
@@ -287,22 +286,16 @@ export default defineEventHandler(async (event) => {
         .eq('id', order.offer_id)
     }
 
-    // ── Xendit Disbursement (seller + admin platform fee) ───────────────
+    // ── Settlement: credit seller wallet (split-cost model) ───────────────
     const meetupSeller = order.seller as any
-    const disburse = await disburseFunds({
+    const grossSellerAmount = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0)
+    const walletCredit = await creditSellerWallet({
+      sellerId: order.seller_id,
       orderId,
-      externalIdPrefix: 'vt_meetup',
-      totalAmount:  order.total_amount,
-      shippingCost: order.shipping_cost ?? 0,
-      platformFee:  order.platform_fee ?? 0,
-      seller: meetupSeller,
-      attemptStore: createSupabaseAttemptStore(supabaseAdmin),
+      grossSellerAmount,
+      paymentGatewayFee: order.payment_gateway_fee ?? 0,
+      txType: 'order_credit',
     })
-    if (disburse.sellerDisbursementId) {
-      await supabaseAdmin.from('orders')
-        .update({ disbursement_id: disburse.sellerDisbursementId })
-        .eq('id', orderId)
-    }
 
     // Notify buyer (best-effort)
     try {
@@ -318,13 +311,13 @@ export default defineEventHandler(async (event) => {
     // Email seller (best-effort, fire-and-forget)
     const meetupItem = ((order as any).order_items ?? [])[0] as any
     if (meetupSeller?.email) {
-      const sellerReceives = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0)
+      const sellerReceives = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0) - (order.payment_gateway_fee ?? 0)
       const mail = emailOrderCompletedSeller({
         sellerName:         meetupSeller.name ?? 'Penjual',
         orderId,
         productTitle:       meetupItem?.product?.title ?? 'Produk',
         sellerReceives,
-        disbursementSkipped: disburse.skipped,
+        disbursementSkipped: false,
       })
       sendEmail({ to: meetupSeller.email, subject: mail.subject, html: mail.html }).catch(() => {})
     }
@@ -333,10 +326,8 @@ export default defineEventHandler(async (event) => {
       orderId,
       status: 'completed',
       meetup_confirmed: true,
-      disbursement_id: disburse.sellerDisbursementId,
-      admin_fee_disbursement_id: disburse.adminDisbursementId,
-      disbursement_skipped: disburse.skipped,
-      disbursement_error: disburse.error,
+      wallet_credited: walletCredit.credited,
+      wallet_credit_amount: walletCredit.amount,
     }
   }
 
@@ -361,22 +352,16 @@ export default defineEventHandler(async (event) => {
       .eq('id', order.offer_id)
   }
 
-  // ── Xendit Disbursement (seller + admin platform fee) ──────────────────────
+  // ── Settlement: credit seller wallet (split-cost model) ────────────────────
   const seller = order.seller as any
-  const disburse = await disburseFunds({
+  const grossSellerAmount = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0)
+  const walletCredit = await creditSellerWallet({
+    sellerId: order.seller_id,
     orderId,
-    externalIdPrefix: 'vt_complete',
-    totalAmount:  order.total_amount,
-    shippingCost: order.shipping_cost ?? 0,
-    platformFee:  order.platform_fee ?? 0,
-    seller,
-    attemptStore: createSupabaseAttemptStore(supabaseAdmin),
+    grossSellerAmount,
+    paymentGatewayFee: order.payment_gateway_fee ?? 0,
+    txType: 'order_credit',
   })
-  if (disburse.sellerDisbursementId) {
-    await supabaseAdmin.from('orders')
-      .update({ disbursement_id: disburse.sellerDisbursementId })
-      .eq('id', orderId)
-  }
 
   // Notify seller (best-effort)
   try {
@@ -384,9 +369,7 @@ export default defineEventHandler(async (event) => {
       user_id:      order.seller_id,
       type:         'order_completed',
       title:        'Pesanan selesai!',
-      body:         disburse.skipped
-        ? 'Pembeli telah menerima pesanan. Dana akan ditransfer setelah kamu melengkapi data rekening.'
-        : 'Pembeli telah menerima pesanan. Pencairan dana sedang diproses.',
+      body:         'Pembeli telah menerima pesanan. Saldo penjualan sudah masuk ke wallet seller-mu.',
       reference_id: orderId,
     })
   } catch { /* best-effort */ }
@@ -394,13 +377,13 @@ export default defineEventHandler(async (event) => {
   // Email seller (best-effort, fire-and-forget)
   const completeItem = ((order as any).order_items ?? [])[0] as any
   if (seller?.email) {
-    const sellerReceives = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0)
+    const sellerReceives = order.total_amount - (order.shipping_cost ?? 0) - (order.platform_fee ?? 0) - (order.payment_gateway_fee ?? 0)
     const mail = emailOrderCompletedSeller({
       sellerName:         seller.name ?? 'Penjual',
       orderId,
       productTitle:       completeItem?.product?.title ?? 'Produk',
       sellerReceives,
-      disbursementSkipped: disburse.skipped,
+      disbursementSkipped: false,
     })
     sendEmail({ to: seller.email, subject: mail.subject, html: mail.html }).catch(() => {})
   }
@@ -408,9 +391,7 @@ export default defineEventHandler(async (event) => {
   return {
     orderId,
     status: 'completed',
-    disbursement_id: disburse.sellerDisbursementId,
-    admin_fee_disbursement_id: disburse.adminDisbursementId,
-    disbursement_skipped: disburse.skipped,
-    disbursement_error: disburse.error,
+    wallet_credited: walletCredit.credited,
+    wallet_credit_amount: walletCredit.amount,
   }
 })

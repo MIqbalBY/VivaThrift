@@ -3,6 +3,7 @@ definePageMeta({ middleware: 'auth' })
 useSeoMeta({ title: 'Checkout Keranjang — VivaThrift' })
 
 const { isDark } = useDarkMode()
+const runtimeConfig = useRuntimeConfig()
 const { cartItems, cartTotal, cartCount, fetchCart } = useCart()
 const route    = useRoute()
 const supabase = useSupabaseClient()
@@ -29,6 +30,7 @@ const MEETUP_LOCATIONS = [
 ] as const
 
 const shippingMethod  = ref<'cod' | 'shipping'>('cod')
+const paymentChannel  = ref<string>('qris')
 const meetupLocation  = ref<string>('rektorat')
 const meetupCustom    = ref<string>('')
 const destPostal      = ref<string>('')
@@ -52,6 +54,14 @@ function calcPlatformFee(subtotal: number): number {
   return Math.round(subtotal * 0.005)
 }
 const platformFee = computed(() => calcPlatformFee(cartTotal.value))
+const feeByChannelMap = computed<Record<string, { percent?: number; flat?: number }>>(() => {
+  try {
+    const parsed = JSON.parse(String(runtimeConfig.public.xenditPaymentFeeByChannelJson ?? '{}'))
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+})
 const grandTotal = computed(() => cartTotal.value + ongkirAmount.value + platformFee.value)
 
 async function fetchRates() {
@@ -157,7 +167,7 @@ async function handleCheckout() {
   placing.value = true
   errorMsg.value = ''
   try {
-    const body: any = { shippingMethod: shippingMethod.value }
+    const body: any = { shippingMethod: shippingMethod.value, paymentChannel: paymentChannel.value }
     if (shippingMethod.value === 'cod') {
       const loc = meetupLocation.value === 'other'
         ? meetupCustom.value.trim()
@@ -418,6 +428,23 @@ async function handleCheckout() {
       <!-- Kanan: total & tombol bayar -->
       <div class="rounded-xl border p-5 space-y-4 lg:sticky lg:top-24" :class="isDark ? 'border-white/10 bg-slate-900/50' : 'border-gray-200 bg-white'">
         <h2 class="font-heading font-bold text-base" :class="isDark ? 'text-slate-100' : 'text-gray-900'">Ringkasan Pembayaran</h2>
+
+        <div>
+          <p class="text-xs font-semibold mb-2" :class="isDark ? 'text-slate-400' : 'text-gray-500'">METODE PEMBAYARAN</p>
+          <select
+            v-model="paymentChannel"
+            class="w-full rounded-xl px-3 py-2 text-sm border outline-none transition"
+            :class="isDark
+              ? 'bg-slate-800 border-white/10 text-white focus:border-sky-500'
+              : 'bg-white border-gray-200 text-gray-800 focus:border-blue-500'"
+          >
+            <option value="qris">QRIS</option>
+            <option value="bca_va">Virtual Account BCA</option>
+            <option value="bni_va">Virtual Account BNI</option>
+            <option value="bri_va">Virtual Account BRI</option>
+            <option value="mandiri_va">Virtual Account Mandiri</option>
+          </select>
+        </div>
 
         <div class="space-y-2 text-sm" :class="isDark ? 'text-slate-400' : 'text-gray-500'">
           <div class="flex justify-between">

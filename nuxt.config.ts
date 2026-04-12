@@ -18,6 +18,13 @@ export default defineNuxtConfig({
     public: {
       r2PublicUrl: process.env.R2_PUBLIC_URL ?? '',
       gaId: process.env.NUXT_PUBLIC_GA_ID ?? '',
+      xenditPaymentFeePercent: process.env.XENDIT_PAYMENT_FEE_PERCENT ?? '0',
+      xenditPaymentFeeFlat: process.env.XENDIT_PAYMENT_FEE_FLAT ?? '0',
+      xenditPaymentFeeByChannelJson: process.env.XENDIT_PAYMENT_FEE_BY_CHANNEL_JSON ?? '{}',
+      xenditPaymentFeeTaxPercent: process.env.XENDIT_PAYMENT_FEE_TAX_PERCENT ?? '11',
+      xenditDisbursementFeeSellerFlat: process.env.XENDIT_DISBURSEMENT_FEE_SELLER_FLAT ?? '2500',
+      xenditDisbursementFeeAdminFlat: process.env.XENDIT_DISBURSEMENT_FEE_ADMIN_FLAT ?? '2500',
+      xenditAutoDisburseAdminFee: process.env.XENDIT_AUTO_DISBURSE_ADMIN_FEE ?? 'false',
       sentry: {
         dsn: process.env.SENTRY_DSN ?? '',
       },
