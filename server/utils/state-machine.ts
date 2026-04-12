@@ -16,9 +16,11 @@ const ORDER_TRANSITIONS: Record<string, string[]> = {
   completed:        [],  // terminal
   cancelled:        [],  // terminal
   payment_failed:   [],  // terminal
-  disputed:         ['resolved_refund', 'resolved_release'],
-  resolved_refund:  [],  // terminal
-  resolved_release: [],  // terminal
+  // disputed can resolve as refund/partial, OR return to pre-dispute state (shipped/awaiting_meetup)
+  // if the dispute is rejected — this lets the normal completion flow handle disbursement.
+  disputed:         ['resolved_refund', 'resolved_partial', 'shipped', 'awaiting_meetup'],
+  resolved_refund:  [],  // terminal: full refund
+  resolved_partial: [],  // terminal: partial refund + remainder disbursed
 }
 
 // ── Offer State Machine ────────────────────────────────────────────────────────

@@ -44,12 +44,33 @@ describe('Order state machine', () => {
     expect(canTransition('order', 'awaiting_meetup', 'disputed')).toBe(true)
   })
 
-  it('allows disputed → resolved_refund', () => {
+  it('allows disputed → resolved_refund (full refund)', () => {
     expect(canTransition('order', 'disputed', 'resolved_refund')).toBe(true)
   })
 
-  it('allows disputed → resolved_release', () => {
-    expect(canTransition('order', 'disputed', 'resolved_release')).toBe(true)
+  it('allows disputed → resolved_partial (partial refund)', () => {
+    expect(canTransition('order', 'disputed', 'resolved_partial')).toBe(true)
+  })
+
+  it('allows disputed → shipped (rejected dispute, shipping flow restore)', () => {
+    expect(canTransition('order', 'disputed', 'shipped')).toBe(true)
+  })
+
+  it('allows disputed → awaiting_meetup (rejected dispute, COD flow restore)', () => {
+    expect(canTransition('order', 'disputed', 'awaiting_meetup')).toBe(true)
+  })
+
+  it('blocks disputed → resolved_release (removed in Sprint 1 refactor)', () => {
+    expect(canTransition('order', 'disputed', 'resolved_release')).toBe(false)
+  })
+
+  it('blocks any transition from resolved_refund (terminal)', () => {
+    expect(canTransition('order', 'resolved_refund', 'disputed')).toBe(false)
+    expect(canTransition('order', 'resolved_refund', 'completed')).toBe(false)
+  })
+
+  it('blocks any transition from resolved_partial (terminal)', () => {
+    expect(canTransition('order', 'resolved_partial', 'completed')).toBe(false)
   })
 
   // Terminal states
