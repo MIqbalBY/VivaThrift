@@ -5,6 +5,7 @@ import { createBiteshipOrder } from '../../utils/biteship'
 import { sendEmail } from '../../utils/send-email'
 import { emailOrderShipped, emailOrderCompletedSeller } from '../../utils/email-templates'
 import { disburseFunds } from '../../utils/xendit-disburse'
+import { createSupabaseAttemptStore } from '../../utils/disbursement-attempts'
 
 // PATCH /api/orders/:id
 // Body: { action: 'ship', tracking_number: string, courier_name?: string }
@@ -295,6 +296,7 @@ export default defineEventHandler(async (event) => {
       shippingCost: order.shipping_cost ?? 0,
       platformFee:  order.platform_fee ?? 0,
       seller: meetupSeller,
+      attemptStore: createSupabaseAttemptStore(supabaseAdmin),
     })
     if (disburse.sellerDisbursementId) {
       await supabaseAdmin.from('orders')
@@ -368,6 +370,7 @@ export default defineEventHandler(async (event) => {
     shippingCost: order.shipping_cost ?? 0,
     platformFee:  order.platform_fee ?? 0,
     seller,
+    attemptStore: createSupabaseAttemptStore(supabaseAdmin),
   })
   if (disburse.sellerDisbursementId) {
     await supabaseAdmin.from('orders')

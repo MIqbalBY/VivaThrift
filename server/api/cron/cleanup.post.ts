@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../../utils/supabase-admin'
 import { disburseFunds } from '../../utils/xendit-disburse'
+import { createSupabaseAttemptStore } from '../../utils/disbursement-attempts'
 
 // POST /api/cron/cleanup
 //
@@ -117,6 +118,7 @@ export default defineEventHandler(async (event) => {
       shippingCost:    order.shipping_cost ?? 0,
       platformFee:     order.platform_fee ?? 0,
       seller:          order.seller,
+      attemptStore:    createSupabaseAttemptStore(supabaseAdmin),
     })
 
     if (disburse.sellerDisbursementId) {
