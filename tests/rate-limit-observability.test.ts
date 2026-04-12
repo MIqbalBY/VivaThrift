@@ -33,7 +33,8 @@ describe('rate-limit observability', () => {
     reportRateLimitFallback(new Error('upstash still down'), 2_000)
 
     expect(warn).toHaveBeenCalledTimes(1)
-    expect(captureMessage).toHaveBeenCalledTimes(1)
+    // Fallback reports use sendToSentry=false, so captureMessage is never called
+    expect(captureMessage).not.toHaveBeenCalled()
     warn.mockRestore()
   })
 
