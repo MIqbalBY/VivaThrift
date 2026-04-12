@@ -38,8 +38,12 @@ function shouldEmit(key: string, now: number, throttleMs: number) {
   return true
 }
 
-function captureWarning(message: string, extras: Record<string, unknown>) {
+function captureWarning(message: string, extras: Record<string, unknown>, sendToSentry = true) {
   console.warn(message, extras)
+
+  if (!sendToSentry) {
+    return
+  }
 
   Sentry.withScope((scope) => {
     scope.setLevel('warning')
@@ -178,7 +182,7 @@ export function reportRateLimitFallback(error: unknown, now = Date.now()) {
 
   captureWarning('[rate-limit] Falling back to in-memory store.', {
     errorMessage: state.lastFallbackError,
-  })
+  }, false)
 }
 
 export function reportRateLimitExceeded(params: {
