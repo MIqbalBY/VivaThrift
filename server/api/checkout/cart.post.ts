@@ -46,6 +46,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'paymentChannel tidak didukung.' })
   }
 
+  const xenditKey = getXenditSecretKey()
+  if (!xenditKey) {
+    throw createError({ statusCode: 500, statusMessage: 'XENDIT_KEY belum dikonfigurasi.' })
+  }
+
   // ── Shipping method validation ──────────────────────────────────────────
   const shippingMethod: ShippingMethod | undefined = body?.shippingMethod
   if (!shippingMethod || !['cod', 'shipping'].includes(shippingMethod)) {
@@ -235,7 +240,6 @@ export default defineEventHandler(async (event) => {
   // ── 7. Buat satu Xendit Invoice untuk total keseluruhan ───────────────────
   // external_id = semua order ID dipisah underscore
   // Webhook akan update semua orders berdasarkan xendit_invoice_id
-  const xenditKey   = getXenditSecretKey()
   const xenditPaymentMethods = getXenditPaymentMethodsForChannel(paymentChannel)
   const siteUrl     = process.env.SITE_URL ?? 'https://vivathrift.store'
   const credentials = Buffer.from(`${xenditKey}:`).toString('base64')

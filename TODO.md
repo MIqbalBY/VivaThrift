@@ -13,7 +13,7 @@
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 1.1 | **Platform fee auto-disbursement ke rekening admin** | ✅ | `disburseFunds()` otomatis kirim admin fee via Xendit Disbursement API. Env vars `ADMIN_BANK_CODE`, `ADMIN_BANK_ACCOUNT_NUMBER`, `ADMIN_BANK_ACCOUNT_NAME` configurable (default: Bank Jago 1034 3858 8617 a.n. Muhammad Iqbal Baiduri Yamani). Set di Vercel production env |
+| 1.1 | **Platform fee disbursement ke rekening admin (opsional)** | ✅ | `disburseFunds()` mendukung auto-disburse fee admin via Xendit bila `XENDIT_AUTO_DISBURSE_ADMIN_FEE=true`. Default aman: OFF (fee ditahan dulu di saldo Xendit). Env `ADMIN_BANK_CODE`, `ADMIN_BANK_ACCOUNT_NUMBER`, `ADMIN_BANK_ACCOUNT_NAME` tetap configurable |
 | 1.2 | **Seller payout completion** | ✅ | Model settlement sudah dialihkan ke seller wallet ledger (`server/utils/seller-wallet.ts`) saat order selesai (complete/auto-complete/dispute partial). Penarikan dana dilakukan seller via endpoint withdraw (`server/api/seller/wallet/withdraw.post.ts`) yang memanggil Xendit Disbursement saat withdraw, lengkap dengan idempotency dan rollback metadata |
 | 1.3 | **Refund flow untuk dispute** | ✅ | `server/api/disputes/[id].patch.ts` terintegrasi penuh: full refund via Xendit Refund API, partial refund + credit sisa ke seller wallet, rejected → restore order status dari `pre_dispute_status`. Refund callback ditangani di webhook Xendit existing. 4 integration tests |
 
@@ -26,7 +26,7 @@
 | 2.1 | **Xendit production key verification** | 🔧 | URL sudah `api.xendit.co`. **Checklist:** (a) `XENDIT_KEY` di Vercel env = production key (bukan test `xnd_development_*`), (b) webhook callback URL = `https://vivathrift.vercel.app/api/webhooks/xendit`, (c) `XENDIT_CALLBACK_TOKEN` match, (d) IP whitelist jika ada |
 | 2.2 | **Biteship production key verification** | 🔧 | URL sudah `api.biteship.com` di `server/utils/biteship.ts`. **Checklist:** (a) `BITESHIP_KEY` = production key, (b) webhook URL registered di Biteship dashboard, (c) origin/destination mapping valid format Biteship |
 | 2.3 | **Biteship webhook handler** | 🔧 | `server/api/webhooks/biteship.post.ts` sudah ada, menerima update tracking, mendukung verifikasi auth webhook opsional via token/basic auth dari dashboard Biteship, bisa mendorong order `confirmed` menjadi `shipped` saat event kurir menunjukkan paket sudah masuk alur pengiriman, dan mengirim notifikasi exception shipping ke buyer, seller, serta admin/moderator dengan tipe admin khusus yang diarahkan ke dashboard admin. Yang masih belum lengkap: rollout credential webhook di production dan enrichment automasi operasional di status exception tertentu |
-| 2.4 | **Cart-based checkout** | 🔧 | Frontend cart sudah ada, tetapi route backend `server/api/cart/` belum tersedia. Saat ini checkout masih efektif via offer flow (1 produk per transaksi), jadi multi-item cart checkout belum terhubung end-to-end |
+| 2.4 | **Cart-based checkout** | 🔧 | Backend + frontend cart checkout sudah terhubung via `server/api/checkout/cart.post.ts` dan `app/pages/cart/checkout.vue` (create invoice Xendit multi-item). Yang masih perlu: hardening QA end-to-end production (webhook/retry/failure scenarios) |
 
 ---
 
@@ -166,7 +166,7 @@
 | 11.1 | **Followers/Following pagination** | 🔧 | List ada tapi belum pakai infinite scroll / pagination untuk user dengan banyak followers |
 | 11.2 | **Privacy toggle** | ❌ | Belum bisa sembunyikan followers list dari publik. Perlu: kolom `is_followers_public` di profile + toggle di settings |
 | 11.3 | **Activity feed** | ❌ | Belum ada feed "User X baru upload produk Y" atau "User X follow User Z" |
-| 11.4 | **Follower count on profile** | ❌ | Halaman profile `[id].vue` belum menampilkan jumlah followers / following |
+| 11.4 | **Followers/Following detail from profile counts** | 🔧 | Jumlah followers/following di profile sudah tampil. Yang masih perlu: UX klik angka agar konsisten membuka detail list followers/following, plus fitur search di halaman detail tersebut |
 
 ---
 
