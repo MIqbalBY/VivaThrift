@@ -12,12 +12,15 @@ export interface DisbursementResult {
   error:                string | null
 }
 
-// Admin Bank Jago account for platform fee collection
-const ADMIN_BANK = {
-  bank_code:           'BANK_JAGO',
-  account_holder_name: 'Muhammad Iqbal Baiduri Yamani',
-  account_number:      '103438588617',
-} as const
+// Admin bank account for platform fee collection.
+// Read from env so credentials can be rotated without redeploying.
+function getAdminBank() {
+  return {
+    bank_code:           process.env.ADMIN_BANK_CODE           || 'BANK_JAGO',
+    account_holder_name: process.env.ADMIN_BANK_ACCOUNT_NAME   || 'Muhammad Iqbal Baiduri Yamani',
+    account_number:      process.env.ADMIN_BANK_ACCOUNT_NUMBER || '103438588617',
+  }
+}
 
 export interface DisburseFundsParams {
   orderId:          string
@@ -119,15 +122,17 @@ export async function disburseFunds(params: DisburseFundsParams): Promise<Disbur
       attemptNo,
     }))
 
+    const adminBank = getAdminBank()
+
     try {
       const res = await $fetch<{ id: string }>('https://api.xendit.co/disbursements', {
         method: 'POST',
         headers,
         body: {
           external_id:         `${params.externalIdPrefix}_adminfee_${params.orderId}_a${attemptNo}`,
-          bank_code:           ADMIN_BANK.bank_code,
-          account_holder_name: ADMIN_BANK.account_holder_name,
-          account_number:      ADMIN_BANK.account_number,
+          bank_code:           adminBank.bank_code,
+          account_holder_name: adminBank.account_holder_name,
+          account_number:      adminBank.account_number,
           description:         'VivaThrift - Komisi Platform',
           amount:              params.platformFee,
         },
