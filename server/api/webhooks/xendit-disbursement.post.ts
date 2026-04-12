@@ -26,14 +26,24 @@ export default defineEventHandler(async (event) => {
 
   // ── Parse body ────────────────────────────────────────────────────────────
   const body = await readBody(event)
+  const eventName = (body?.event ?? '').toString().toLowerCase()
+
+  // Payouts v2 callback shape is nested under `data` and uses `event`
+  // (e.g. `payout.succeeded`) instead of a top-level `status`.
+  const normalizedId = body?.id ?? body?.data?.id ?? ''
+  const normalizedStatus = body?.status
+    ?? (eventName === 'payout.succeeded' ? 'COMPLETED' : undefined)
+    ?? (eventName === 'payout.failed' ? 'FAILED' : undefined)
+  const normalizedFailureCode = body?.failure_code ?? body?.data?.failure_code
+  const normalizedFailureReason = body?.failure_reason ?? body?.data?.failure_reason
 
   const store = createSupabaseAttemptStore(supabaseAdmin)
 
   const result = await processXenditDisbursementWebhook({
-    id:             body?.id ?? '',
-    status:         body?.status,
-    failure_code:   body?.failure_code,
-    failure_reason: body?.failure_reason,
+    id:             normalizedId,
+    status:         normalizedStatus,
+    failure_code:   normalizedFailureCode,
+    failure_reason: normalizedFailureReason,
   }, {
     findByXenditId:    store.findByXenditId,
     updateCompleted:   store.updateCompleted,
