@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   if (order.buyer_id !== userId) {
     throw createError({ statusCode: 403, statusMessage: 'Hanya pembeli yang bisa membuka dispute.' })
   }
-  if (!['shipped', 'completed'].includes(order.status)) {
+  if (!['shipped', 'completed', 'awaiting_meetup'].includes(order.status)) {
     throw createError({ statusCode: 422, statusMessage: 'Dispute hanya bisa dibuka untuk pesanan yang sudah dikirim atau selesai.' })
   }
 
@@ -44,6 +44,18 @@ export default defineEventHandler(async (event) => {
 
   if (existing?.length) {
     throw createError({ statusCode: 409, statusMessage: 'Sudah ada dispute aktif untuk pesanan ini.' })
+  }
+
+  // Snapshot the current order status so we can restore it if dispute is rejected.
+  // Also transition order.status → 'disputed' (state machine will block invalid transitions).
+  const { error: snapshotErr } = await supabaseAdmin
+    .from('orders')
+    .update({ pre_dispute_status: order.status, status: 'disputed' })
+    .eq('id', orderId)
+    .in('status', ['shipped', 'completed', 'awaiting_meetup'])
+
+  if (snapshotErr) {
+    throw createError({ statusCode: 500, statusMessage: `Gagal menandai pesanan sebagai disputed: ${snapshotErr.message}` })
   }
 
   // Create dispute
