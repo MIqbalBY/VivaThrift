@@ -1,6 +1,6 @@
 # VivaThrift — Master TODO List
 
-> **Last updated:** 11 April 2026
+> **Last updated:** 12 April 2026
 > **Tech Stack:** Nuxt 4.4.2 · Vue 3.5.32 · TypeScript 6.0.2 · Supabase · Xendit · Biteship · Vercel
 > **Legend:** ✅ Done · 🔧 Partial · ❌ Not Started
 
@@ -13,9 +13,9 @@
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 1.1 | **Platform fee auto-disbursement ke rekening admin** | ❌ | Fee sudah di-record di kolom `platform_fee` tabel orders, tapi **belum ada flow otomatis** yang mentransfer ke rekening admin **Bank Jago 1034 3858 8617** (a.n. Muhammad Iqbal Baiduri Yamani). Opsi: (a) Xendit Disbursement API batch harian, (b) manual withdrawal dari Xendit Balance. File terkait: `server/api/webhooks/xendit.post.ts` (490 baris, handle paid/expired/failed) |
-| 1.2 | **Seller payout completion** | 🔧 | Utility `server/utils/xendit-disburse.ts` sudah ada dan dipakai oleh flow order/cron untuk mencairkan dana seller + fee admin. Yang masih perlu dibereskan: verifikasi readiness production, retry/reconciliation, dan audit data rekening seller |
-| 1.3 | **Refund flow untuk dispute** | 🔧 | `server/api/disputes/[id].patch.ts` sudah bisa resolve dispute (`refund`, `partial`, `rejected`) dan kirim notifikasi. Yang belum ada: integrasi Xendit refund/disbursement reversal saat admin memilih refund |
+| 1.1 | **Platform fee auto-disbursement ke rekening admin** | 🔧 | `disburseFunds()` di `server/utils/xendit-disburse.ts` sudah otomatis mengirim admin fee ke rekening admin via Xendit Disbursement API setiap order complete/meetup confirmed. Yang masih perlu: pastikan env `ADMIN_BANK_CODE`, `ADMIN_BANK_ACCOUNT_NUMBER`, `ADMIN_BANK_ACCOUNT_NAME` terisi di Vercel production (target: Bank Jago 1034 3858 8617 a.n. Muhammad Iqbal Baiduri Yamani) |
+| 1.2 | **Seller payout completion** | ✅ | `server/utils/xendit-disburse.ts` fully rewritten: attempt tracking via `disbursement_attempts` table, webhook callback handler (`server/api/webhooks/xendit-disbursement.post.ts`), retry cron (`server/api/cron/retry-disbursements.post.ts`) setiap 2 jam dengan exponential backoff. 7 unit tests + 3 route tests + 3 cron tests |
+| 1.3 | **Refund flow untuk dispute** | ✅ | `server/api/disputes/[id].patch.ts` terintegrasi penuh: full refund via Xendit Refund API, partial refund + seller disbursement, rejected → restore order status dari `pre_dispute_status`. Refund callback ditangani di webhook Xendit existing. 4 integration tests |
 
 ---
 
@@ -33,11 +33,11 @@
 ## 3. ⚙️ Backend & Infrastruktur
 
 > Server: `server/` — Nitro routes, 26 Supabase migrations, rate-limit middleware
-> Cron: `vercel.json` → `/api/cron/cleanup` setiap 6 jam
+> Cron: `vercel.json` → `/api/cron/cleanup` setiap hari, `/api/cron/retry-disbursements` setiap 2 jam
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
-| 3.1 | **Cron job: order/offer cleanup** | ✅ | `server/api/cron/cleanup.post.ts` sudah ada via Vercel Cron (setiap 6 jam). Handles: expire pending offers >24h, cancel unpaid orders >1h, auto-complete shipped orders >7 hari |
+| 3.1 | **Cron job: order/offer cleanup** | ✅ | `server/api/cron/cleanup.post.ts` via Vercel Cron (daily). Handles: expire pending offers >24h, cancel unpaid orders >1h, auto-complete shipped orders >7 hari + disbursement. Tambahan: `retry-disbursements.post.ts` (setiap 2 jam) retry failed Xendit disbursements dengan exponential backoff |
 | 3.2 | **Rate limiting → Redis (production)** | 🔧 | `server/middleware/rate-limit.ts` sekarang sudah memakai abstraksi store dengan dukungan Upstash Redis REST (`UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`) dan fallback aman ke in-memory store jika env belum diisi atau provider gagal. Fallback ke memory dan exceed pertama 429 juga sudah punya observability ringan via log/Sentry yang di-throttle, dan bila Upstash tersedia snapshot-nya ikut dipublikasikan ke admin dashboard sebagai global snapshot lintas instance. Yang masih perlu dituntaskan: isi env production dan validasi perilaku limit global lintas instance di deployment Vercel |
 | 3.3 | **Reviews endpoint** | ✅ | `server/api/reviews/index.post.ts` sudah meng-handle auth buyer, status order `completed`, duplicate review prevention, dan insert review. Frontend `ReviewModal.vue` tinggal bergantung pada coverage test/integrasi |
 | 3.4 | **Admin Supabase client security** | 🔧 | `server/utils/supabase-admin.ts` sudah memakai `SUPABASE_SECRET_KEY` dengan fallback kompatibilitas ke `SUPABASE_SERVICE_KEY`. Yang masih perlu dijaga: service role key production harus valid dan tidak pernah bocor ke client |
@@ -48,14 +48,14 @@
 
 ## 4. 🛡️ Dispute & Resolution System
 
-> State machine: `server/utils/state-machine.ts` → `disputed → resolved_refund | resolved_release`
+> State machine: `server/utils/state-machine.ts` → `disputed → resolved_refund | resolved_partial | shipped | awaiting_meetup`
 > SLA: 14 hari (336 jam) auto-escalate
-> Database: tabel `disputes` (id, order_id, reason, evidence_urls, status, refund_amount, resolution_note)
+> Database: tabel `disputes` (id, order_id, reason, evidence_urls, status, refund_amount, resolution_note, xendit\_refund\_id, refund\_status, refund\_error, refunded\_at)
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
 | 4.1 | **Dispute creation endpoint** | ✅ | `server/api/disputes/index.post.ts` sudah membuat dispute, memvalidasi buyer + status order, mencegah dispute aktif ganda, dan mengirim notifikasi best-effort ke seller |
-| 4.2 | **Dispute resolution endpoint** | 🔧 | `server/api/disputes/[id].patch.ts` sudah mendukung cancel oleh buyer dan resolve oleh admin (`refund`, `partial`, `rejected`) plus notifikasi. Yang belum ada: eksekusi refund finansial ke Xendit saat resolution mengembalikan dana |
+| 4.2 | **Dispute resolution endpoint** | ✅ | `server/api/disputes/[id].patch.ts` fully rewritten: cancel (buyer), resolve refund/partial/rejected (admin). Full refund → Xendit Refund API + order resolved_refund. Partial → refund + seller disbursement. Rejected → restore order ke pre_dispute_status. `index.post.ts` snapshot pre_dispute_status saat dispute dibuka. 4 integration tests |
 | 4.3 | **Evidence upload** | ❌ | `evidence_urls TEXT[]` ada di schema, tapi UI untuk upload bukti (foto/video) di `disputes.vue` belum ada. Bisa pakai existing `useR2Upload.ts` composable |
 | 4.4 | **Dispute notification emails** | ❌ | Belum ada email ke admin/buyer/seller saat dispute dibuat, di-review, atau resolved. Template engine: `server/utils/email-templates.ts` + `send-email.ts` (Resend) |
 | 4.5 | **Auto-escalation timer** | ❌ | SLA 14 hari ada di `ORDER_SLA_HOURS.disputed = 336`, tapi belum ada cron/trigger yang auto-escalate dispute jika timeout |
@@ -187,16 +187,17 @@
 
 ## 13. 🧪 Testing
 
-> **Status:** Vitest sudah aktif dengan 8 test file: `domain-rules`, `state-machine`, helper webhook Xendit, helper webhook Biteship, service webhook Xendit, service webhook Biteship, auth webhook, dan route webhook. Script test tersedia di `package.json`.
+> **Status:** Vitest aktif dengan 17 test file, 157 tests passing. Mencakup: domain-rules, state-machine, webhook (Xendit + Biteship helper/service/route/auth), Xendit refund, disbursement attempts, Xendit disburse, disbursement webhook handler + route, retry cron, dispute resolve route, dan rate-limit observability.
 
 | # | Item | Status | Detail |
 |---|------|--------|--------|
 | 13.1 | **Setup Vitest** | ✅ | `vitest.config.ts` sudah ada dan script test sudah terpasang di `package.json` |
 | 13.2 | **Unit tests — Domain rules** | ✅ | `tests/domain-rules.test.ts` sudah meng-cover fungsi domain inti |
-| 13.3 | **Unit tests — State machine** | ✅ | `tests/state-machine.test.ts` sudah meng-cover transisi valid dan invalid utama |
-| 13.4 | **Integration tests — Webhook** | ✅ | Coverage webhook sekarang mencakup helper murni, orchestration service dengan dependency mock, aturan autentikasi callback/token/basic auth, dan route-level wiring Nitro/H3 untuk Xendit dan Biteship. Masih mungkin ditambah nanti dengan test yang lebih dekat ke runtime penuh, tetapi gap regresi utama untuk webhook sudah tertutup |
-| 13.5 | **Integration tests — Checkout flow** | ❌ | Test: create offer → accept → create invoice → payment → order confirmed → shipped → completed |
-| 13.6 | **E2E tests — Playwright** | ❌ | Setup Playwright. Prioritas: login flow, product upload, offer → checkout, chat basic flow |
+| 13.3 | **Unit tests — State machine** | ✅ | `tests/state-machine.test.ts` — termasuk transisi baru `resolved_partial`, restore dari `disputed → shipped/awaiting_meetup` |
+| 13.4 | **Integration tests — Webhook** | ✅ | Coverage webhook lengkap: helper murni, orchestration service, auth callback, route wiring Xendit + Biteship, refund events (succeeded/failed), disbursement webhook handler + route |
+| 13.5 | **Unit tests — Disbursement & Refund** | ✅ | `xendit-refund.test.ts` (5), `disbursement-attempts.test.ts` (4), `xendit-disburse.test.ts` (7), `disputes-resolve-route.test.ts` (4), `retry-disbursements-cron.test.ts` (3), `rate-limit-observability.test.ts` (5) |
+| 13.6 | **Integration tests — Checkout flow** | ❌ | Test: create offer → accept → create invoice → payment → order confirmed → shipped → completed |
+| 13.7 | **E2E tests — Playwright** | ❌ | Setup Playwright. Prioritas: login flow, product upload, offer → checkout, chat basic flow |
 
 ---
 
@@ -277,51 +278,46 @@
 
 ## 📋 Sprint Plan (Rekomendasi Prioritas)
 
-### SPRINT 1 — Revenue & Production Blocking (1-2 minggu)
+### SPRINT 1 — Revenue & Production Blocking ✅ MOSTLY DONE
 
 ```text
-1.1  Platform fee disbursement ke Bank Jago
-1.2  Seller payout completion (xendit-disburse.ts)
-2.1  Xendit production key verification
-2.2  Biteship production key verification
-2.3  Biteship webhook handler
-3.2  Rate limiting → Upstash Redis
+1.1  Platform fee disbursement   🔧 (logic done, env production belum diisi)
+1.2  Seller payout completion    ✅
+2.1  Xendit production key       🔧
+2.2  Biteship production key     🔧
+2.3  Biteship webhook handler    🔧
+3.2  Rate limiting → Redis       🔧
 ```
 
-### SPRINT 2 — Legal & Halaman Wajib (1 minggu)
+### SPRINT 2 — Legal & Halaman Wajib ✅ DONE
 
 ```text
-5.1  Terms & Conditions (/terms)
-5.2  Privacy Policy (/privacy)
-5.3  FAQ / Help (/faq)
-5.4  Contact Us (/contact)
-5.5  How It Works (/how-it-works)
-5.6  Shipping & Return Policy (/shipping-policy)
-5.7  Footer & Nav links update
+5.1–5.7  All legal pages         ✅
 ```
 
-### SPRINT 3 — Core Features Completion (1-2 minggu)
+### SPRINT 3 — Core Features Completion (NEXT)
 
 ```text
-4.1  Dispute creation endpoint
-4.2  Dispute resolution endpoint + refund flow
-4.3  Evidence upload
-3.3  Reviews endpoint completion
-8.1  Admin dashboard metrics UI
-8.2  Product moderation queue UI
-8.5  Dispute resolution admin UI
+4.1  Dispute creation endpoint   ✅
+4.2  Dispute resolution + refund ✅
+4.3  Evidence upload             ❌
+3.3  Reviews endpoint            ✅
+8.1  Admin dashboard metrics UI  🔧
+8.2  Product moderation queue UI 🔧
+8.5  Dispute resolution admin UI 🔧
 ```
 
-### SPRINT 4 — Quality & Testing (1 minggu)
+### SPRINT 4 — Quality & Testing ✅ MOSTLY DONE
 
 ```text
-13.1 Setup Vitest
-13.2 Unit tests — domain-rules.ts
-13.3 Unit tests — state-machine.ts
-13.4 Integration tests — webhook
-16.1 Dead code cleanup
-16.2 .env.example
-16.5 Pre-commit hooks
+13.1 Setup Vitest                ✅
+13.2 Unit tests — domain-rules   ✅
+13.3 Unit tests — state-machine  ✅
+13.4 Integration tests — webhook ✅
+13.5 Disbursement & refund tests ✅
+16.1 Dead code cleanup           ❌
+16.2 .env.example                ✅
+16.5 Pre-commit hooks            ❌
 ```
 
 ### SPRINT 5 — Polish & UX (1 minggu)
@@ -364,11 +360,11 @@
 
 | Kategori | ✅ Done | 🔧 Partial | ❌ Not Started | Total |
 |----------|---------|------------|----------------|-------|
-| Keuangan | 0 | 1 | 2 | 3 |
+| Keuangan | 2 | 1 | 0 | 3 |
 | Payment/Shipping | 0 | 3 | 1 | 4 |
 | Backend/Infra | 1 | 3 | 2 | 6 |
-| Disputes | 0 | 2 | 3 | 5 |
-| Legal Pages | 0 | 0 | 7 | 7 |
+| Disputes | 2 | 0 | 3 | 5 |
+| Legal Pages | 7 | 0 | 0 | 7 |
 | UI/UX | 0 | 3 | 2 | 5 |
 | Chat | 0 | 1 | 5 | 6 |
 | Admin | 0 | 4 | 2 | 6 |
@@ -376,11 +372,11 @@
 | Profile/User | 0 | 0 | 4 | 4 |
 | Sosial | 0 | 1 | 3 | 4 |
 | SEO | 0 | 2 | 2 | 4 |
-| Testing | 0 | 0 | 6 | 6 |
+| Testing | 5 | 0 | 2 | 7 |
 | Performance | 2 | 1 | 2 | 5 |
 | PWA/Mobile | 0 | 1 | 5 | 6 |
 | Code Quality | 0 | 1 | 5 | 6 |
 | Analytics | 0 | 1 | 2 | 3 |
 | Konten | 0 | 0 | 1 | 1 |
 | Marketing | 0 | 0 | 4 | 4 |
-| **TOTAL** | **4** | **25** | **65** | **94** |
+| **TOTAL** | **20** | **23** | **51** | **94** |
