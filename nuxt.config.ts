@@ -11,6 +11,7 @@ export default defineNuxtConfig({
     r2Region:          process.env.R2_REGION ?? 'auto',
     public: {
       r2PublicUrl: process.env.R2_PUBLIC_URL ?? '',
+      gaId: process.env.NUXT_PUBLIC_GA_ID ?? '',
       sentry: {
         dsn: process.env.SENTRY_DSN ?? '',
       },
@@ -30,7 +31,6 @@ export default defineNuxtConfig({
     '~/assets/css/components.css',
     '~/assets/css/help-center.css',
     '~/assets/css/animations.css',
-    'leaflet/dist/leaflet.css',
   ],
 
   compatibilityDate: '2026-04-04',
@@ -66,6 +66,19 @@ export default defineNuxtConfig({
     plugins: [tailwindcss() as any],
     optimizeDeps: {
       include: ['@vue/devtools-core', '@vue/devtools-kit'],
+    },
+    build: {
+      rollupOptions: {
+        onwarn(warning, warn) {
+          if (
+            warning.code === 'SOURCEMAP_ERROR'
+            && warning.message?.includes('@tailwindcss/vite:generate:build')
+          ) {
+            return
+          }
+          warn(warning)
+        },
+      },
     },
   },
 

@@ -18,8 +18,19 @@ useSeoMeta({
   twitterImage: `${siteUrl}/thumbnail.png`,
 })
 
+const { public: { gaId } } = useRuntimeConfig()
+
 useHead({
   htmlAttrs: { lang: 'id' },
+  ...(gaId ? {
+    script: [
+      { src: `https://www.googletagmanager.com/gtag/js?id=${gaId}`, async: true },
+      {
+        innerHTML: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${gaId}')`,
+        type: 'text/javascript',
+      },
+    ],
+  } : {}),
 })
 </script>
 
