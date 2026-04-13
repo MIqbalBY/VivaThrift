@@ -19,6 +19,8 @@ const placing       = ref(false)
 const orderDone     = ref(false)
 const orderErr      = ref('')
 const stockDepleted = ref(false)
+const existingPaymentUrl = ref('')
+const canRegenerateInvoice = ref(false)
 
 // ── Shipping / meetup state (declared before watchers to avoid TDZ) ──────────
 const destPostal           = ref<string>('')
@@ -169,7 +171,24 @@ const feeByChannelMap = computed<Record<string, { percent?: number; flat?: numbe
     return {}
   }
 })
-const total = computed(() => subtotal.value + ongkirAmount.value + platformFee.value)
+
+const paymentChargeBreakdown = computed(() => {
+  const key = String(paymentChannel.value ?? '').toLowerCase()
+  const byChannel = feeByChannelMap.value[key]
+  const percent = Number(byChannel?.percent ?? runtimeConfig.public.xenditPaymentFeePercent ?? 0)
+  const flat = Math.round(Number(byChannel?.flat ?? runtimeConfig.public.xenditPaymentFeeFlat ?? 0))
+  const taxPercent = Number(runtimeConfig.public.xenditPaymentFeeTaxPercent ?? 11)
+  const baseAmount = subtotal.value + ongkirAmount.value + platformFee.value
+  const gatewayFeeBase = Math.round((Math.max(0, baseAmount) * Math.max(0, percent)) / 100) + Math.max(0, flat)
+  const gatewayFeeTax = Math.round((Math.max(0, gatewayFeeBase) * Math.max(0, taxPercent)) / 100)
+  return {
+    gatewayFeeBase,
+    gatewayFeeTax,
+    total: gatewayFeeBase + gatewayFeeTax,
+  }
+})
+
+const total = computed(() => subtotal.value + ongkirAmount.value + platformFee.value + paymentChargeBreakdown.value.total)
 
 // ── Ongkir calculator ─────────────────────────────────────────────────────────
 async function fetchRates() {
@@ -201,8 +220,10 @@ async function fetchRates() {
 }
 
 // ── Checkout via Xendit Payment Gateway ──────────────────────────
-async function placeOrder() {
+async function placeOrder(forceRegenerateInvoice = false) {
   if (placing.value || orderDone.value) return
+  existingPaymentUrl.value = ''
+  canRegenerateInvoice.value = false
 
   // Validate shipping selection
   if (shippingMethod.value === 'shipping' && !buyerAddress.value) {
@@ -225,6 +246,7 @@ async function placeOrder() {
       offerId:        offer.value!.id,
       shippingMethod: shippingMethod.value,
       paymentChannel: paymentChannel.value,
+      forceRegenerateInvoice,
     }
     if (shippingMethod.value === 'cod') {
       const loc = meetupLocation.value === 'other' ? customMeetupLocation.value.trim() : meetupLocation.value
@@ -249,9 +271,16 @@ async function placeOrder() {
     }
   } catch (e: any) {
     const msg: string = e?.data?.statusMessage ?? e?.message ?? 'Terjadi kesalahan.'
+    const statusCode = Number(e?.data?.statusCode ?? 0)
+    const existingUrl = String(e?.data?.data?.existingPaymentUrl ?? '')
+    const canReissue = e?.data?.data?.canRegenerateInvoice === true
     if (msg === 'stock_depleted') {
       stockDepleted.value = true
       orderErr.value = 'Maaf, stok produk ini sudah habis. Tawaran lain mungkin sudah dikonfirmasi lebih dulu.'
+    } else if (statusCode === 409 && existingUrl) {
+      existingPaymentUrl.value = existingUrl
+      canRegenerateInvoice.value = canReissue
+      orderErr.value = msg
     } else {
       orderErr.value = msg
     }
@@ -366,6 +395,14 @@ async function placeOrder() {
           <div class="flex justify-between">
             <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Layanan</span>
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ platformFee.toLocaleString('id-ID') }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Payment Gateway</span>
+            <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ paymentChargeBreakdown.gatewayFeeBase.toLocaleString('id-ID') }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">PPN Payment Gateway</span>
+            <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ paymentChargeBreakdown.gatewayFeeTax.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between pt-3 mt-1" :class="isDark ? 'border-t border-white/10' : 'border-t border-gray-100'">
             <span class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-700'">Total</span>
@@ -557,6 +594,10 @@ async function placeOrder() {
           <option value="bni_va">Virtual Account BNI</option>
           <option value="bri_va">Virtual Account BRI</option>
           <option value="mandiri_va">Virtual Account Mandiri</option>
+          <option value="ovo">OVO</option>
+          <option value="gopay">GoPay</option>
+          <option value="dana">DANA</option>
+          <option value="shopeepay">ShopeePay</option>
         </select>
       </div>
 
@@ -573,7 +614,26 @@ async function placeOrder() {
       </p>
 
       <button
-        @click="placeOrder"
+        v-if="existingPaymentUrl"
+        @click="navigateTo(existingPaymentUrl, { external: true })"
+        class="w-full py-3 rounded-xl font-semibold text-sm border mb-3 transition"
+        :class="isDark ? 'border-sky-500/40 text-sky-300 hover:bg-sky-900/20' : 'border-blue-200 text-blue-700 hover:bg-blue-50'"
+      >
+        Lanjutkan Invoice Aktif
+      </button>
+
+      <button
+        v-if="canRegenerateInvoice"
+        @click="placeOrder(true)"
+        :disabled="placing"
+        class="w-full py-3 rounded-xl font-semibold text-sm border mb-3 transition disabled:opacity-60"
+        :class="isDark ? 'border-amber-500/40 text-amber-300 hover:bg-amber-900/20' : 'border-amber-200 text-amber-700 hover:bg-amber-50'"
+      >
+        Ganti Metode & Buat Invoice Baru
+      </button>
+
+      <button
+        @click="placeOrder()"
         :disabled="placing"
         class="vt-btn-primary w-full py-3 rounded-xl text-white font-bold text-sm hover:opacity-90 disabled:opacity-60 transition"
       >

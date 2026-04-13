@@ -14,8 +14,8 @@ export function usePresence() {
     if (!import.meta.client || !userId || channel) return
     trackedUserId = userId
 
-    channel = supabase.channel('presence-global', {
-      config: { presence: { key: userId } },
+    channel = supabase.channel('presence:global', {
+      config: { private: true, presence: { key: userId } },
     })
 
     channel

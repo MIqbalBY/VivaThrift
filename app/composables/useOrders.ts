@@ -45,7 +45,7 @@ export function useOrders() {
     const { data, error } = await supabase
       .from('orders')
       .select(`
-        id, status, total_amount, platform_fee,
+        id, status, total_amount, platform_fee, payment_gateway_fee,
         tracking_number, courier_name, shipped_at, completed_at,
         shipping_method, shipping_cost, meetup_location, meetup_otp, meetup_confirmed_at, courier_code,
         biteship_order_id, biteship_waybill_id, courier_service,
@@ -147,9 +147,15 @@ export function useOrders() {
     }).format(amount)
   }
 
-  function sellerReceives(totalAmount: number, shippingCost: number = 0, platformFee: number = 0) {
-    // Penjual menerima penuh harga barang — fee sudah ditanggung pembeli
-    return totalAmount - shippingCost - platformFee
+  function sellerReceives(
+    totalAmount: number,
+    shippingCost: number = 0,
+    platformFee: number = 0,
+    paymentGatewayFee: number = 0,
+  ) {
+    // Net seller = total - shipping - platform fee - payment gateway fee.
+    // If checkout amount already includes gateway fee from buyer, this equals subtotal.
+    return totalAmount - shippingCost - platformFee - paymentGatewayFee
   }
 
   // ── Mutations ─────────────────────────────────────────────────────────────────

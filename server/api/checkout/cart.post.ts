@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 import { getXenditSecretKey } from '../../utils/xendit-config'
 import { getXenditPaymentMethodsForChannel } from '../../utils/xendit-payment-methods'
 import { isSupportedPaymentChannel } from '../../utils/xendit-payment-methods'
+import { expireXenditInvoice } from '../../utils/xendit-invoice'
 import {
   isValidMeetupLocation,
   generateMeetupOTP,
@@ -11,6 +12,21 @@ import {
   calculatePaymentChargeBreakdown,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
+
+function paymentChannelLabel(channel: string): string {
+  const labels: Record<string, string> = {
+    qris: 'QRIS',
+    bca_va: 'Virtual Account BCA',
+    bni_va: 'Virtual Account BNI',
+    bri_va: 'Virtual Account BRI',
+    mandiri_va: 'Virtual Account Mandiri',
+    gopay: 'GoPay',
+    ovo: 'OVO',
+    dana: 'DANA',
+    shopeepay: 'ShopeePay',
+  }
+  return labels[channel] ?? channel
+}
 
 // POST /api/checkout/cart
 //
@@ -38,6 +54,7 @@ export default defineEventHandler(async (event) => {
   const user = await resolveServerUser(event)
 
   const body = await readBody(event)
+  const forceRegenerateInvoice = body?.forceRegenerateInvoice === true
   const paymentChannel = String(body?.paymentChannel ?? '').trim().toLowerCase()
   if (!paymentChannel) {
     throw createError({ statusCode: 400, statusMessage: 'paymentChannel harus diisi.' })
@@ -84,11 +101,11 @@ export default defineEventHandler(async (event) => {
   // ── 2. Idempotency check (sebelum validasi items) ─────────────────────────
   // Jika cart sudah dikosongkan oleh checkout sebelumnya, kembalikan payment URL lama
   // daripada melempar error "Keranjang kosong". Window 24 jam = Xendit invoice expiry.
-  type PendingOrder = { id: string; payment_url: string; xendit_invoice_id: string; total_amount: number }
+  type PendingOrder = { id: string; payment_url: string; xendit_invoice_id: string; total_amount: number; payment_method: string | null }
   const idempotencyWindow = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const existingRaw: any = await supabase
     .from('orders')
-    .select('id, payment_url, xendit_invoice_id, total_amount')
+    .select('id, payment_url, xendit_invoice_id, total_amount, payment_method')
     .eq('buyer_id', user.id)
     .eq('status', 'pending_payment')
     .is('offer_id', null)  // cart checkout orders tidak punya offer_id
@@ -98,12 +115,117 @@ export default defineEventHandler(async (event) => {
     .limit(1)
   const existingOrders = existingRaw?.data as PendingOrder[] | null
 
+  let reissueFromExisting = false
+  let reissueInvoiceId = ''
+
   if (existingOrders?.[0]?.payment_url) {
+    const existingMethod = String(existingOrders[0].payment_method ?? '').toLowerCase()
+    if (existingMethod && existingMethod !== paymentChannel) {
+      if (!forceRegenerateInvoice) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: `Masih ada invoice aktif dengan metode ${paymentChannelLabel(existingOrders[0].payment_method ?? '')}. Selesaikan atau tunggu invoice kadaluarsa sebelum ganti metode pembayaran.`,
+          data: {
+            existingPaymentUrl: existingOrders[0].payment_url,
+            existingPaymentMethod: existingOrders[0].payment_method,
+            canRegenerateInvoice: true,
+          },
+        })
+      }
+
+      reissueFromExisting = true
+      reissueInvoiceId = String(existingOrders[0].xendit_invoice_id ?? '')
+      if (reissueInvoiceId) {
+        await expireXenditInvoice(reissueInvoiceId)
+      }
+    }
+  }
+
+  if (existingOrders?.[0]?.payment_url && !reissueFromExisting) {
     return {
       paymentUrl:     existingOrders[0].payment_url,
       orderIds:       [existingOrders[0].id],
       grandTotal:     existingOrders[0].total_amount,
       alreadyExisted: true,
+    }
+  }
+
+  if (reissueFromExisting) {
+    const { data: pendingOrders, error: pendingErr } = await supabaseAdmin
+      .from('orders')
+      .select('id, total_amount, payment_gateway_fee')
+      .eq('buyer_id', user.id)
+      .eq('status', 'pending_payment')
+      .is('offer_id', null)
+      .eq('xendit_invoice_id', reissueInvoiceId)
+
+    if (pendingErr || !pendingOrders?.length) {
+      throw createError({ statusCode: 404, statusMessage: 'Order pending untuk invoice aktif tidak ditemukan.' })
+    }
+
+    let grandTotal = 0
+    const orderIds: string[] = []
+    for (const order of pendingOrders) {
+      const baseAmount = Math.max(0, Number(order.total_amount ?? 0) - Number(order.payment_gateway_fee ?? 0))
+      const paymentGatewayFee = calculatePaymentChargeBreakdown(baseAmount, paymentChannel).total
+      const totalAmount = baseAmount + paymentGatewayFee
+
+      await supabaseAdmin
+        .from('orders')
+        .update({
+          payment_method: paymentChannel,
+          payment_gateway_fee: paymentGatewayFee,
+          total_amount: totalAmount,
+          payment_url: null,
+          xendit_invoice_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', order.id)
+
+      orderIds.push(order.id)
+      grandTotal += totalAmount
+    }
+
+    const xenditPaymentMethods = getXenditPaymentMethodsForChannel(paymentChannel)
+    const siteUrl     = process.env.SITE_URL ?? 'https://vivathrift.store'
+    const credentials = Buffer.from(`${xenditKey}:`).toString('base64')
+    const externalId  = orderIds.join('_')
+
+    const invoiceRes = await $fetch<{ id: string; invoice_url: string }>(
+      'https://api.xendit.co/v2/invoices',
+      {
+        method: 'POST',
+        headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/json' },
+        body: {
+          external_id:          externalId,
+          amount:               grandTotal,
+          description:          `VivaThrift - ${orderIds.length} order dari keranjang`,
+          customer: {
+            given_names: user.fullName ?? user.email?.split('@')[0] ?? 'Pembeli',
+            email:       user.email,
+          },
+          success_redirect_url: `${siteUrl}/cart/success?order_ids=${orderIds.join(',')}`,
+          failure_redirect_url: `${siteUrl}/cart/checkout?payment_failed=1`,
+          currency:             'IDR',
+          invoice_duration:     900,
+          payment_methods:      xenditPaymentMethods,
+        },
+      }
+    )
+
+    await (supabaseAdmin.from('orders') as any)
+      .update({
+        xendit_invoice_id: invoiceRes.id,
+        payment_url: invoiceRes.invoice_url,
+      })
+      .in('id', orderIds)
+
+    return {
+      paymentUrl: invoiceRes.invoice_url,
+      orderIds,
+      grandTotal,
+      alreadyExisted: false,
+      reissued: true,
     }
   }
 
@@ -178,7 +300,7 @@ export default defineEventHandler(async (event) => {
     const platformFee = calculatePlatformFee(group.total)
     const baseAmount = group.total + orderShippingCost + platformFee
     const paymentGatewayFee = calculatePaymentChargeBreakdown(baseAmount, paymentChannel).total
-    const orderTotalAmount = baseAmount
+    const orderTotalAmount = baseAmount + paymentGatewayFee
     grandTotal += orderTotalAmount
 
     const { data: order, error: ordErr } = await supabaseAdmin

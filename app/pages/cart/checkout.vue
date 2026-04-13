@@ -12,6 +12,8 @@ const user     = useSupabaseUser()
 const placing      = ref(false)
 const errorMsg     = ref('')
 const paymentFailed = computed(() => !!route.query.payment_failed)
+const existingPaymentUrl = ref('')
+const canRegenerateInvoice = ref(false)
 
 // ── Shipping state ──────────────────────────────────────────────────────────
 const MEETUP_LOCATIONS = [
@@ -62,7 +64,24 @@ const feeByChannelMap = computed<Record<string, { percent?: number; flat?: numbe
     return {}
   }
 })
-const grandTotal = computed(() => cartTotal.value + ongkirAmount.value + platformFee.value)
+
+const paymentChargeBreakdown = computed(() => {
+  const key = String(paymentChannel.value ?? '').toLowerCase()
+  const byChannel = feeByChannelMap.value[key]
+  const percent = Number(byChannel?.percent ?? runtimeConfig.public.xenditPaymentFeePercent ?? 0)
+  const flat = Math.round(Number(byChannel?.flat ?? runtimeConfig.public.xenditPaymentFeeFlat ?? 0))
+  const taxPercent = Number(runtimeConfig.public.xenditPaymentFeeTaxPercent ?? 11)
+  const baseAmount = cartTotal.value + ongkirAmount.value + platformFee.value
+  const gatewayFeeBase = Math.round((Math.max(0, baseAmount) * Math.max(0, percent)) / 100) + Math.max(0, flat)
+  const gatewayFeeTax = Math.round((Math.max(0, gatewayFeeBase) * Math.max(0, taxPercent)) / 100)
+  return {
+    gatewayFeeBase,
+    gatewayFeeTax,
+    total: gatewayFeeBase + gatewayFeeTax,
+  }
+})
+
+const grandTotal = computed(() => cartTotal.value + ongkirAmount.value + platformFee.value + paymentChargeBreakdown.value.total)
 
 async function fetchRates() {
   if (!destPostal.value.trim()) {
@@ -158,8 +177,10 @@ function getImage(item: any) {
   return mediaUrl((media?.find((m: any) => m.is_primary) ?? media?.[0])?.media_url ?? null)
 }
 
-async function handleCheckout() {
+async function handleCheckout(forceRegenerateInvoice = false) {
   if (placing.value) return
+  existingPaymentUrl.value = ''
+  canRegenerateInvoice.value = false
   if (shippingMethod.value === 'shipping' && !selectedRate.value) {
     errorMsg.value = 'Pilih layanan pengiriman terlebih dahulu.'
     return
@@ -167,7 +188,11 @@ async function handleCheckout() {
   placing.value = true
   errorMsg.value = ''
   try {
-    const body: any = { shippingMethod: shippingMethod.value, paymentChannel: paymentChannel.value }
+    const body: any = {
+      shippingMethod: shippingMethod.value,
+      paymentChannel: paymentChannel.value,
+      forceRegenerateInvoice,
+    }
     if (shippingMethod.value === 'cod') {
       const loc = meetupLocation.value === 'other'
         ? meetupCustom.value.trim()
@@ -187,7 +212,15 @@ async function handleCheckout() {
       await navigateTo(result.paymentUrl, { external: true })
     }
   } catch (e: any) {
-    errorMsg.value = e?.data?.statusMessage ?? e?.message ?? 'Terjadi kesalahan. Coba lagi.'
+    const msg = e?.data?.statusMessage ?? e?.message ?? 'Terjadi kesalahan. Coba lagi.'
+    const statusCode = Number(e?.data?.statusCode ?? 0)
+    const existingUrl = String(e?.data?.data?.existingPaymentUrl ?? '')
+    const canReissue = e?.data?.data?.canRegenerateInvoice === true
+    if (statusCode === 409 && existingUrl) {
+      existingPaymentUrl.value = existingUrl
+      canRegenerateInvoice.value = canReissue
+    }
+    errorMsg.value = msg
   } finally {
     placing.value = false
   }
@@ -443,6 +476,10 @@ async function handleCheckout() {
             <option value="bni_va">Virtual Account BNI</option>
             <option value="bri_va">Virtual Account BRI</option>
             <option value="mandiri_va">Virtual Account Mandiri</option>
+            <option value="ovo">OVO</option>
+            <option value="gopay">GoPay</option>
+            <option value="dana">DANA</option>
+            <option value="shopeepay">ShopeePay</option>
           </select>
         </div>
 
@@ -472,6 +509,14 @@ async function handleCheckout() {
             <span>Biaya Layanan</span>
             <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ platformFee.toLocaleString('id-ID') }}</span>
           </div>
+          <div class="flex justify-between">
+            <span>Biaya Payment Gateway</span>
+            <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ paymentChargeBreakdown.gatewayFeeBase.toLocaleString('id-ID') }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>PPN Payment Gateway</span>
+            <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ paymentChargeBreakdown.gatewayFeeTax.toLocaleString('id-ID') }}</span>
+          </div>
         </div>
 
         <div class="border-t pt-3" :class="isDark ? 'border-white/10' : 'border-gray-100'">
@@ -483,7 +528,26 @@ async function handleCheckout() {
           <p v-if="errorMsg" class="text-red-500 text-xs mb-3 p-2.5 rounded-lg bg-red-50 border border-red-100">{{ errorMsg }}</p>
 
           <button
-            @click="handleCheckout"
+            v-if="existingPaymentUrl"
+            @click="navigateTo(existingPaymentUrl, { external: true })"
+            class="w-full py-2.5 rounded-full text-sm font-semibold border mb-3 transition"
+            :class="isDark ? 'border-sky-500/40 text-sky-300 hover:bg-sky-900/20' : 'border-blue-200 text-blue-700 hover:bg-blue-50'"
+          >
+            Lanjutkan Invoice Aktif
+          </button>
+
+          <button
+            v-if="canRegenerateInvoice"
+            @click="handleCheckout(true)"
+            :disabled="placing"
+            class="w-full py-2.5 rounded-full text-sm font-semibold border mb-3 transition disabled:opacity-60"
+            :class="isDark ? 'border-amber-500/40 text-amber-300 hover:bg-amber-900/20' : 'border-amber-200 text-amber-700 hover:bg-amber-50'"
+          >
+            Ganti Metode & Buat Invoice Baru
+          </button>
+
+          <button
+            @click="handleCheckout()"
             :disabled="placing || cartItems.length === 0"
             class="vt-btn-primary w-full py-3 rounded-full text-white font-bold text-sm transition hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
@@ -502,6 +566,7 @@ async function handleCheckout() {
             <span class="text-[10px] px-2 py-0.5 rounded-full font-medium" :class="isDark ? 'bg-slate-800 text-slate-400' : 'bg-gray-100 text-gray-500'">OVO</span>
             <span class="text-[10px] px-2 py-0.5 rounded-full font-medium" :class="isDark ? 'bg-slate-800 text-slate-400' : 'bg-gray-100 text-gray-500'">GoPay</span>
             <span class="text-[10px] px-2 py-0.5 rounded-full font-medium" :class="isDark ? 'bg-slate-800 text-slate-400' : 'bg-gray-100 text-gray-500'">Dana</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-medium" :class="isDark ? 'bg-slate-800 text-slate-400' : 'bg-gray-100 text-gray-500'">ShopeePay</span>
           </div>
         </div>
       </div>

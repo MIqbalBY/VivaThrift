@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../utils/supabase-admin'
 import { getXenditSecretKey } from '../../utils/xendit-config'
 import { getXenditPaymentMethodsForChannel } from '../../utils/xendit-payment-methods'
 import { isSupportedPaymentChannel } from '../../utils/xendit-payment-methods'
+import { expireXenditInvoice } from '../../utils/xendit-invoice'
 import {
   PRODUCT_UNAVAILABLE_STATUSES,
   isValidMeetupLocation,
@@ -12,6 +13,21 @@ import {
   calculatePaymentChargeBreakdown,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
+
+function paymentChannelLabel(channel: string): string {
+  const labels: Record<string, string> = {
+    qris: 'QRIS',
+    bca_va: 'Virtual Account BCA',
+    bni_va: 'Virtual Account BNI',
+    bri_va: 'Virtual Account BRI',
+    mandiri_va: 'Virtual Account Mandiri',
+    gopay: 'GoPay',
+    ovo: 'OVO',
+    dana: 'DANA',
+    shopeepay: 'ShopeePay',
+  }
+  return labels[channel] ?? channel
+}
 
 // POST /api/checkout
 // Body: {
@@ -38,6 +54,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const offerId: string | undefined = body?.offerId
+  const forceRegenerateInvoice = body?.forceRegenerateInvoice === true
   const paymentChannel = String(body?.paymentChannel ?? '').trim().toLowerCase()
   if (!offerId || typeof offerId !== 'string') {
     throw createError({ statusCode: 400, statusMessage: 'offerId harus diisi.' })
@@ -97,14 +114,38 @@ export default defineEventHandler(async (event) => {
   // ── 2. Idempotency: return existing payment URL ──────────────────────────
   const { data: existingOrder } = await supabaseAdmin
     .from('orders')
-    .select('id, payment_url, xendit_invoice_id, status')
+    .select('id, payment_url, xendit_invoice_id, status, payment_method')
     .eq('offer_id', offerId)
     .eq('buyer_id', user.id)
     .maybeSingle()
 
+  let isReissuing = false
+
   // Only short-circuit if payment is still in progress (pending_payment + URL exists).
   // A payment_failed order must be treated as a fresh retry — fall through.
   if (existingOrder?.payment_url && existingOrder.status === 'pending_payment') {
+    const existingMethod = (existingOrder.payment_method ?? '').toLowerCase()
+    if (existingMethod !== paymentChannel) {
+      if (!forceRegenerateInvoice) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: `Masih ada invoice aktif dengan metode ${paymentChannelLabel(existingOrder.payment_method ?? '')}. Selesaikan atau tunggu invoice kadaluarsa sebelum ganti metode pembayaran.`,
+          data: {
+            existingPaymentUrl: existingOrder.payment_url,
+            existingPaymentMethod: existingOrder.payment_method,
+            canRegenerateInvoice: true,
+          },
+        })
+      }
+
+      if (existingOrder.xendit_invoice_id) {
+        await expireXenditInvoice(existingOrder.xendit_invoice_id)
+      }
+      isReissuing = true
+    }
+  }
+
+  if (existingOrder?.payment_url && existingOrder.status === 'pending_payment' && !isReissuing) {
     return {
       orderId: existingOrder.id,
       paymentUrl: existingOrder.payment_url,
@@ -113,7 +154,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── 3. Validate offer status ─────────────────────────────────────────────
-  if (offer.status !== 'accepted') {
+  if (!isReissuing && offer.status !== 'accepted') {
     throw createError({ statusCode: 422, statusMessage: 'Penawaran belum diterima penjual.' })
   }
 
@@ -128,13 +169,13 @@ export default defineEventHandler(async (event) => {
     .eq('id', offer.product_id)
     .single()
 
-  if (
+  if (!isReissuing && (
     !currentProduct ||
     PRODUCT_UNAVAILABLE_STATUSES.includes(currentProduct.status as any) ||
     (currentProduct.stock !== null &&
       currentProduct.stock !== undefined &&
       currentProduct.stock < offer.quantity)
-  ) {
+  )) {
     throw createError({ statusCode: 409, statusMessage: 'stock_depleted' })
   }
 
@@ -145,13 +186,31 @@ export default defineEventHandler(async (event) => {
   const platformFee: number = calculatePlatformFee(subtotal)
   const baseAmount: number = subtotal + platformFee + shippingCost
   const paymentGatewayFee: number = calculatePaymentChargeBreakdown(baseAmount, paymentChannel).total
-  const totalAmount: number = baseAmount
+  const totalAmount: number = baseAmount + paymentGatewayFee
 
   // ── 5. INSERT order ───────────────────────────────────────────────────────
   let orderId: string
 
   if (existingOrder && existingOrder.status === 'pending_payment') {
     // Idempotency: order row exists without a payment_url yet — reuse it.
+    await supabaseAdmin
+      .from('orders')
+      .update({
+        total_amount: totalAmount,
+        platform_fee: platformFee,
+        payment_gateway_fee: paymentGatewayFee,
+        payment_method: paymentChannel,
+        shipping_method: shippingMethod,
+        shipping_cost: shippingCost,
+        meetup_location: meetupLocation,
+        meetup_otp: meetupOtp,
+        courier_code: courierCode,
+        courier_service: courierService,
+        xendit_invoice_id: null,
+        payment_url: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingOrder.id)
     orderId = existingOrder.id
   } else {
     if (existingOrder?.status === 'payment_failed') {
@@ -159,7 +218,20 @@ export default defineEventHandler(async (event) => {
       // (stock + offer were already restored by the webhook/verify handler)
       await supabaseAdmin
         .from('orders')
-        .update({ status: 'pending_payment', updated_at: new Date().toISOString() })
+        .update({
+          status: 'pending_payment',
+          total_amount: totalAmount,
+          platform_fee: platformFee,
+          payment_gateway_fee: paymentGatewayFee,
+          payment_method: paymentChannel,
+          shipping_method: shippingMethod,
+          shipping_cost: shippingCost,
+          meetup_location: meetupLocation,
+          meetup_otp: meetupOtp,
+          courier_code: courierCode,
+          courier_service: courierService,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', existingOrder.id)
       orderId = existingOrder.id
     } else {
@@ -204,21 +276,23 @@ export default defineEventHandler(async (event) => {
 
     // Decrement stock & mark sold (runs for both fresh checkout and retry).
     // Always mark sold (secondhand = each item is unique); only update stock if tracked.
-    const stockUpdate: Record<string, unknown> = { status: 'sold' }
-    if (currentProduct.stock !== null && currentProduct.stock !== undefined) {
-      stockUpdate.stock = Math.max(0, currentProduct.stock - offer.quantity)
-    }
-    await supabaseAdmin
-      .from('products')
-      .update(stockUpdate)
-      .eq('id', offer.product_id as string)
+    if (!isReissuing) {
+      const stockUpdate: Record<string, unknown> = { status: 'sold' }
+      if (currentProduct.stock !== null && currentProduct.stock !== undefined) {
+        stockUpdate.stock = Math.max(0, currentProduct.stock - offer.quantity)
+      }
+      await supabaseAdmin
+        .from('products')
+        .update(stockUpdate)
+        .eq('id', offer.product_id as string)
 
-    // Expire all remaining pending/accepted offers for this product
-    await supabaseAdmin
-      .from('offers')
-      .update({ status: 'expired' })
-      .eq('product_id', offer.product_id as string)
-      .in('status', ['pending', 'accepted'])
+      // Expire all remaining pending/accepted offers for this product
+      await supabaseAdmin
+        .from('offers')
+        .update({ status: 'expired' })
+        .eq('product_id', offer.product_id as string)
+        .in('status', ['pending', 'accepted'])
+    }
   }
 
   // ── 6. Call Xendit API — create Invoice ───────────────────────────────────
@@ -258,6 +332,10 @@ export default defineEventHandler(async (event) => {
     xenditInvoiceId = invoiceRes.id
     paymentUrl      = invoiceRes.invoice_url
   } catch (e: any) {
+    if (isReissuing) {
+      const detail = e?.data?.message ?? e?.message ?? 'Gagal membuat invoice Xendit.'
+      throw createError({ statusCode: 502, statusMessage: detail })
+    }
     // Rollback: restore product status/stock and offer so buyer can retry.
     const { data: prod } = await supabaseAdmin
       .from('products')

@@ -27,10 +27,10 @@ export function useNavNotifications() {
   function setupNotifChannel(uid: string) {
     if (notifChannel) { supabase.removeChannel(notifChannel); notifChannel = null }
     notifChannel = supabase
-      .channel(`notif-${uid}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` },
-        () => fetchNotifications(uid)
-      )
+      .channel(`user:${uid}:notifications`, { config: { private: true } })
+      .on('broadcast', { event: 'INSERT' }, () => fetchNotifications(uid))
+      .on('broadcast', { event: 'UPDATE' }, () => fetchNotifications(uid))
+      .on('broadcast', { event: 'DELETE' }, () => fetchNotifications(uid))
       .subscribe()
   }
 

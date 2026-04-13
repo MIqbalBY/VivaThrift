@@ -311,9 +311,9 @@ onMounted(async () => {
               <template v-if="role === 'seller' && order.status !== 'cancelled' && order.status !== 'payment_failed'">
                 <span class="text-xs" :class="isDark ? 'text-slate-500' : 'text-gray-400'">→ kamu terima</span>
                 <span class="text-xs font-semibold" :class="isDark ? 'text-green-400' : 'text-green-600'">
-                  {{ formatRp(sellerReceives(order.total_amount, order.shipping_cost ?? 0, order.platform_fee ?? 0)) }}
+                  {{ formatRp(sellerReceives(order.total_amount, order.shipping_cost ?? 0, order.platform_fee ?? 0, order.payment_gateway_fee ?? 0)) }}
                 </span>
-                <span class="text-[10px]" :class="isDark ? 'text-slate-600' : 'text-gray-400'">(harga penuh, biaya layanan ditanggung pembeli)</span>
+                <span class="text-[10px]" :class="isDark ? 'text-slate-600' : 'text-gray-400'">(net setelah ongkir, biaya layanan, dan biaya gateway)</span>
               </template>
             </div>
           </div>
