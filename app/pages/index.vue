@@ -136,6 +136,9 @@ const followingSellerIds = computed(() => {
   const ids = followingIds.value.filter(id => id && id !== user.value?.id)
   return [...new Set(ids)]
 })
+const showFollowingEmptyState = computed(() =>
+  feedMode.value === 'following' && !productsLoading.value && products.length === 0 && followingIds.value.length === 0
+)
 
 async function fetchFollowingIds() {
   if (!user.value) return
@@ -451,14 +454,15 @@ watch(sentinelRef, () => nextTick(setupObserver))
       </div>
 
       <!-- Empty following state -->
-      <div v-if="feedMode === 'following' && !productsLoading && products.length === 0 && followingIds.length === 0" class="flex flex-col items-center py-16 gap-3 mb-8">
+      <div v-if="showFollowingEmptyState" class="flex flex-col items-center py-16 gap-3 mb-8">
         <img src="/img/illustrations/empty-cart.svg" alt="Belum mengikuti" width="176" height="176" loading="lazy" class="w-44 h-auto opacity-80" />
         <p class="text-gray-500 dark:text-gray-400 font-semibold text-lg">Belum mengikuti siapapun</p>
         <p class="text-gray-400 dark:text-gray-500 text-sm">Ikuti penjual untuk melihat barang mereka di sini.</p>
       </div>
 
-      <!-- Filter Panel -->
-      <div :ref="reveal" data-delay="100" class="vt-filter-panel rounded-xl p-4 mb-8 space-y-3" :style="isDark ? 'background: rgba(15,23,42,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 4px 16px rgba(0,0,0,0.3);' : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 16px rgba(30,58,138,0.08);'">
+      <template v-if="!showFollowingEmptyState">
+        <!-- Filter Panel -->
+        <div :ref="reveal" data-delay="100" class="vt-filter-panel rounded-xl p-4 mb-8 space-y-3" :style="isDark ? 'background: rgba(15,23,42,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 4px 16px rgba(0,0,0,0.3);' : 'background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 16px rgba(30,58,138,0.08);'">
 
         <!-- Kategori -->
         <div class="space-y-1.5">
@@ -602,10 +606,10 @@ watch(sentinelRef, () => nextTick(setupObserver))
           </div>
         </div>
 
-      </div>
+        </div>
 
-      <!-- Product Grid Skeleton (initial load) -->
-      <div v-if="productsLoading && products.length === 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
+        <!-- Product Grid Skeleton (initial load) -->
+        <div v-if="productsLoading && products.length === 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
         <div
           v-for="i in 12"
           :key="i"
@@ -654,10 +658,10 @@ watch(sentinelRef, () => nextTick(setupObserver))
             </div>
           </div>
         </div>
-      </div>
+        </div>
 
-      <!-- Product Grid -->
-      <div v-else :ref="reveal" class="vt-stagger-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
+        <!-- Product Grid -->
+        <div v-else :ref="reveal" class="vt-stagger-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
         <ProductCard
           v-for="product in products"
           :key="product.id"
@@ -671,10 +675,10 @@ watch(sentinelRef, () => nextTick(setupObserver))
           <p class="text-gray-500 dark:text-gray-400 font-semibold text-lg mt-2">Belum ada produk tersedia</p>
           <p class="text-gray-400 dark:text-gray-500 text-sm">Jadilah yang pertama menjual barang di sini!</p>
         </div>
-      </div>
+        </div>
 
-      <!-- Infinite scroll sentinel + loading indicator -->
-      <div ref="sentinelRef" class="flex justify-center py-8">
+        <!-- Infinite scroll sentinel + loading indicator -->
+        <div ref="sentinelRef" class="flex justify-center py-8">
         <div v-if="productsLoading" class="flex items-center gap-2">
           <div class="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" :class="isDark ? 'border-sky-400' : 'border-blue-800'"></div>
           <span class="text-sm" :class="isDark ? 'text-slate-400' : 'text-gray-400'">Memuat produk…</span>
@@ -682,7 +686,8 @@ watch(sentinelRef, () => nextTick(setupObserver))
         <p v-else-if="!hasMore && products.length > 0" class="text-xs" :class="isDark ? 'text-slate-500' : 'text-gray-400'">
           Semua produk sudah ditampilkan ({{ products.length }} item)
         </p>
-      </div>
+        </div>
+      </template>
 
     </section>
 
