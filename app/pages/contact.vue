@@ -104,7 +104,7 @@ const quickLinks = [
       badge="💬 Hubungi Kami"
       title="Ada yang bisa"
       highlight="kami bantu?"
-      description="Tim VivaThrift siap menjawab pertanyaanmu. Isi formulir di bawah atau langsung email kami untuk bantuan lebih lanjut."
+      description="Tim VivaThrift (PT Viva Niaga Digital) siap menjawab pertanyaanmu. Isi formulir di bawah atau langsung email kami untuk bantuan lebih lanjut."
       variant="contact"
     />
 
@@ -119,6 +119,7 @@ const quickLinks = [
           <div :ref="reveal" class="mb-12 lg:mb-0">
             <p class="text-xs font-semibold tracking-widest uppercase mb-2 vt-label-accent">Info Kontak</p>
             <h2 class="vt-heading text-2xl font-bold mb-6">Reach out ke kami</h2>
+            <p class="text-xs mb-6" :class="isDark ? 'text-slate-400' : 'text-gray-500'">Legal entity: PT Viva Niaga Digital</p>
 
             <div class="flex flex-col gap-4 mb-10">
               <div

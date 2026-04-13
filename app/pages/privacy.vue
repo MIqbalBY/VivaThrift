@@ -12,7 +12,7 @@ const sections = [
   {
     id: 'intro',
     title: '1. Pendahuluan',
-    content: `VivaThrift ("kami", "Platform") berkomitmen untuk melindungi privasi pengguna. Kebijakan Privasi ini menjelaskan jenis data yang kami kumpulkan, cara penggunaannya, serta hak-hakmu sebagai pengguna.
+    content: `VivaThrift ("kami", "Platform") yang dikelola oleh PT Viva Niaga Digital berkomitmen untuk melindungi privasi pengguna. Kebijakan Privasi ini menjelaskan jenis data yang kami kumpulkan, cara penggunaannya, serta hak-hakmu sebagai pengguna.
 
 Dengan menggunakan Platform, kamu menyetujui pengumpulan dan penggunaan data sebagaimana dijelaskan dalam kebijakan ini. Kebijakan ini berlaku bagi seluruh pengguna terdaftar dan pengunjung Platform.`,
   },
@@ -117,6 +117,7 @@ Penggunaan berkelanjutan Platform setelah perubahan berlaku dianggap sebagai per
 
 • Halaman Kontak di website ini
 • Email: admin@vivathrift.store
+• Legal entity: PT Viva Niaga Digital
 • Tim kami aktif pada hari kerja (Senin–Jumat) pukul 08.00–17.00 WIB`,
   },
 ]

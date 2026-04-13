@@ -12,7 +12,7 @@ const sections = [
   {
     id: 'penerimaan',
     title: '1. Penerimaan Ketentuan',
-    content: `Dengan mengakses atau menggunakan platform VivaThrift ("Platform"), kamu menyatakan telah membaca, memahami, dan menyetujui seluruh Syarat & Ketentuan ("S&K") ini. Jika kamu tidak setuju dengan salah satu ketentuan, harap hentikan penggunaan Platform.
+    content: `Dengan mengakses atau menggunakan platform VivaThrift ("Platform") yang dikelola oleh PT Viva Niaga Digital, kamu menyatakan telah membaca, memahami, dan menyetujui seluruh Syarat & Ketentuan ("S&K") ini. Jika kamu tidak setuju dengan salah satu ketentuan, harap hentikan penggunaan Platform.
 
 S&K ini berlaku bagi seluruh pengguna Platform, termasuk pengunjung, pembeli, dan penjual. VivaThrift berhak memperbarui S&K sewaktu-waktu. Perubahan signifikan akan diberitahukan melalui email atau notifikasi dalam Platform.`,
   },
@@ -155,7 +155,8 @@ Tanggung jawab maksimal VivaThrift kepada pengguna dibatasi pada nilai transaksi
 
             <div class="vt-contact-note rounded-2xl p-8 text-center">
               <p class="vt-contact-title font-semibold mb-2">Butuh klarifikasi soal syarat penggunaan?</p>
-              <p class="vt-contact-body text-sm mb-5">Hubungi tim VivaThrift jika ada ketentuan yang perlu dijelaskan lebih lanjut.</p>
+              <p class="vt-contact-body text-sm mb-1">Hubungi tim VivaThrift jika ada ketentuan yang perlu dijelaskan lebih lanjut.</p>
+              <p class="vt-contact-body text-xs mb-5">Legal entity: PT Viva Niaga Digital</p>
               <NuxtLink
                 to="/contact"
                 class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold vt-contact-btn transition-all hover:-translate-y-0.5"
