@@ -188,7 +188,7 @@ export function useAddressEdit() {
     const t = type ?? addrActiveType.value
     const form = getAddrForm(t)
     const builtAddress = composeStructuredAddress(form)
-    if (builtAddress.error) {
+    if ('error' in builtAddress && builtAddress.error) {
       addrMsg.value = builtAddress.error
       addrMsgType.value = 'err'
       return
@@ -203,8 +203,14 @@ export function useAddressEdit() {
     addrMsg.value    = ''
 
     try {
+      if (!('fullAddress' in builtAddress) || !builtAddress.fullAddress) {
+        addrMsg.value = 'Alamat tidak valid. Coba isi ulang detail alamat.'
+        addrMsgType.value = 'err'
+        return
+      }
+
       form.full_address = builtAddress.fullAddress
-      form.city = builtAddress.city || form.city || ''
+      form.city = ('city' in builtAddress && builtAddress.city) ? builtAddress.city : (form.city || '')
 
       const payload = {
         user_id:      uid,
