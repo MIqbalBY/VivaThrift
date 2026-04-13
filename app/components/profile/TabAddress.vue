@@ -27,9 +27,9 @@ const emit = defineEmits([
 
 const regionsApiBase = 'https://www.emsifa.com/api-wilayah-indonesia/api'
 
-const provinces = ref<any[]>([])
-const shippingRegion = reactive({ regencies: [] as any[], districts: [] as any[], villages: [] as any[] })
-const sellerRegion = reactive({ regencies: [] as any[], districts: [] as any[], villages: [] as any[] })
+const provinces = ref([])
+const shippingRegion = reactive({ regencies: [], districts: [], villages: [] })
+const sellerRegion = reactive({ regencies: [], districts: [], villages: [] })
 const regionsLoading = reactive({
   provinces: false,
   shippingRegencies: false,
@@ -40,15 +40,15 @@ const regionsLoading = reactive({
   sellerVillages: false,
 })
 
-function formByType(type: 'shipping' | 'seller') {
-  return type === 'seller' ? props.sellerForm as any : props.shippingForm as any
+function formByType(type) {
+  return type === 'seller' ? props.sellerForm : props.shippingForm
 }
 
-function regionStateByType(type: 'shipping' | 'seller') {
+function regionStateByType(type) {
   return type === 'seller' ? sellerRegion : shippingRegion
 }
 
-function resetRegionChildren(type: 'shipping' | 'seller', level: 'province' | 'city' | 'district') {
+function resetRegionChildren(type, level) {
   const form = formByType(type)
   const state = regionStateByType(type)
 
@@ -84,7 +84,7 @@ async function loadProvinces() {
   if (provinces.value.length || regionsLoading.provinces) return
   regionsLoading.provinces = true
   try {
-    const data = await $fetch<any[]>(`${regionsApiBase}/provinces.json`)
+    const data = await $fetch(`${regionsApiBase}/provinces.json`)
     provinces.value = Array.isArray(data) ? data : []
   } catch {
     provinces.value = []
@@ -93,7 +93,7 @@ async function loadProvinces() {
   }
 }
 
-async function loadRegencies(type: 'shipping' | 'seller', provinceId?: string) {
+async function loadRegencies(type, provinceId) {
   const form = formByType(type)
   const state = regionStateByType(type)
   const id = String(provinceId ?? form.province_id ?? '').trim()
@@ -106,7 +106,7 @@ async function loadRegencies(type: 'shipping' | 'seller', provinceId?: string) {
   const loadingKey = type === 'seller' ? 'sellerRegencies' : 'shippingRegencies'
   regionsLoading[loadingKey] = true
   try {
-    const data = await $fetch<any[]>(`${regionsApiBase}/regencies/${id}.json`)
+    const data = await $fetch(`${regionsApiBase}/regencies/${id}.json`)
     state.regencies = Array.isArray(data) ? data : []
   } catch {
     state.regencies = []
@@ -115,7 +115,7 @@ async function loadRegencies(type: 'shipping' | 'seller', provinceId?: string) {
   }
 }
 
-async function loadDistricts(type: 'shipping' | 'seller', cityId?: string) {
+async function loadDistricts(type, cityId) {
   const form = formByType(type)
   const state = regionStateByType(type)
   const id = String(cityId ?? form.city_id ?? '').trim()
@@ -128,7 +128,7 @@ async function loadDistricts(type: 'shipping' | 'seller', cityId?: string) {
   const loadingKey = type === 'seller' ? 'sellerDistricts' : 'shippingDistricts'
   regionsLoading[loadingKey] = true
   try {
-    const data = await $fetch<any[]>(`${regionsApiBase}/districts/${id}.json`)
+    const data = await $fetch(`${regionsApiBase}/districts/${id}.json`)
     state.districts = Array.isArray(data) ? data : []
   } catch {
     state.districts = []
@@ -137,7 +137,7 @@ async function loadDistricts(type: 'shipping' | 'seller', cityId?: string) {
   }
 }
 
-async function loadVillages(type: 'shipping' | 'seller', districtId?: string) {
+async function loadVillages(type, districtId) {
   const form = formByType(type)
   const state = regionStateByType(type)
   const id = String(districtId ?? form.district_id ?? '').trim()
@@ -150,7 +150,7 @@ async function loadVillages(type: 'shipping' | 'seller', districtId?: string) {
   const loadingKey = type === 'seller' ? 'sellerVillages' : 'shippingVillages'
   regionsLoading[loadingKey] = true
   try {
-    const data = await $fetch<any[]>(`${regionsApiBase}/villages/${id}.json`)
+    const data = await $fetch(`${regionsApiBase}/villages/${id}.json`)
     state.villages = Array.isArray(data) ? data : []
   } catch {
     state.villages = []
@@ -159,36 +159,36 @@ async function loadVillages(type: 'shipping' | 'seller', districtId?: string) {
   }
 }
 
-function onProvinceChange(type: 'shipping' | 'seller') {
+function onProvinceChange(type) {
   const form = formByType(type)
-  const selected = provinces.value.find((item: any) => item.id === form.province_id)
+  const selected = provinces.value.find((item) => item.id === form.province_id)
   form.province = selected?.name ?? ''
   resetRegionChildren(type, 'province')
   loadRegencies(type)
 }
 
-function onCityChange(type: 'shipping' | 'seller') {
+function onCityChange(type) {
   const form = formByType(type)
   const state = regionStateByType(type)
-  const selected = state.regencies.find((item: any) => item.id === form.city_id)
+  const selected = state.regencies.find((item) => item.id === form.city_id)
   form.city = selected?.name ?? ''
   resetRegionChildren(type, 'city')
   loadDistricts(type)
 }
 
-function onDistrictChange(type: 'shipping' | 'seller') {
+function onDistrictChange(type) {
   const form = formByType(type)
   const state = regionStateByType(type)
-  const selected = state.districts.find((item: any) => item.id === form.district_id)
+  const selected = state.districts.find((item) => item.id === form.district_id)
   form.district = selected?.name ?? ''
   resetRegionChildren(type, 'district')
   loadVillages(type)
 }
 
-function onVillageChange(type: 'shipping' | 'seller') {
+function onVillageChange(type) {
   const form = formByType(type)
   const state = regionStateByType(type)
-  const selected = state.villages.find((item: any) => item.id === form.village_id)
+  const selected = state.villages.find((item) => item.id === form.village_id)
   form.village = selected?.name ?? ''
 }
 
