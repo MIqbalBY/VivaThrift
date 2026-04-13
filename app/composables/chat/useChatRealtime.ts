@@ -83,24 +83,6 @@ export function useChatRealtime(
         }
         patchReplyRefs(deleted.id, { is_deleted: true, content: '$$DELETED$$' })
       })
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'offers', filter: `chat_id=eq.${chatId}` },
-        (payload: any) => {
-          const updated = payload.new
-          const msg = messages.value.find(m => m.offer_id === updated.id)
-          if (msg?.offer) msg.offer.status = updated.status
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'products', filter: `id=eq.${chat.value?.product?.id}` },
-        (payload: any) => {
-          const p = payload.new
-          if (p.stock !== undefined) localProductStock.value = p.stock
-          if (p.status !== undefined) localProductStatus.value = p.status
-        }
-      )
       .on('broadcast', { event: 'offer-updated' }, ({ payload }: any) => {
         const msg = messages.value.find(m => m.offer_id === payload.offerId || m.offer?.id === payload.offerId)
         if (msg?.offer) msg.offer.status = payload.status
