@@ -393,17 +393,20 @@ async function placeOrder(forceRegenerateInvoice = false) {
             <span class="font-semibold" :class="isDark ? 'text-green-400' : 'text-green-600'">Gratis (COD)</span>
           </div>
           <div class="flex justify-between">
-            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Layanan (ditanggung penjual)</span>
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Layanan</span>
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ platformFee.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between">
-            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Payment Gateway (ditanggung penjual)</span>
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Payment Gateway</span>
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ paymentChargeBreakdown.gatewayFeeBase.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between">
-            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">PPN Payment Gateway (ditanggung penjual)</span>
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">PPN Payment Gateway</span>
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ paymentChargeBreakdown.gatewayFeeTax.toLocaleString('id-ID') }}</span>
           </div>
+          <p class="text-[11px] pt-0.5" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+            Biaya layanan, payment gateway, dan PPN ditanggung penjual.
+          </p>
           <div class="flex justify-between pt-3 mt-1" :class="isDark ? 'border-t border-white/10' : 'border-t border-gray-100'">
             <span class="font-semibold" :class="isDark ? 'text-white' : 'text-gray-700'">Total</span>
             <span class="text-lg font-bold" :style="isDark ? 'color:#ffffff;' : 'color:#1e3a8a;'">

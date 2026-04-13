@@ -506,17 +506,20 @@ async function handleCheckout(forceRegenerateInvoice = false) {
             </span>
           </div>
           <div class="flex justify-between">
-            <span>Biaya Layanan (ditanggung penjual)</span>
+            <span>Biaya Layanan</span>
             <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ platformFee.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between">
-            <span>Biaya Payment Gateway (ditanggung penjual)</span>
+            <span>Biaya Payment Gateway</span>
             <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ paymentChargeBreakdown.gatewayFeeBase.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between">
-            <span>PPN Payment Gateway (ditanggung penjual)</span>
+            <span>PPN Payment Gateway</span>
             <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ paymentChargeBreakdown.gatewayFeeTax.toLocaleString('id-ID') }}</span>
           </div>
+          <p class="text-[11px] pt-0.5" :class="isDark ? 'text-slate-500' : 'text-gray-400'">
+            Biaya layanan, payment gateway, dan PPN ditanggung penjual.
+          </p>
         </div>
 
         <div class="border-t pt-3" :class="isDark ? 'border-white/10' : 'border-gray-100'">
