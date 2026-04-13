@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!authResult.ok) {
-    logWebhookEvent('warning', authResult.logMessage ?? '[xendit-disbursement-webhook] Invalid callback token.', {
+    await logWebhookEvent('warning', authResult.logMessage ?? '[xendit-disbursement-webhook] Invalid callback token.', {
       webhook: 'xendit-disbursement',
       requestId,
       statusCode: authResult.statusCode,
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
         .eq('id', orderId)
     },
     onWarning: (message, error) => {
-      logWebhookEvent('warning', message, {
+      void logWebhookEvent('warning', message, {
         webhook: 'xendit-disbursement',
         requestId,
         eventName: eventName || null,
@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!result.ok && result.action === 'missing_id') {
-    logWebhookEvent('warning', '[xendit-disbursement-webhook] Missing disbursement id in payload.', {
+    await logWebhookEvent('warning', '[xendit-disbursement-webhook] Missing disbursement id in payload.', {
       webhook: 'xendit-disbursement',
       requestId,
       eventName: eventName || null,
@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Missing disbursement id in payload.' })
   }
 
-  logWebhookEvent('info', '[xendit-disbursement-webhook] Processed webhook.', {
+  await logWebhookEvent('info', '[xendit-disbursement-webhook] Processed webhook.', {
     webhook: 'xendit-disbursement',
     requestId,
     action: result.action,

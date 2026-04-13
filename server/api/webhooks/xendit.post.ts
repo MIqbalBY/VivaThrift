@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!authResult.ok) {
-    logWebhookEvent('warning', authResult.logMessage ?? '[xendit-webhook] Invalid callback token.', {
+    await logWebhookEvent('warning', authResult.logMessage ?? '[xendit-webhook] Invalid callback token.', {
       webhook: 'xendit-invoice',
       requestId,
       statusCode: authResult.statusCode,
@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
   const isRefundEvent = eventType === 'refund.succeeded' || eventType === 'refund.failed'
   if (!xenditInvoiceId && !isRefundEvent) {
-    logWebhookEvent('warning', '[xendit-webhook] Missing invoice id in payload.', {
+    await logWebhookEvent('warning', '[xendit-webhook] Missing invoice id in payload.', {
       webhook: 'xendit-invoice',
       requestId,
       eventName: eventType ?? null,
@@ -237,7 +237,7 @@ export default defineEventHandler(async (event) => {
           .eq('id', disputeId)
       },
       onWarning: (message, error) => {
-        logWebhookEvent('warning', message, {
+        void logWebhookEvent('warning', message, {
           webhook: 'xendit-invoice',
           requestId,
           eventName: eventType ?? null,
@@ -248,7 +248,7 @@ export default defineEventHandler(async (event) => {
       },
     })
 
-    logWebhookEvent('info', '[xendit-webhook] Processed webhook.', {
+    await logWebhookEvent('info', '[xendit-webhook] Processed webhook.', {
       webhook: 'xendit-invoice',
       requestId,
       action: typeof result.action === 'string' ? result.action : null,
@@ -261,7 +261,7 @@ export default defineEventHandler(async (event) => {
     return result
   } catch (error) {
     if (error instanceof Error && error.message === 'Failed to update orders.') {
-      logWebhookEvent('error', '[xendit-webhook] Failed to update orders.', {
+      await logWebhookEvent('error', '[xendit-webhook] Failed to update orders.', {
         webhook: 'xendit-invoice',
         requestId,
         eventName: eventType ?? null,
@@ -273,7 +273,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, statusMessage: 'Failed to update orders.' })
     }
 
-    logWebhookEvent('error', '[xendit-webhook] Unhandled webhook error.', {
+    await logWebhookEvent('error', '[xendit-webhook] Unhandled webhook error.', {
       webhook: 'xendit-invoice',
       requestId,
       eventName: eventType ?? null,

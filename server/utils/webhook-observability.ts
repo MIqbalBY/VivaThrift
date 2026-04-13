@@ -47,7 +47,7 @@ export function createWebhookRequestId() {
   return globalThis.crypto?.randomUUID?.() ?? `webhook-${Date.now()}`
 }
 
-export function logWebhookEvent(level: WebhookLogLevel, message: string, context: WebhookLogContext) {
+export async function logWebhookEvent(level: WebhookLogLevel, message: string, context: WebhookLogContext) {
   const payload = buildPayload(context)
 
   if (level === 'error') {
@@ -77,11 +77,8 @@ export function logWebhookEvent(level: WebhookLogLevel, message: string, context
       }
     }
 
-    if (level === 'warning') {
-      Sentry.captureMessage(message)
-      return
-    }
-
     Sentry.captureMessage(message)
   })
+
+  await Sentry.flush(2000)
 }
