@@ -4,6 +4,7 @@ import { emailOrderConfirmedBuyer, emailNewOrderSeller } from '../../utils/email
 import { processXenditWebhook } from '../../utils/xendit-webhook-handler'
 import { verifyXenditCallbackToken } from '../../utils/webhook-auth'
 import { getXenditCallbackToken } from '../../utils/xendit-config'
+import { createWebhookRequestId, logWebhookEvent } from '../../utils/webhook-observability'
 
 // POST /api/webhooks/xendit
 //
@@ -21,6 +22,8 @@ import { getXenditCallbackToken } from '../../utils/xendit-config'
 //          lalu insert payment record per order.
 
 export default defineEventHandler(async (event) => {
+  const requestId = createWebhookRequestId()
+
   // ── Security: verify Xendit callback token ────────────────────────────────
   const authResult = verifyXenditCallbackToken({
     receivedToken: getHeader(event, 'x-callback-token'),
@@ -28,9 +31,12 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!authResult.ok) {
-    if (authResult.logMessage) {
-      console.error(authResult.logMessage)
-    }
+    logWebhookEvent('warning', authResult.logMessage ?? '[xendit-webhook] Invalid callback token.', {
+      webhook: 'xendit-invoice',
+      requestId,
+      statusCode: authResult.statusCode,
+      errorMessage: authResult.statusMessage,
+    })
 
     throw createError({ statusCode: authResult.statusCode, statusMessage: authResult.statusMessage })
   }
@@ -49,11 +55,19 @@ export default defineEventHandler(async (event) => {
 
   const isRefundEvent = eventType === 'refund.succeeded' || eventType === 'refund.failed'
   if (!xenditInvoiceId && !isRefundEvent) {
+    logWebhookEvent('warning', '[xendit-webhook] Missing invoice id in payload.', {
+      webhook: 'xendit-invoice',
+      requestId,
+      eventName: eventType ?? null,
+      status: status ?? null,
+      statusCode: 400,
+    })
+
     throw createError({ statusCode: 400, statusMessage: 'Missing invoice id in payload.' })
   }
 
   try {
-    return await processXenditWebhook({
+    const result = await processXenditWebhook({
       xenditInvoiceId: xenditInvoiceId ?? '',
       status,
       paymentMethod,
@@ -223,14 +237,51 @@ export default defineEventHandler(async (event) => {
           .eq('id', disputeId)
       },
       onWarning: (message, error) => {
-        console.error(message, error)
+        logWebhookEvent('warning', message, {
+          webhook: 'xendit-invoice',
+          requestId,
+          eventName: eventType ?? null,
+          invoiceId: xenditInvoiceId ?? null,
+          status: status ?? null,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        })
       },
     })
+
+    logWebhookEvent('info', '[xendit-webhook] Processed webhook.', {
+      webhook: 'xendit-invoice',
+      requestId,
+      action: typeof result.action === 'string' ? result.action : null,
+      eventName: eventType ?? null,
+      invoiceId: xenditInvoiceId ?? refundId,
+      status: status ?? null,
+      orderCount: 'orderCount' in result && typeof result.orderCount === 'number' ? result.orderCount : undefined,
+    })
+
+    return result
   } catch (error) {
     if (error instanceof Error && error.message === 'Failed to update orders.') {
-      console.error('[xendit-webhook] Failed to update orders:', error)
+      logWebhookEvent('error', '[xendit-webhook] Failed to update orders.', {
+        webhook: 'xendit-invoice',
+        requestId,
+        eventName: eventType ?? null,
+        invoiceId: xenditInvoiceId ?? refundId,
+        status: status ?? null,
+        statusCode: 500,
+        errorMessage: error.message,
+      })
       throw createError({ statusCode: 500, statusMessage: 'Failed to update orders.' })
     }
+
+    logWebhookEvent('error', '[xendit-webhook] Unhandled webhook error.', {
+      webhook: 'xendit-invoice',
+      requestId,
+      eventName: eventType ?? null,
+      invoiceId: xenditInvoiceId ?? refundId,
+      status: status ?? null,
+      statusCode: 500,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    })
 
     throw error
   }
