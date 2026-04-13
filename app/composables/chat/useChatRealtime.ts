@@ -13,6 +13,46 @@ export function useChatRealtime(
 ) {
   const channel = ref<any>(null)
   let roomRetryTimer: ReturnType<typeof setTimeout> | null = null
+  let productSyncTimer: ReturnType<typeof setInterval> | null = null
+  let productSyncInFlight = false
+
+  const PRODUCT_SYNC_INTERVAL_MS = 45000
+
+  async function syncProductState(force = false) {
+    const productId = chat.value?.product?.id
+    if (!productId) return
+    if (!force && document.visibilityState !== 'visible') return
+    if (productSyncInFlight) return
+
+    productSyncInFlight = true
+    try {
+      const { data } = await supabase
+        .from('products')
+        .select('stock, status')
+        .eq('id', productId)
+        .maybeSingle()
+
+      if (!data) return
+      if (data.stock !== undefined) localProductStock.value = data.stock
+      if (data.status !== undefined) localProductStatus.value = data.status
+    } finally {
+      productSyncInFlight = false
+    }
+  }
+
+  function startProductSync() {
+    if (productSyncTimer) clearInterval(productSyncTimer)
+    productSyncTimer = setInterval(() => {
+      syncProductState()
+    }, PRODUCT_SYNC_INTERVAL_MS)
+  }
+
+  function stopProductSync() {
+    if (productSyncTimer) {
+      clearInterval(productSyncTimer)
+      productSyncTimer = null
+    }
+  }
 
   function pickRecord(payload: any, mode: 'new' | 'old') {
     if (!payload) return null
@@ -112,18 +152,25 @@ export function useChatRealtime(
     if (document.visibilityState === 'visible') {
       setupChatChannel()
       markMessagesAsRead()
+      syncProductState(true)
     }
   }
-  function onRoomOnline() { setupChatChannel() }
+  function onRoomOnline() {
+    setupChatChannel()
+    syncProductState(true)
+  }
 
   function startRealtime() {
     setupChatChannel()
+    startProductSync()
+    syncProductState(true)
     document.addEventListener('visibilitychange', onRoomVisibilityChange)
     window.addEventListener('online', onRoomOnline)
   }
 
   function stopRealtime() {
     if (roomRetryTimer) { clearTimeout(roomRetryTimer); roomRetryTimer = null }
+    stopProductSync()
     if (channel.value) { supabase.removeChannel(channel.value); channel.value = null }
     document.removeEventListener('visibilitychange', onRoomVisibilityChange)
     window.removeEventListener('online', onRoomOnline)
