@@ -279,8 +279,9 @@ export default defineEventHandler(async (event) => {
     // Always mark sold (secondhand = each item is unique); only update stock if tracked.
     if (!isReissuing) {
       const stockUpdate: Record<string, unknown> = { status: 'sold' }
-      if (currentProduct.stock !== null && currentProduct.stock !== undefined) {
-        stockUpdate.stock = Math.max(0, currentProduct.stock - offer.quantity)
+      const currentStock = currentProduct?.stock
+      if (currentStock !== null && currentStock !== undefined) {
+        stockUpdate.stock = Math.max(0, currentStock - offer.quantity)
       }
       await supabaseAdmin
         .from('products')
