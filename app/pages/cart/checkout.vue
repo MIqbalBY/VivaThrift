@@ -71,7 +71,7 @@ const paymentChargeBreakdown = computed(() => {
   const percent = Number(byChannel?.percent ?? runtimeConfig.public.xenditPaymentFeePercent ?? 0)
   const flat = Math.round(Number(byChannel?.flat ?? runtimeConfig.public.xenditPaymentFeeFlat ?? 0))
   const taxPercent = Number(runtimeConfig.public.xenditPaymentFeeTaxPercent ?? 11)
-  const baseAmount = cartTotal.value + ongkirAmount.value + platformFee.value
+  const baseAmount = cartTotal.value + ongkirAmount.value
   const gatewayFeeBase = Math.round((Math.max(0, baseAmount) * Math.max(0, percent)) / 100) + Math.max(0, flat)
   const gatewayFeeTax = Math.round((Math.max(0, gatewayFeeBase) * Math.max(0, taxPercent)) / 100)
   return {
@@ -81,7 +81,7 @@ const paymentChargeBreakdown = computed(() => {
   }
 })
 
-const grandTotal = computed(() => cartTotal.value + ongkirAmount.value + platformFee.value + paymentChargeBreakdown.value.total)
+const grandTotal = computed(() => cartTotal.value + ongkirAmount.value)
 
 async function fetchRates() {
   if (!destPostal.value.trim()) {
@@ -506,15 +506,15 @@ async function handleCheckout(forceRegenerateInvoice = false) {
             </span>
           </div>
           <div class="flex justify-between">
-            <span>Biaya Layanan</span>
+            <span>Biaya Layanan (ditanggung penjual)</span>
             <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ platformFee.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between">
-            <span>Biaya Payment Gateway</span>
+            <span>Biaya Payment Gateway (ditanggung penjual)</span>
             <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ paymentChargeBreakdown.gatewayFeeBase.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between">
-            <span>PPN Payment Gateway</span>
+            <span>PPN Payment Gateway (ditanggung penjual)</span>
             <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ paymentChargeBreakdown.gatewayFeeTax.toLocaleString('id-ID') }}</span>
           </div>
         </div>

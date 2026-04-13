@@ -131,8 +131,9 @@ export function generateMeetupOTP(): string {
 
 // ── Platform Fee ──────────────────────────────────────────────────────────────
 //
-// Fee dibebankan ke PEMBELI (ditambah ke tagihan), bukan dipotong dari penjual.
-// Penjual menerima penuh harga barang (subtotal).
+// Fee dibebankan ke PENJUAL (dipotong saat settlement/disbursement),
+// bukan ditambahkan ke tagihan pembeli.
+// Pembeli hanya membayar subtotal (+ ongkir bila shipping).
 //
 // Tier berdasarkan subtotal (harga × kuantitas, tanpa ongkir):
 //   ≤ Rp 100.000       → + Rp   1.000 flat
@@ -147,7 +148,7 @@ export function calculatePlatformFee(subtotal: number): number {
 
 // ── Payment Gateway Fee (Xendit) ───────────────────────────────────────────
 //
-// Dibebankan ke pembeli agar fee platform tetap bersih.
+// Dibebankan ke penjual agar total checkout buyer tetap bersih.
 // Rumus: round(baseAmount * percent / 100) + flat
 // Nilai percent dan flat dikontrol via env untuk menyesuaikan dashboard Xendit.
 
@@ -200,7 +201,7 @@ export function calculatePaymentGatewayFee(baseAmount: number, channel?: string 
 export interface CommissionResult {
   subtotal: number
   platformFee: number
-  /** Jumlah yang ditransfer ke penjual = subtotal penuh (fee sudah ditanggung pembeli) */
+  /** Estimasi transfer ke penjual setelah biaya layanan (belum termasuk fee gateway). */
   sellerReceives: number
 }
 
@@ -267,6 +268,6 @@ export function calculateCommission(
   return {
     subtotal,
     platformFee,
-    sellerReceives: subtotal,
+    sellerReceives: Math.max(0, subtotal - platformFee),
   }
 }

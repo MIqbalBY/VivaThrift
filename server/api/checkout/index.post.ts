@@ -184,9 +184,10 @@ export default defineEventHandler(async (event) => {
   const sellerId: string = chat?.seller_id ?? product?.seller_id
   const subtotal: number    = offer.offered_price * offer.quantity
   const platformFee: number = calculatePlatformFee(subtotal)
-  const baseAmount: number = subtotal + platformFee + shippingCost
-  const paymentGatewayFee: number = calculatePaymentChargeBreakdown(baseAmount, paymentChannel).total
-  const totalAmount: number = baseAmount + paymentGatewayFee
+  // Buyer only pays item subtotal + shipping. Platform + gateway fees are seller-borne.
+  const buyerPayableAmount: number = subtotal + shippingCost
+  const paymentGatewayFee: number = calculatePaymentChargeBreakdown(buyerPayableAmount, paymentChannel).total
+  const totalAmount: number = buyerPayableAmount
 
   // ── 5. INSERT order ───────────────────────────────────────────────────────
   let orderId: string

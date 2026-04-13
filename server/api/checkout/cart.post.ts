@@ -166,9 +166,9 @@ export default defineEventHandler(async (event) => {
     let grandTotal = 0
     const orderIds: string[] = []
     for (const order of pendingOrders) {
-      const baseAmount = Math.max(0, Number(order.total_amount ?? 0) - Number(order.payment_gateway_fee ?? 0))
-      const paymentGatewayFee = calculatePaymentChargeBreakdown(baseAmount, paymentChannel).total
-      const totalAmount = baseAmount + paymentGatewayFee
+      const buyerPayableAmount = Math.max(0, Number(order.total_amount ?? 0))
+      const paymentGatewayFee = calculatePaymentChargeBreakdown(buyerPayableAmount, paymentChannel).total
+      const totalAmount = buyerPayableAmount
 
       await supabaseAdmin
         .from('orders')
@@ -298,9 +298,10 @@ export default defineEventHandler(async (event) => {
     const orderShippingCost = costPerSeller + (sellerIndex === 0 ? remainderCost : 0)
     const meetupOtp = shippingMethod === 'cod' ? generateMeetupOTP() : null
     const platformFee = calculatePlatformFee(group.total)
-    const baseAmount = group.total + orderShippingCost + platformFee
-    const paymentGatewayFee = calculatePaymentChargeBreakdown(baseAmount, paymentChannel).total
-    const orderTotalAmount = baseAmount + paymentGatewayFee
+    // Buyer only pays item subtotal + shipping. Platform + gateway fees are seller-borne.
+    const buyerPayableAmount = group.total + orderShippingCost
+    const paymentGatewayFee = calculatePaymentChargeBreakdown(buyerPayableAmount, paymentChannel).total
+    const orderTotalAmount = buyerPayableAmount
     grandTotal += orderTotalAmount
 
     const { data: order, error: ordErr } = await supabaseAdmin

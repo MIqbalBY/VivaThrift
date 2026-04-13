@@ -178,7 +178,7 @@ const paymentChargeBreakdown = computed(() => {
   const percent = Number(byChannel?.percent ?? runtimeConfig.public.xenditPaymentFeePercent ?? 0)
   const flat = Math.round(Number(byChannel?.flat ?? runtimeConfig.public.xenditPaymentFeeFlat ?? 0))
   const taxPercent = Number(runtimeConfig.public.xenditPaymentFeeTaxPercent ?? 11)
-  const baseAmount = subtotal.value + ongkirAmount.value + platformFee.value
+  const baseAmount = subtotal.value + ongkirAmount.value
   const gatewayFeeBase = Math.round((Math.max(0, baseAmount) * Math.max(0, percent)) / 100) + Math.max(0, flat)
   const gatewayFeeTax = Math.round((Math.max(0, gatewayFeeBase) * Math.max(0, taxPercent)) / 100)
   return {
@@ -188,7 +188,7 @@ const paymentChargeBreakdown = computed(() => {
   }
 })
 
-const total = computed(() => subtotal.value + ongkirAmount.value + platformFee.value + paymentChargeBreakdown.value.total)
+const total = computed(() => subtotal.value + ongkirAmount.value)
 
 // ── Ongkir calculator ─────────────────────────────────────────────────────────
 async function fetchRates() {
@@ -393,15 +393,15 @@ async function placeOrder(forceRegenerateInvoice = false) {
             <span class="font-semibold" :class="isDark ? 'text-green-400' : 'text-green-600'">Gratis (COD)</span>
           </div>
           <div class="flex justify-between">
-            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Layanan</span>
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Layanan (ditanggung penjual)</span>
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ platformFee.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between">
-            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Payment Gateway</span>
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Biaya Payment Gateway (ditanggung penjual)</span>
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ paymentChargeBreakdown.gatewayFeeBase.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between">
-            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">PPN Payment Gateway</span>
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">PPN Payment Gateway (ditanggung penjual)</span>
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">Rp {{ paymentChargeBreakdown.gatewayFeeTax.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between pt-3 mt-1" :class="isDark ? 'border-t border-white/10' : 'border-t border-gray-100'">
