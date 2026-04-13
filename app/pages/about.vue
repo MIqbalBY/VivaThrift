@@ -77,7 +77,7 @@ const values = [
     </HelpCenterHero>
 
     <section class="vt-stats-band relative" :ref="reveal">
-      <div class="max-w-7xl mx-auto px-6 md:px-10 -mt-10 md:-mt-14 relative z-10">
+      <div class="max-w-7xl mx-auto px-6 md:px-10 mt-4 md:mt-6 relative z-10">
         <div class="vt-stats-shell grid grid-cols-2 md:grid-cols-4 rounded-[2rem] overflow-hidden">
           <div
             v-for="(s, i) in stats"
@@ -458,13 +458,13 @@ const values = [
 
 /* ── Stats value & label (dark on light sky-blue, white on dark) ── */
 .vt-stat-value {
-  color: #ffffff;
+  color: #0f172a;
 }
 .dark .vt-stat-value {
   color: #ffffff;
 }
 .vt-stat-label {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(15, 23, 42, 0.72);
 }
 .dark .vt-stat-label {
   color: rgba(255, 255, 255, 0.65);
