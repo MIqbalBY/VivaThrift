@@ -77,7 +77,7 @@ const values = [
     </HelpCenterHero>
 
     <section class="vt-stats-band relative" :ref="reveal">
-      <div class="max-w-7xl mx-auto px-6 md:px-10 -mt-5 md:-mt-7 relative z-10">
+      <div class="max-w-7xl mx-auto px-6 md:px-10 relative z-10 vt-stats-wrap">
         <div class="vt-stats-shell grid grid-cols-2 md:grid-cols-4 rounded-[2rem] overflow-hidden">
           <div
             v-for="(s, i) in stats"
@@ -274,9 +274,14 @@ const values = [
 <style scoped>
 .vt-stats-band {
   background: transparent;
+  padding-top: 0.75rem;
+  padding-bottom: 2.5rem;
 }
 .dark .vt-stats-band {
   background: transparent;
+}
+.vt-stats-wrap {
+  margin-top: 0.25rem;
 }
 .vt-stats-shell {
   background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96));
@@ -295,6 +300,10 @@ const values = [
   border-right: none;
 }
 @media (max-width: 767px) {
+  .vt-stats-band {
+    padding-top: 0.5rem;
+    padding-bottom: 1.75rem;
+  }
   .vt-stat-item:nth-child(even) {
     border-right: none;
   }

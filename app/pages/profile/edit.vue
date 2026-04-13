@@ -66,6 +66,18 @@ const bankAccountName   = ref('')
 const rekeningLoading   = ref(false)
 const rekeningMsg       = ref('')
 const rekeningMsgType   = ref('')
+const walletLoading     = ref(false)
+const walletSubmitting  = ref(false)
+const walletMsg         = ref('')
+const walletMsgType     = ref('')
+const withdrawAmount    = ref('')
+const walletSummary     = ref({
+  available_balance: 0,
+  total_credited: 0,
+  total_withdrawn: 0,
+  updated_at: null,
+})
+const walletTransactions = ref([])
 
 async function fetchRekening(uid) {
   const { data } = await supabase
@@ -101,6 +113,56 @@ async function saveRekening() {
     rekeningMsg.value     = 'Rekening berhasil disimpan.'
     rekeningMsgType.value = 'ok'
     setTimeout(() => { rekeningMsg.value = '' }, 3000)
+  }
+}
+
+async function fetchSellerWallet() {
+  walletLoading.value = true
+  walletMsg.value = ''
+  try {
+    const result = await $fetch('/api/seller/wallet')
+    walletSummary.value = {
+      available_balance: Number(result?.wallet?.available_balance ?? 0),
+      total_credited: Number(result?.wallet?.total_credited ?? 0),
+      total_withdrawn: Number(result?.wallet?.total_withdrawn ?? 0),
+      updated_at: result?.wallet?.updated_at ?? null,
+    }
+    walletTransactions.value = Array.isArray(result?.transactions) ? result.transactions : []
+  } catch (err) {
+    walletMsg.value = err?.data?.statusMessage || err?.message || 'Gagal memuat data wallet.'
+    walletMsgType.value = 'err'
+  } finally {
+    walletLoading.value = false
+  }
+}
+
+async function submitWithdraw() {
+  const cleanAmount = String(withdrawAmount.value || '').replace(/\D/g, '')
+  const amount = Number(cleanAmount)
+
+  if (!amount || amount <= 0) {
+    walletMsg.value = 'Nominal withdraw harus lebih besar dari 0.'
+    walletMsgType.value = 'err'
+    return
+  }
+
+  walletSubmitting.value = true
+  walletMsg.value = ''
+
+  try {
+    const result = await $fetch('/api/seller/wallet/withdraw', {
+      method: 'POST',
+      body: { amount },
+    })
+    walletMsg.value = `Withdraw berhasil diproses. Dana cair: Rp ${Number(result?.transferAmount ?? 0).toLocaleString('id-ID')}`
+    walletMsgType.value = 'ok'
+    withdrawAmount.value = ''
+    await fetchSellerWallet()
+  } catch (err) {
+    walletMsg.value = err?.data?.statusMessage || err?.message || 'Withdraw gagal diproses.'
+    walletMsgType.value = 'err'
+  } finally {
+    walletSubmitting.value = false
   }
 }
 
@@ -158,6 +220,7 @@ onMounted(async () => {
     fetchMyRating(session.user.id)
     fetchUserSettings(session.user.id)
     fetchRekening(session.user.id)
+    fetchSellerWallet()
   }
 })
 
@@ -169,6 +232,7 @@ watch(user, (u) => {
     fetchMyRating(u.id)
     fetchUserSettings(u.id)
     fetchRekening(u.id)
+    fetchSellerWallet()
   }
 }, { immediate: true })
 </script>
@@ -329,10 +393,20 @@ watch(user, (u) => {
           :rekeningLoading="rekeningLoading"
           :rekeningMsg="rekeningMsg"
           :rekeningMsgType="rekeningMsgType"
+          :walletLoading="walletLoading"
+          :walletSubmitting="walletSubmitting"
+          :walletMsg="walletMsg"
+          :walletMsgType="walletMsgType"
+          :withdrawAmount="withdrawAmount"
+          :walletSummary="walletSummary"
+          :walletTransactions="walletTransactions"
           @update:bankCode="bankCode = $event"
           @update:bankAccountNumber="bankAccountNumber = $event"
           @update:bankAccountName="bankAccountName = $event"
+          @update:withdrawAmount="withdrawAmount = $event"
           @save-rekening="saveRekening"
+          @submit-withdraw="submitWithdraw"
+          @refresh-wallet="fetchSellerWallet"
         />
       </template>
 
