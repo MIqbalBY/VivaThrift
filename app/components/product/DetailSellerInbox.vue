@@ -55,12 +55,21 @@ function formatChatTime(iso) {
 
 let channel = null
 
+function pickRecord(payload, mode) {
+  if (!payload) return null
+  if (mode === 'new') {
+    return payload.new ?? payload.record ?? payload.new_record ?? payload.data?.new ?? payload.data?.record ?? null
+  }
+  return payload.old ?? payload.old_record ?? payload.data?.old ?? payload.data?.old_record ?? null
+}
+
 function setupRealtime() {
   if (channel) return
   channel = supabase
-    .channel(`produk-seller-chats-${props.productId}`)
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-      const msg = payload.new
+    .channel(`user:${props.currentUserId}:inbox`, { config: { private: true } })
+    .on('broadcast', { event: 'INSERT' }, ({ payload }) => {
+      const msg = pickRecord(payload, 'new')
+      if (!msg) return
       const chatIdx = sellerChats.value.findIndex(c => c.id === msg.chat_id)
       if (chatIdx === -1) return
       const chat = sellerChats.value[chatIdx]

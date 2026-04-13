@@ -112,15 +112,22 @@ const quickLinks = [
     <!-- ══════════════════════════════════════
          CONTACT INFO + FORM
          ══════════════════════════════════════ -->
-    <section class="vt-main-section py-20">
+    <section class="vt-main-section pt-24 pb-20">
       <div class="max-w-7xl mx-auto px-6 md:px-10">
+        <div
+          class="rounded-2xl px-5 py-4 mb-8 border"
+          :class="isDark ? 'bg-sky-900/20 border-sky-700/40 text-sky-200' : 'bg-sky-50 border-sky-100 text-sky-800'"
+        >
+          <p class="text-[11px] font-semibold tracking-widest uppercase opacity-80 mb-1">Legal Entity</p>
+          <p class="text-sm font-semibold">VivaThrift dikelola oleh PT Viva Niaga Digital.</p>
+        </div>
+
         <div class="lg:grid lg:grid-cols-[340px_1fr] lg:gap-16">
 
           <!-- Left: contact info -->
           <div :ref="reveal" class="mb-12 lg:mb-0">
             <p class="text-xs font-semibold tracking-widest uppercase mb-2 vt-label-accent">Info Kontak</p>
             <h2 class="vt-heading text-2xl font-bold mb-6">Reach out ke kami</h2>
-            <p class="text-xs mb-6" :class="isDark ? 'text-slate-400' : 'text-gray-500'">Legal entity: PT Viva Niaga Digital</p>
 
             <div class="flex flex-col gap-4 mb-10">
               <div

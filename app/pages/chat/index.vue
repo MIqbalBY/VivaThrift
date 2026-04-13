@@ -99,16 +99,26 @@ const clientUnread = computed(() => {
 let listChannel = null
 let listRetryTimer = null
 
+function pickRecord(payload, mode) {
+  if (!payload) return null
+  if (mode === 'new') {
+    return payload.new ?? payload.record ?? payload.new_record ?? payload.data?.new ?? payload.data?.record ?? null
+  }
+  return payload.old ?? payload.old_record ?? payload.data?.old ?? payload.data?.old_record ?? null
+}
+
 function setupListChannel() {
   if (listRetryTimer) { clearTimeout(listRetryTimer); listRetryTimer = null }
   if (listChannel) { supabase.removeChannel(listChannel); listChannel = null }
+  if (!userId) return
   listChannel = supabase
-    .channel('chat-list-realtime')
+    .channel(`user:${userId}:inbox`, { config: { private: true } })
     .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'messages' },
-      (payload) => {
-        const msg = payload.new
+      'broadcast',
+      { event: 'INSERT' },
+      ({ payload }) => {
+        const msg = pickRecord(payload, 'new')
+        if (!msg) return
         if (!chats.value) return
         const chatIdx = chats.value.findIndex(c => c.id === msg.chat_id)
         if (chatIdx === -1) return
@@ -128,14 +138,16 @@ function setupListChannel() {
       }
     )
     .on(
-      'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'messages' },
-      (payload) => {
+      'broadcast',
+      { event: 'UPDATE' },
+      ({ payload }) => {
+        const updatedMsg = pickRecord(payload, 'new')
+        if (!updatedMsg) return
         // Update is_read on local message copy (e.g. when other device marks as read)
         if (!chats.value) return
         for (const chat of chats.value) {
-          const msg = (chat.messages ?? []).find(m => m.id === payload.new.id)
-          if (msg) { msg.is_read = payload.new.is_read; break }
+          const msg = (chat.messages ?? []).find(m => m.id === updatedMsg.id)
+          if (msg) { msg.is_read = updatedMsg.is_read; break }
         }
       }
     )

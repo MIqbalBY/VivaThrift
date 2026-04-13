@@ -1,14 +1,33 @@
+let channel: any = null
+let heartbeatInterval: any = null
+let trackedUserId: string | null = null
+let beforeUnloadHandler: (() => void) | null = null
+let visibilityHandler: (() => void) | null = null
+let authListener: any = null
+let lastSeenWriteAt = 0
+let lastSeenWriteInFlight = false
+
+const LAST_SEEN_HEARTBEAT_MS = 180000
+const LAST_SEEN_MIN_WRITE_GAP_MS = 60000
+
 export function usePresence() {
   const supabase = useSupabaseClient()
   const onlineUsers = useState<Record<string, boolean>>('presenceOnlineUsers', () => ({}))
   const presenceReady = useState<boolean>('presenceReady', () => false)
 
-  let channel: any = null
-  let heartbeatInterval: any = null
-  let trackedUserId: string | null = null
-  let beforeUnloadHandler: (() => void) | null = null
-  let visibilityHandler: (() => void) | null = null
-  let authListener: any = null
+  async function updateLastSeen(userId: string, force = false) {
+    const now = Date.now()
+    if (!force && (lastSeenWriteInFlight || now - lastSeenWriteAt < LAST_SEEN_MIN_WRITE_GAP_MS)) return
+    lastSeenWriteInFlight = true
+    try {
+      await (supabase.from('users') as any)
+        .update({ last_seen_at: new Date(now).toISOString() })
+        .eq('id', userId)
+      lastSeenWriteAt = now
+    } finally {
+      lastSeenWriteInFlight = false
+    }
+  }
 
   function setupGlobalPresence(userId: string) {
     if (!import.meta.client || !userId || channel) return
@@ -42,23 +61,25 @@ export function usePresence() {
         }
       })
 
-    // Update last_seen_at in DB periodically
+    // Throttle heartbeat writes; realtime presence already carries online status.
     heartbeatInterval = setInterval(() => {
-      ;(supabase.from('users') as any).update({ last_seen_at: new Date().toISOString() }).eq('id', userId).then(() => {})
-    }, 60000)
+      if (document.visibilityState === 'visible') {
+        updateLastSeen(userId)
+      }
+    }, LAST_SEEN_HEARTBEAT_MS)
 
     // Update last_seen on page visibility change
     if (typeof document !== 'undefined') {
       visibilityHandler = () => {
         if (document.visibilityState === 'hidden') {
-          ;(supabase.from('users') as any).update({ last_seen_at: new Date().toISOString() }).eq('id', userId).then(() => {})
+          updateLastSeen(userId, true)
         }
       }
       document.addEventListener('visibilitychange', visibilityHandler)
 
       // Untrack immediately on tab close so other users see offline instantly
       beforeUnloadHandler = () => {
-        ;(supabase.from('users') as any).update({ last_seen_at: new Date().toISOString() }).eq('id', userId).then(() => {})
+        updateLastSeen(userId, true)
         if (channel) {
           channel.untrack()
         }
@@ -69,7 +90,7 @@ export function usePresence() {
     // Cleanup presence on logout so other users see offline instantly
     const { data } = supabase.auth.onAuthStateChange((event: string) => {
       if (event === 'SIGNED_OUT') {
-        ;(supabase.from('users') as any).update({ last_seen_at: new Date().toISOString() }).eq('id', userId).then(() => {})
+        updateLastSeen(userId, true)
         cleanup()
       }
     })

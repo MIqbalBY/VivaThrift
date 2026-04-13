@@ -12,7 +12,14 @@ interface NavChatMessage {
 
 interface NavChatRow {
   id: string
-  messages?: NavChatMessage[] | null
+}
+
+interface NavUnreadMessage {
+  id: string
+  chat_id: string
+  sender_id: string
+  content?: string | null
+  created_at?: string | null
 }
 
 export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
@@ -26,22 +33,25 @@ export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
   let navChatChannel: any = null
   let navRetryTimer: ReturnType<typeof setTimeout> | null = null
   let navPollTimer: ReturnType<typeof setInterval> | null = null
+  let navFetchTimer: ReturnType<typeof setTimeout> | null = null
   let hasUnreadBaseline = false
   let knownUnreadMessageIds = new Set<string>()
 
-  function syncPopupFallback(chats: NavChatRow[], uid: string) {
+  function syncPopupFallback(unreadMessages: NavUnreadMessage[], uid: string) {
     const nextUnreadIds = new Set<string>()
     const nextPopupCandidates: Array<{ chatId: string, messageId: string, senderId: string, content: string }> = []
+    const unreadByChat = new Map<string, NavUnreadMessage[]>()
 
-    for (const chat of chats) {
-      const incomingUnread = (chat.messages ?? [])
-        .filter((message) => message.sender_id !== uid && message.is_read === false)
+    for (const message of unreadMessages) {
+      nextUnreadIds.add(message.id)
+      if (message.sender_id === uid) continue
+      const bucket = unreadByChat.get(message.chat_id)
+      if (bucket) bucket.push(message)
+      else unreadByChat.set(message.chat_id, [message])
+    }
 
-      for (const message of incomingUnread) {
-        nextUnreadIds.add(message.id)
-      }
-
-      if (route.path === `/chat/${chat.id}` || incomingUnread.length === 0) continue
+    for (const [chatId, incomingUnread] of unreadByChat.entries()) {
+      if (route.path === `/chat/${chatId}` || incomingUnread.length === 0) continue
 
       const latestUnread = [...incomingUnread]
         .sort((left, right) => new Date(right.created_at ?? 0).getTime() - new Date(left.created_at ?? 0).getTime())[0]
@@ -49,7 +59,7 @@ export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
       if (!latestUnread?.id || knownUnreadMessageIds.has(latestUnread.id)) continue
 
       nextPopupCandidates.push({
-        chatId: chat.id,
+        chatId,
         messageId: latestUnread.id,
         senderId: latestUnread.sender_id,
         content: latestUnread.content ?? '',
@@ -70,30 +80,51 @@ export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
     if (navUid.value) fetchNavUnread(navUid.value)
   })
 
-  async function fetchNavUnread(uid: string) {
-    const { data, error } = await supabase
+  async function runFetchNavUnread(uid: string) {
+    const { data: chatRows, error: chatError } = await supabase
       .from('chats')
-      .select('id, messages(id, sender_id, is_read, content, created_at)')
+      .select('id')
       .or(`buyer_id.eq.${uid},seller_id.eq.${uid}`)
-    if (error) { console.error('[NavUnread] Supabase error:', error); return }
-    const chats = (data ?? []) as NavChatRow[]
-    syncPopupFallback(chats, uid)
+    if (chatError) { console.error('[NavUnread] Supabase error:', chatError); return }
+
+    const chatIds = ((chatRows ?? []) as NavChatRow[]).map((chat) => chat.id)
+    if (!chatIds.length) {
+      syncPopupFallback([], uid)
+      navUnreadCount.value = 0
+      return
+    }
+
+    const { data: unreadRows, error: unreadError } = await supabase
+      .from('messages')
+      .select('id, chat_id, sender_id, content, created_at')
+      .in('chat_id', chatIds)
+      .neq('sender_id', uid)
+      .eq('is_read', false)
+    if (unreadError) { console.error('[NavUnread] Supabase error:', unreadError); return }
+
+    const unreadMessages = (unreadRows ?? []) as NavUnreadMessage[]
+    syncPopupFallback(unreadMessages, uid)
+
     let total = 0
-    for (const chat of chats) {
-      if (route.path === `/chat/${chat.id}`) continue
-      const msgs = chat.messages ?? []
-      const dbUnread = msgs.filter((m: any) => m.sender_id !== uid && m.is_read === false).length
-      if (dbUnread > 0) {
-        total += dbUnread
-      } else {
-        const sorted = [...msgs].sort((a: any, b: any) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
-        const latestMessage = sorted[0]
-        if (latestMessage && latestMessage.sender_id === uid) continue
-        const lastViewed = parseInt(localStorage.getItem(`chat_viewed_${uid}_${chat.id}`) ?? '0')
-        if (lastViewed > 0) continue
-      }
+    for (const message of unreadMessages) {
+      if (route.path === `/chat/${message.chat_id}`) continue
+      total += 1
     }
     navUnreadCount.value = total
+  }
+
+  function fetchNavUnread(uid: string, immediate = false) {
+    if (navFetchTimer) {
+      clearTimeout(navFetchTimer)
+      navFetchTimer = null
+    }
+    if (immediate) {
+      runFetchNavUnread(uid)
+      return
+    }
+    navFetchTimer = setTimeout(() => {
+      runFetchNavUnread(uid)
+    }, 350)
   }
 
   function pickRecord(payload: any, mode: 'new' | 'old') {
@@ -127,7 +158,7 @@ export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           navChatStatus.value = 'connected'
-          fetchNavUnread(uid)
+          fetchNavUnread(uid, true)
         } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
           navChatStatus.value = 'reconnecting'
           navRetryTimer = setTimeout(() => setupNavChannel(uid), 3000)
@@ -141,26 +172,27 @@ export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
     if (navPollTimer) clearInterval(navPollTimer)
     navPollTimer = setInterval(() => {
       if (document.visibilityState === 'visible') fetchNavUnread(uid)
-    }, 15000)
+    }, 60000)
   }
 
   function handleVisibilityChange() {
     if (document.visibilityState === 'visible' && navUid.value) {
       setupNavChannel(navUid.value)
-      fetchNavUnread(navUid.value)
+      fetchNavUnread(navUid.value, true)
     }
   }
 
   function handleOnline() {
     if (navUid.value) {
       setupNavChannel(navUid.value)
-      fetchNavUnread(navUid.value)
+      fetchNavUnread(navUid.value, true)
     }
   }
 
   function cleanup() {
     if (navRetryTimer) { clearTimeout(navRetryTimer); navRetryTimer = null }
     if (navPollTimer) { clearInterval(navPollTimer); navPollTimer = null }
+    if (navFetchTimer) { clearTimeout(navFetchTimer); navFetchTimer = null }
     if (navChatChannel) { supabase.removeChannel(navChatChannel); navChatChannel = null }
     navChatStatus.value = 'idle'
     hasUnreadBaseline = false
