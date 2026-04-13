@@ -5,6 +5,7 @@ useSeoMeta({
 })
 
 const { reveal } = useScrollReveal()
+const { isDark } = useDarkMode()
 
 const form = reactive({
   name: '',
