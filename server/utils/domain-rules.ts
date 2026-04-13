@@ -89,10 +89,12 @@ export type ShippingMethod = 'cod' | 'shipping'
 /** Campus meetup locations for COD handover (sorted alphabetically) */
 export const MEETUP_LOCATIONS = [
   { id: 'aula_asrama',     label: 'Aula Asrama ITS' },
+  { id: 'ccws_ikoma',      label: 'CCWS IKOMA ITS' },
   { id: 'rektorat',        label: 'Depan Rektorat ITS' },
   { id: 'gedung_robotika', label: 'Gedung Robotika ITS' },
   { id: 'kantin_pusat',    label: 'Kantin Pusat ITS' },
   { id: 'masjid_manarul',  label: 'Masjid Manarul Ilmi ITS' },
+  { id: 'perpustakaan_its', label: 'Perpustakaan ITS' },
   { id: 'research_center', label: 'Research Center ITS' },
   { id: 'taman_alumni',    label: 'Taman Alumni ITS' },
   { id: 'taman_infinits',  label: 'Taman Infinits' },

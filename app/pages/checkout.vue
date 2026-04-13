@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { CHECKOUT_MEETUP_LOCATIONS_WITH_OTHER } from '~/data/meetupLocations'
+
 definePageMeta({ middleware: 'auth' })
 
 const route       = useRoute()
@@ -33,20 +35,7 @@ const selectedRate         = ref<any | null>(null)
 const ratesLoading         = ref(false)
 const ratesErr             = ref('')
 
-const MEETUP_LOCATIONS = [
-  { id: 'aula_asrama',     label: 'Aula Asrama ITS' },
-  { id: 'gedung_robotika', label: 'Gedung Robotika ITS' },
-  { id: 'kantin_pusat',    label: 'Kantin Pusat ITS' },
-  { id: 'masjid_manarul',  label: 'Masjid Manarul Ilmi ITS' },
-  { id: 'rektorat',        label: 'Rektorat ITS' },
-  { id: 'research_center', label: 'Research Center ITS' },
-  { id: 'taman_alumni',    label: 'Taman Alumni ITS' },
-  { id: 'taman_infinits',  label: 'Taman Infinits' },
-  { id: 'tower_1',         label: 'Tower 1 ITS' },
-  { id: 'tower_2',         label: 'Tower 2 ITS' },
-  { id: 'tower_3',         label: 'Tower 3 ITS' },
-  { id: 'other',           label: '✏️ Lainnya (isi manual)' },
-] as const
+const MEETUP_LOCATIONS = CHECKOUT_MEETUP_LOCATIONS_WITH_OTHER
 
 // ── Buyer shipping address (always fresh, no SSR cache) ──────────────────────
 const { data: addrData } = await useAsyncData('buyer-address', async () => {

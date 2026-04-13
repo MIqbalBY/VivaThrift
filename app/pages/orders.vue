@@ -100,10 +100,12 @@ const meetupOtpInputs = ref<Record<string, string>>({})
 
 const MEETUP_LOCATION_LABELS: Record<string, string> = {
   aula_asrama:     'Aula Asrama ITS',
+  ccws_ikoma:      'CCWS IKOMA ITS',
   rektorat:        'Depan Rektorat ITS',
   gedung_robotika: 'Gedung Robotika ITS',
   kantin_pusat:    'Kantin Pusat ITS',
   masjid_manarul:  'Masjid Manarul Ilmi ITS',
+  perpustakaan_its: 'Perpustakaan ITS',
   research_center: 'Research Center ITS',
   taman_alumni:    'Taman Alumni ITS',
   taman_infinits:  'Taman Infinits',

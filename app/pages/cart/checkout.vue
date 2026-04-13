@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' })
 useSeoMeta({ title: 'Checkout Keranjang — VivaThrift' })
+import { CHECKOUT_MEETUP_LOCATIONS_WITH_OTHER } from '~/data/meetupLocations'
 
 const { isDark } = useDarkMode()
 const runtimeConfig = useRuntimeConfig()
@@ -16,20 +17,11 @@ const existingPaymentUrl = ref('')
 const canRegenerateInvoice = ref(false)
 
 // ── Shipping state ──────────────────────────────────────────────────────────
-const MEETUP_LOCATIONS = [
-  { id: 'aula_asrama',     label: 'Aula Asrama ITS' },
-  { id: 'rektorat',        label: 'Depan Rektorat ITS' },
-  { id: 'gedung_robotika', label: 'Gedung Robotika ITS' },
-  { id: 'kantin_pusat',    label: 'Kantin Pusat ITS' },
-  { id: 'masjid_manarul',  label: 'Masjid Manarul Ilmi ITS' },
-  { id: 'research_center', label: 'Research Center ITS' },
-  { id: 'taman_alumni',    label: 'Taman Alumni ITS' },
-  { id: 'taman_infinits',  label: 'Taman Infinits' },
-  { id: 'tower_1',         label: 'Tower 1 ITS' },
-  { id: 'tower_2',         label: 'Tower 2 ITS' },
-  { id: 'tower_3',         label: 'Tower 3 ITS' },
-  { id: 'other',           label: 'Lainnya' },
-] as const
+const MEETUP_LOCATIONS = CHECKOUT_MEETUP_LOCATIONS_WITH_OTHER.map((location) =>
+  location.id === 'other'
+    ? { ...location, label: 'Lainnya' }
+    : location
+)
 
 const shippingMethod  = ref<'cod' | 'shipping'>('cod')
 const paymentChannel  = ref<string>('qris')

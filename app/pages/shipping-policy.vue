@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { RECOMMENDED_COD_LOCATIONS } from '~/data/meetupLocations'
+
 useSeoMeta({
   title: 'Shipping & Returns | VivaThrift',
   description: 'Informasi lengkap tentang metode pengiriman, COD kampus, dan kebijakan pengembalian barang di VivaThrift.',
@@ -15,7 +17,7 @@ const shippingMethods = [
     desc: 'Pembayaran dilakukan online via Xendit sebelum pertemuan. Lalu, janjian meetup dengan penjual di titik janjian dalam kampus ITS yang disepakati. Serah terima dikonfirmasi dengan kode OTP.',
     pros: ['Tanpa ongkos kirim', 'Barang bisa dicek langsung', 'Transaksi instan', 'Lebih aman'],
     cons: ['Harus janjian dulu', 'Terbatas jam kampus'],
-    locations: ['Kantin Pusat ITS', 'Perpustakaan Pusat', 'Taman Alumni', 'Student Center', 'Selasar Departemen'],
+    locations: [...RECOMMENDED_COD_LOCATIONS],
   },
   {
     icon: '📦',

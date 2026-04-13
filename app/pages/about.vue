@@ -35,7 +35,7 @@ const values = [
     num: '02',
     emoji: '🤝',
     title: 'COD Kampus atau Kirim Kurir',
-    desc: 'Mager keluar kosan di Keputih atau Gebang? Pilih kirim kurir. Mau sekalian nongkrong nunggu kelas? COD di Kantin Pusat, Perpus, atau selasar departemen. Super fleksibel.',
+    desc: 'Mager keluar kosan di Keputih atau Gebang? Pilih kirim kurir. Mau sekalian nongkrong nunggu kelas? COD di Kantin Pusat ITS, Depan Rektorat ITS, atau Research Center ITS. Super fleksibel.',
     accent: '#0369a1',
     bg: 'rgba(3,105,161,0.06)',
     border: 'rgba(3,105,161,0.14)',
@@ -77,7 +77,7 @@ const values = [
     </HelpCenterHero>
 
     <section class="vt-stats-band relative" :ref="reveal">
-      <div class="max-w-7xl mx-auto px-6 md:px-10 mt-4 md:mt-6 relative z-10">
+      <div class="max-w-7xl mx-auto px-6 md:px-10 -mt-5 md:-mt-7 relative z-10">
         <div class="vt-stats-shell grid grid-cols-2 md:grid-cols-4 rounded-[2rem] overflow-hidden">
           <div
             v-for="(s, i) in stats"
@@ -273,10 +273,10 @@ const values = [
 
 <style scoped>
 .vt-stats-band {
-  background: #ffffff;
+  background: transparent;
 }
 .dark .vt-stats-band {
-  background: #0f172a;
+  background: transparent;
 }
 .vt-stats-shell {
   background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96));
