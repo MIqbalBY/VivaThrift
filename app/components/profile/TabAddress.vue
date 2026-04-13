@@ -24,6 +24,187 @@ const emit = defineEmits([
   'save-address', 'delete-address', 'toggle-sync-address',
   'use-gps', 'open-map-link',
 ])
+
+const regionsApiBase = 'https://www.emsifa.com/api-wilayah-indonesia/api'
+
+const provinces = ref<any[]>([])
+const shippingRegion = reactive({ regencies: [] as any[], districts: [] as any[], villages: [] as any[] })
+const sellerRegion = reactive({ regencies: [] as any[], districts: [] as any[], villages: [] as any[] })
+const regionsLoading = reactive({
+  provinces: false,
+  shippingRegencies: false,
+  shippingDistricts: false,
+  shippingVillages: false,
+  sellerRegencies: false,
+  sellerDistricts: false,
+  sellerVillages: false,
+})
+
+function formByType(type: 'shipping' | 'seller') {
+  return type === 'seller' ? props.sellerForm as any : props.shippingForm as any
+}
+
+function regionStateByType(type: 'shipping' | 'seller') {
+  return type === 'seller' ? sellerRegion : shippingRegion
+}
+
+function resetRegionChildren(type: 'shipping' | 'seller', level: 'province' | 'city' | 'district') {
+  const form = formByType(type)
+  const state = regionStateByType(type)
+
+  if (level === 'province') {
+    form.city = ''
+    form.city_id = ''
+    form.district = ''
+    form.district_id = ''
+    form.village = ''
+    form.village_id = ''
+    state.regencies = []
+    state.districts = []
+    state.villages = []
+    return
+  }
+
+  if (level === 'city') {
+    form.district = ''
+    form.district_id = ''
+    form.village = ''
+    form.village_id = ''
+    state.districts = []
+    state.villages = []
+    return
+  }
+
+  form.village = ''
+  form.village_id = ''
+  state.villages = []
+}
+
+async function loadProvinces() {
+  if (provinces.value.length || regionsLoading.provinces) return
+  regionsLoading.provinces = true
+  try {
+    const data = await $fetch<any[]>(`${regionsApiBase}/provinces.json`)
+    provinces.value = Array.isArray(data) ? data : []
+  } catch {
+    provinces.value = []
+  } finally {
+    regionsLoading.provinces = false
+  }
+}
+
+async function loadRegencies(type: 'shipping' | 'seller', provinceId?: string) {
+  const form = formByType(type)
+  const state = regionStateByType(type)
+  const id = String(provinceId ?? form.province_id ?? '').trim()
+
+  if (!id) {
+    resetRegionChildren(type, 'province')
+    return
+  }
+
+  const loadingKey = type === 'seller' ? 'sellerRegencies' : 'shippingRegencies'
+  regionsLoading[loadingKey] = true
+  try {
+    const data = await $fetch<any[]>(`${regionsApiBase}/regencies/${id}.json`)
+    state.regencies = Array.isArray(data) ? data : []
+  } catch {
+    state.regencies = []
+  } finally {
+    regionsLoading[loadingKey] = false
+  }
+}
+
+async function loadDistricts(type: 'shipping' | 'seller', cityId?: string) {
+  const form = formByType(type)
+  const state = regionStateByType(type)
+  const id = String(cityId ?? form.city_id ?? '').trim()
+
+  if (!id) {
+    resetRegionChildren(type, 'city')
+    return
+  }
+
+  const loadingKey = type === 'seller' ? 'sellerDistricts' : 'shippingDistricts'
+  regionsLoading[loadingKey] = true
+  try {
+    const data = await $fetch<any[]>(`${regionsApiBase}/districts/${id}.json`)
+    state.districts = Array.isArray(data) ? data : []
+  } catch {
+    state.districts = []
+  } finally {
+    regionsLoading[loadingKey] = false
+  }
+}
+
+async function loadVillages(type: 'shipping' | 'seller', districtId?: string) {
+  const form = formByType(type)
+  const state = regionStateByType(type)
+  const id = String(districtId ?? form.district_id ?? '').trim()
+
+  if (!id) {
+    resetRegionChildren(type, 'district')
+    return
+  }
+
+  const loadingKey = type === 'seller' ? 'sellerVillages' : 'shippingVillages'
+  regionsLoading[loadingKey] = true
+  try {
+    const data = await $fetch<any[]>(`${regionsApiBase}/villages/${id}.json`)
+    state.villages = Array.isArray(data) ? data : []
+  } catch {
+    state.villages = []
+  } finally {
+    regionsLoading[loadingKey] = false
+  }
+}
+
+function onProvinceChange(type: 'shipping' | 'seller') {
+  const form = formByType(type)
+  const selected = provinces.value.find((item: any) => item.id === form.province_id)
+  form.province = selected?.name ?? ''
+  resetRegionChildren(type, 'province')
+  loadRegencies(type)
+}
+
+function onCityChange(type: 'shipping' | 'seller') {
+  const form = formByType(type)
+  const state = regionStateByType(type)
+  const selected = state.regencies.find((item: any) => item.id === form.city_id)
+  form.city = selected?.name ?? ''
+  resetRegionChildren(type, 'city')
+  loadDistricts(type)
+}
+
+function onDistrictChange(type: 'shipping' | 'seller') {
+  const form = formByType(type)
+  const state = regionStateByType(type)
+  const selected = state.districts.find((item: any) => item.id === form.district_id)
+  form.district = selected?.name ?? ''
+  resetRegionChildren(type, 'district')
+  loadVillages(type)
+}
+
+function onVillageChange(type: 'shipping' | 'seller') {
+  const form = formByType(type)
+  const state = regionStateByType(type)
+  const selected = state.villages.find((item: any) => item.id === form.village_id)
+  form.village = selected?.name ?? ''
+}
+
+onMounted(() => {
+  loadProvinces()
+})
+
+watch(
+  () => props.syncAddress,
+  (next) => {
+    if (!next) return
+    sellerRegion.regencies = [...shippingRegion.regencies]
+    sellerRegion.districts = [...shippingRegion.districts]
+    sellerRegion.villages = [...shippingRegion.villages]
+  }
+)
 </script>
 
 <template>
@@ -87,6 +268,13 @@ const emit = defineEmits([
               <p class="text-sm text-gray-700 dark:text-slate-300 leading-relaxed">
                 {{ shippingForm.full_address }}<template v-if="shippingForm.notes"> ({{ shippingForm.notes }})</template>
               </p>
+              <div v-if="shippingForm.village || shippingForm.district || shippingForm.city || shippingForm.province || shippingForm.rt || shippingForm.rw" class="flex flex-wrap items-center gap-1.5 mt-1">
+                <span v-if="shippingForm.village" class="vt-tag">Kel. {{ shippingForm.village }}</span>
+                <span v-if="shippingForm.district" class="vt-tag">Kec. {{ shippingForm.district }}</span>
+                <span v-if="shippingForm.city" class="vt-tag">{{ shippingForm.city }}</span>
+                <span v-if="shippingForm.province" class="vt-tag">{{ shippingForm.province }}</span>
+                <span v-if="shippingForm.rt || shippingForm.rw" class="vt-tag">RT {{ shippingForm.rt || '-' }} / RW {{ shippingForm.rw || '-' }}</span>
+              </div>
               <div v-if="shippingForm.lat && shippingForm.lng" class="flex items-center gap-1 mt-1">
                 <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -113,20 +301,58 @@ const emit = defineEmits([
             <input v-model="shippingForm.label" type="text" placeholder="Contoh: Kosan Keputih, Rumah Sidoarjo" class="vt-input" maxlength="50" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold vt-label">Alamat Lengkap <span class="text-red-500">*</span></label>
-            <textarea v-model="shippingForm.full_address" rows="3" placeholder="Jl. Raya ITS No. ..., Keputih, Sukolilo, Surabaya" class="vt-input resize-none" maxlength="300"></textarea>
+            <label class="text-xs font-semibold vt-label">Alamat Jalan / Detail Gedung <span class="text-red-500">*</span></label>
+            <textarea v-model="shippingForm.road_address" rows="3" placeholder="Asrama ITS Blok H-318, Jalan Teknik Elektro" class="vt-input resize-none" maxlength="300"></textarea>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Provinsi <span class="text-red-500">*</span></label>
+              <select v-model="shippingForm.province_id" class="vt-input" :disabled="regionsLoading.provinces" @change="onProvinceChange('shipping')">
+                <option value="">Pilih provinsi</option>
+                <option v-for="province in provinces" :key="`ship-prov-${province.id}`" :value="province.id">{{ province.name }}</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Kota / Kabupaten <span class="text-red-500">*</span></label>
+              <select v-model="shippingForm.city_id" class="vt-input" :disabled="!shippingForm.province_id || regionsLoading.shippingRegencies" @change="onCityChange('shipping')">
+                <option value="">Pilih kota/kabupaten</option>
+                <option v-for="city in shippingRegion.regencies" :key="`ship-city-${city.id}`" :value="city.id">{{ city.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Kecamatan <span class="text-red-500">*</span></label>
+              <select v-model="shippingForm.district_id" class="vt-input" :disabled="!shippingForm.city_id || regionsLoading.shippingDistricts" @change="onDistrictChange('shipping')">
+                <option value="">Pilih kecamatan</option>
+                <option v-for="district in shippingRegion.districts" :key="`ship-district-${district.id}`" :value="district.id">{{ district.name }}</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Kelurahan <span class="text-red-500">*</span></label>
+              <select v-model="shippingForm.village_id" class="vt-input" :disabled="!shippingForm.district_id || regionsLoading.shippingVillages" @change="onVillageChange('shipping')">
+                <option value="">Pilih kelurahan</option>
+                <option v-for="village in shippingRegion.villages" :key="`ship-village-${village.id}`" :value="village.id">{{ village.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">RT <span class="text-red-500">*</span></label>
+              <input v-model="shippingForm.rt" type="text" inputmode="numeric" placeholder="001" class="vt-input" maxlength="3" />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">RW <span class="text-red-500">*</span></label>
+              <input v-model="shippingForm.rw" type="text" inputmode="numeric" placeholder="005" class="vt-input" maxlength="3" />
+            </div>
+            <div class="col-span-2 flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Kode Pos <span class="text-red-500">*</span></label>
+              <input v-model="shippingForm.postal_code" type="text" inputmode="numeric" placeholder="60111" class="vt-input" maxlength="10" />
+            </div>
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold vt-label">Kota / Kabupaten</label>
-            <input v-model="shippingForm.city" type="text" placeholder="Surabaya" class="vt-input" maxlength="80" />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold vt-label">Kode Pos</label>
-            <input v-model="shippingForm.postal_code" type="text" inputmode="numeric" placeholder="60111" class="vt-input" maxlength="10" />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold vt-label">Catatan Pengiriman</label>
-            <input v-model="shippingForm.notes" type="text" placeholder="Contoh: Lantai 2, kamar paling kiri" class="vt-input" maxlength="150" />
+            <label class="text-xs font-semibold vt-label">Catatan untuk Kurir</label>
+            <input v-model="shippingForm.notes" type="text" placeholder="Contoh: Titip satpam lobby, hubungi sebelum sampai" class="vt-input" maxlength="150" />
           </div>
           <!-- Pin Lokasi -->
           <div class="flex flex-col gap-2">
@@ -204,6 +430,13 @@ const emit = defineEmits([
               <p class="text-sm text-gray-700 dark:text-slate-300 leading-relaxed">
                 {{ sellerForm.full_address }}<template v-if="sellerForm.notes"> ({{ sellerForm.notes }})</template>
               </p>
+              <div v-if="sellerForm.village || sellerForm.district || sellerForm.city || sellerForm.province || sellerForm.rt || sellerForm.rw" class="flex flex-wrap items-center gap-1.5 mt-1">
+                <span v-if="sellerForm.village" class="vt-tag">Kel. {{ sellerForm.village }}</span>
+                <span v-if="sellerForm.district" class="vt-tag">Kec. {{ sellerForm.district }}</span>
+                <span v-if="sellerForm.city" class="vt-tag">{{ sellerForm.city }}</span>
+                <span v-if="sellerForm.province" class="vt-tag">{{ sellerForm.province }}</span>
+                <span v-if="sellerForm.rt || sellerForm.rw" class="vt-tag">RT {{ sellerForm.rt || '-' }} / RW {{ sellerForm.rw || '-' }}</span>
+              </div>
               <div v-if="sellerForm.lat && sellerForm.lng" class="flex items-center gap-1 mt-1">
                 <svg class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -233,20 +466,58 @@ const emit = defineEmits([
             <input v-model="sellerForm.label" type="text" placeholder="Contoh: Asrama ITS, Kost Gebang" class="vt-input" maxlength="50" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold vt-label">Alamat Lengkap <span class="text-red-500">*</span></label>
-            <textarea v-model="sellerForm.full_address" rows="3" placeholder="Jl. Raya ITS No. ..., Keputih, Sukolilo, Surabaya" class="vt-input resize-none" maxlength="300"></textarea>
+            <label class="text-xs font-semibold vt-label">Alamat Jalan / Detail Gedung <span class="text-red-500">*</span></label>
+            <textarea v-model="sellerForm.road_address" rows="3" placeholder="Asrama ITS Blok H-318, Jalan Teknik Elektro" class="vt-input resize-none" maxlength="300"></textarea>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Provinsi <span class="text-red-500">*</span></label>
+              <select v-model="sellerForm.province_id" class="vt-input" :disabled="regionsLoading.provinces" @change="onProvinceChange('seller')">
+                <option value="">Pilih provinsi</option>
+                <option v-for="province in provinces" :key="`sell-prov-${province.id}`" :value="province.id">{{ province.name }}</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Kota / Kabupaten <span class="text-red-500">*</span></label>
+              <select v-model="sellerForm.city_id" class="vt-input" :disabled="!sellerForm.province_id || regionsLoading.sellerRegencies" @change="onCityChange('seller')">
+                <option value="">Pilih kota/kabupaten</option>
+                <option v-for="city in sellerRegion.regencies" :key="`sell-city-${city.id}`" :value="city.id">{{ city.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Kecamatan <span class="text-red-500">*</span></label>
+              <select v-model="sellerForm.district_id" class="vt-input" :disabled="!sellerForm.city_id || regionsLoading.sellerDistricts" @change="onDistrictChange('seller')">
+                <option value="">Pilih kecamatan</option>
+                <option v-for="district in sellerRegion.districts" :key="`sell-district-${district.id}`" :value="district.id">{{ district.name }}</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Kelurahan <span class="text-red-500">*</span></label>
+              <select v-model="sellerForm.village_id" class="vt-input" :disabled="!sellerForm.district_id || regionsLoading.sellerVillages" @change="onVillageChange('seller')">
+                <option value="">Pilih kelurahan</option>
+                <option v-for="village in sellerRegion.villages" :key="`sell-village-${village.id}`" :value="village.id">{{ village.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">RT <span class="text-red-500">*</span></label>
+              <input v-model="sellerForm.rt" type="text" inputmode="numeric" placeholder="001" class="vt-input" maxlength="3" />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">RW <span class="text-red-500">*</span></label>
+              <input v-model="sellerForm.rw" type="text" inputmode="numeric" placeholder="005" class="vt-input" maxlength="3" />
+            </div>
+            <div class="col-span-2 flex flex-col gap-1.5">
+              <label class="text-xs font-semibold vt-label">Kode Pos <span class="text-red-500">*</span></label>
+              <input v-model="sellerForm.postal_code" type="text" inputmode="numeric" placeholder="60111" class="vt-input" maxlength="10" />
+            </div>
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold vt-label">Kota / Kabupaten</label>
-            <input v-model="sellerForm.city" type="text" placeholder="Surabaya" class="vt-input" maxlength="80" />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold vt-label">Kode Pos</label>
-            <input v-model="sellerForm.postal_code" type="text" inputmode="numeric" placeholder="60111" class="vt-input" maxlength="10" />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold vt-label">Catatan</label>
-            <input v-model="sellerForm.notes" type="text" placeholder="Contoh: Blok H lantai 3" class="vt-input" maxlength="150" />
+            <label class="text-xs font-semibold vt-label">Catatan untuk Kurir</label>
+            <input v-model="sellerForm.notes" type="text" placeholder="Contoh: Titip satpam lobby, hubungi sebelum sampai" class="vt-input" maxlength="150" />
           </div>
           <!-- Pin Lokasi -->
           <div class="flex flex-col gap-2">
@@ -295,6 +566,8 @@ const emit = defineEmits([
 .dark .vt-text-muted { color: #94a3b8; }
 .vt-label { color: #374151; }
 .dark .vt-label { color: #cbd5e1; }
+.vt-tag { font-size: 0.7rem; line-height: 1; padding: 0.28rem 0.5rem; border-radius: 9999px; color: #155e75; background: #cffafe; border: 1px solid #67e8f9; }
+.dark .vt-tag { color: #a5f3fc; background: rgba(8, 47, 73, 0.5); border-color: rgba(34, 211, 238, 0.35); }
 .vt-input { width: 100%; padding: 0.6rem 0.875rem; border: 1px solid rgba(0,0,0,0.15); border-radius: 0.6rem; font-size: 0.875rem; background: #fff; color: #0f172a; transition: border-color 0.15s; outline: none; }
 .vt-input:focus { border-color: #1e3a8a; box-shadow: 0 0 0 3px rgba(30,58,138,0.10); }
 .dark .vt-input { background: #0f172a; border-color: rgba(255,255,255,0.12); color: #f1f5f9; }

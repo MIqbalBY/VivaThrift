@@ -107,6 +107,9 @@
 | 7.4 | **Chat notification (sound + badge)** | 🔧 | `useNavChatBadge.ts` ada untuk nav badge count. Belum ada: notification sound, push notification, desktop notification |
 | 7.5 | **Message forwarding** | ❌ | Forward pesan ke chat lain — low priority |
 | 7.6 | **Chat archive/mute** | ❌ | Per-user hide sudah ada (WhatsApp-style, reappear on new message). Belum ada: permanent archive, mute notifications per chat |
+| 7.7 | **Upload + view media chat (foto/video/dokumen) dengan limit ukuran** | ❌ | Tambahkan attachment di chat untuk foto/video/dokumen dengan validasi hard limit: foto max 2 MB, video max 10 MB, dokumen max 5 MB. UI wajib mendukung preview/view media di bubble chat (`ChatMessageBubble.vue`) dan fallback download untuk file non-previewable |
+| 7.8 | **Arsitektur upload Presigned URL (R2) untuk keamanan secret** | ❌ | Implement pola wajib: Nuxt client minta izin ke Nuxt server API -> server buat tiket sekali jalan (presigned URL) -> client upload langsung ke R2. Secret key R2 hanya di server, tidak pernah terekspos ke front-end. Lengkapi validasi MIME/size di server signer endpoint + metadata file type |
+| 7.9 | **Retention policy media chat (3 hari + cleanup saat listing dihapus)** | ❌ | Karena chat marketplace bukan cloud drive, set lifecycle rule R2 untuk hapus otomatis media chat usia > 3 hari. Tambahkan cleanup trigger saat seller menghapus listing agar media terkait listing ikut dipurge, plus cron fallback untuk orphan media agar storage tidak menumpuk |
 
 ---
 

@@ -2,6 +2,105 @@ export function useAddressEdit() {
   const supabase = useSupabaseClient() as any
   const user = useSupabaseUser()
 
+  function createAddressForm() {
+    return {
+      label: '',
+      full_address: '',
+      road_address: '',
+      province: '',
+      province_id: '',
+      city: '',
+      city_id: '',
+      district: '',
+      district_id: '',
+      village: '',
+      village_id: '',
+      rt: '',
+      rw: '',
+      postal_code: '',
+      notes: '',
+      lat: null as number | null,
+      lng: null as number | null,
+    }
+  }
+
+  function composeStructuredAddress(form: any) {
+    const road = String(form.road_address || form.full_address || '').trim()
+    const province = String(form.province || '').trim()
+    const city = String(form.city || '').trim()
+    const district = String(form.district || '').trim()
+    const village = String(form.village || '').trim()
+    const rt = String(form.rt || '').replace(/\D/g, '').trim()
+    const rw = String(form.rw || '').replace(/\D/g, '').trim()
+    const postalCode = String(form.postal_code || '').replace(/\D/g, '').trim()
+
+    if (!road) {
+      return {
+        error: 'Alamat jalan/detail lokasi wajib diisi.',
+      }
+    }
+
+    if (!province || !city || !district || !village) {
+      return {
+        error: 'Provinsi, Kota/Kabupaten, Kecamatan, dan Kelurahan wajib diisi.',
+      }
+    }
+
+    if (!rt || !rw) {
+      return {
+        error: 'RT dan RW wajib diisi.',
+      }
+    }
+
+    if (!postalCode || postalCode.length < 5) {
+      return {
+        error: 'Kode pos wajib diisi minimal 5 digit.',
+      }
+    }
+
+    form.rt = rt
+    form.rw = rw
+    form.postal_code = postalCode
+
+    const rtRwPart = `RT ${rt} / RW ${rw}`
+    const localityPart = [`Kel. ${village}`, `Kec. ${district}`, city, province].filter(Boolean).join(', ')
+
+    return {
+      fullAddress: [road, rtRwPart, localityPart].filter(Boolean).join(', '),
+      city,
+    }
+  }
+
+  function parseStructuredAddress(fullAddressRaw: string, fallbackCityRaw: string) {
+    const fullAddress = String(fullAddressRaw || '').trim()
+    const fallbackCity = String(fallbackCityRaw || '').trim()
+
+    const regex = /^(.*?),\s*RT\s*(\d{1,3})\s*\/\s*RW\s*(\d{1,3}),\s*Kel\.\s*(.*?),\s*Kec\.\s*(.*?),\s*(.*?),\s*(.*?)$/i
+    const match = fullAddress.match(regex)
+
+    if (!match) {
+      return {
+        roadAddress: fullAddress,
+        province: '',
+        city: fallbackCity,
+        district: '',
+        village: '',
+        rt: '',
+        rw: '',
+      }
+    }
+
+    return {
+      roadAddress: String(match[1] || '').trim(),
+      rt: String(match[2] || '').trim(),
+      rw: String(match[3] || '').trim(),
+      village: String(match[4] || '').trim(),
+      district: String(match[5] || '').trim(),
+      city: String(match[6] || '').trim() || fallbackCity,
+      province: String(match[7] || '').trim(),
+    }
+  }
+
   async function resolveUid(): Promise<string | null> {
     if (user.value?.id) return user.value.id
     const { data: { session } } = await supabase.auth.getSession()
@@ -16,12 +115,12 @@ export function useAddressEdit() {
   const addrActiveType = ref<'shipping' | 'seller'>('shipping')
 
   // Shipping address
-  const shippingForm     = reactive({ label: '', full_address: '', city: '', postal_code: '', notes: '', lat: null as number | null, lng: null as number | null })
+  const shippingForm     = reactive(createAddressForm())
   const _shippingId      = ref<string | null>(null)
   const shippingEditMode = ref(false)
 
   // Seller address
-  const sellerForm     = reactive({ label: '', full_address: '', city: '', postal_code: '', notes: '', lat: null as number | null, lng: null as number | null })
+  const sellerForm     = reactive(createAddressForm())
   const _sellerId      = ref<string | null>(null)
   const sellerEditMode = ref(false)
 
@@ -48,7 +147,18 @@ export function useAddressEdit() {
     idRef.value        = row.id
     form.label         = row.label        ?? ''
     form.full_address  = row.full_address ?? ''
-    form.city          = row.city         ?? ''
+    const parsed = parseStructuredAddress(row.full_address ?? '', row.city ?? '')
+    form.road_address  = parsed.roadAddress
+    form.province      = parsed.province
+    form.province_id   = ''
+    form.city          = parsed.city
+    form.city_id       = ''
+    form.district      = parsed.district
+    form.district_id   = ''
+    form.village       = parsed.village
+    form.village_id    = ''
+    form.rt            = parsed.rt
+    form.rw            = parsed.rw
     form.postal_code   = row.postal_code  ?? ''
     form.notes         = row.notes        ?? ''
     form.lat           = row.lat          ?? null
@@ -77,8 +187,9 @@ export function useAddressEdit() {
   async function saveAddress(type?: string, userId?: string | null) {
     const t = type ?? addrActiveType.value
     const form = getAddrForm(t)
-    if (!form.full_address.trim()) {
-      addrMsg.value = 'Alamat lengkap wajib diisi.'
+    const builtAddress = composeStructuredAddress(form)
+    if (builtAddress.error) {
+      addrMsg.value = builtAddress.error
       addrMsgType.value = 'err'
       return
     }
@@ -92,6 +203,9 @@ export function useAddressEdit() {
     addrMsg.value    = ''
 
     try {
+      form.full_address = builtAddress.fullAddress
+      form.city = builtAddress.city || form.city || ''
+
       const payload = {
         user_id:      uid,
         address_type: t,
@@ -121,7 +235,7 @@ export function useAddressEdit() {
         await fetchAddresses(uid)
         if (t === 'shipping') {
           const sharedAddress = useState('userAddress')
-          sharedAddress.value = { label: form.label, city: form.city, full_address: form.full_address }
+          sharedAddress.value = { label: form.label, city: form.city, full_address: payload.full_address }
         }
         setTimeout(() => { addrMsg.value = '' }, 3000)
       }
@@ -145,7 +259,17 @@ export function useAddressEdit() {
       Object.assign(sellerForm, {
         label:        shippingForm.label,
         full_address: shippingForm.full_address,
+        road_address: shippingForm.road_address,
+        province:     shippingForm.province,
+        province_id:  shippingForm.province_id,
         city:         shippingForm.city,
+        city_id:      shippingForm.city_id,
+        district:     shippingForm.district,
+        district_id:  shippingForm.district_id,
+        village:      shippingForm.village,
+        village_id:   shippingForm.village_id,
+        rt:           shippingForm.rt,
+        rw:           shippingForm.rw,
         postal_code:  shippingForm.postal_code,
         notes:        shippingForm.notes,
         lat:          shippingForm.lat,
@@ -180,7 +304,23 @@ export function useAddressEdit() {
     const idRef = type === 'seller' ? _sellerId : _shippingId
     const editRef = type === 'seller' ? sellerEditMode : shippingEditMode
     idRef.value = null
-    form.label = ''; form.full_address = ''; form.city = ''; (form as any).postal_code = ''; form.notes = ''; form.lat = null; form.lng = null
+    form.label = ''
+    form.full_address = ''
+    form.road_address = ''
+    form.province = ''
+    form.province_id = ''
+    form.city = ''
+    form.city_id = ''
+    form.district = ''
+    form.district_id = ''
+    form.village = ''
+    form.village_id = ''
+    form.rt = ''
+    form.rw = ''
+    ;(form as any).postal_code = ''
+    form.notes = ''
+    form.lat = null
+    form.lng = null
     editRef.value = true
     if (type === 'seller') syncAddress.value = false
     addrMsg.value = 'Alamat berhasil dihapus.'
