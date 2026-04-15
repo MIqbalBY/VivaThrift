@@ -157,7 +157,7 @@ async function handleLogin() {
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           <p class="text-sm text-green-700 leading-snug">
-            Akun berhasil dibuat! Link verifikasi telah dikirim ke email ITS kamu.
+            Akun berhasil dibuat! Sekarang kamu bisa langsung masuk.
           </p>
         </div>
 

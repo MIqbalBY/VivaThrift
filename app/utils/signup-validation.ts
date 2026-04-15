@@ -60,8 +60,9 @@ export function validateSignupCredentials(input: SignupCredentialInput) {
   return ''
 }
 
-export function mapSignupErrorMessage(err: unknown) {
-  const msg = err instanceof Error ? err.message.toLowerCase() : String(err ?? '').toLowerCase()
+export function mapSignupErrorMessage(err: any) {
+  const rawMessage = err?.data?.statusMessage ?? err?.statusMessage ?? err?.message ?? String(err ?? '')
+  const msg = String(rawMessage).toLowerCase()
 
   if (msg.includes('already registered') || msg.includes('already been registered')) {
     return 'Email sudah terdaftar. Silakan login.'
@@ -83,5 +84,9 @@ export function mapSignupErrorMessage(err: unknown) {
     return 'Format email tidak valid.'
   }
 
-  return 'Pendaftaran gagal. Coba lagi nanti.'
+  if (msg.includes('error sending confirmation email')) {
+    return 'Sistem pendaftaran sedang sibuk. Coba lagi sekarang.'
+  }
+
+  return rawMessage || 'Pendaftaran gagal. Coba lagi nanti.'
 }

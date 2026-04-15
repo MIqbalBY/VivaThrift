@@ -151,28 +151,20 @@ async function handleSignup() {
       return
     }
 
-    const normalizedEmail = email.value.trim().toLowerCase()
-    const emailRedirectTo = import.meta.client ? `${window.location.origin}/auth/confirm` : undefined
-
-    // Profile data is passed as metadata → DB trigger (handle_new_user) copies
-    // it into public.users via SECURITY DEFINER. This avoids the RLS INSERT block
-    // that occurs when email confirmation is enabled (no session yet).
-    const { error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password: password.value,
-      options: {
-        emailRedirectTo,
-        data: {
-          name: name.value.trim(),
-          username: username.value.trim().toLowerCase(),
-          nrp: nrp.value.trim(),
-          faculty: faculty.value,
-          department: department.value,
-          gender: gender.value,
-        },
+    await $fetch('/api/auth/signup', {
+      method: 'POST',
+      body: {
+        name: name.value.trim(),
+        username: username.value.trim().toLowerCase(),
+        nrp: nrp.value.trim(),
+        faculty: faculty.value,
+        department: department.value,
+        gender: gender.value,
+        email: email.value.trim().toLowerCase(),
+        password: password.value,
+        confirmPassword: confirmPassword.value,
       },
     })
-    if (error) throw error
 
     await navigateTo('/auth/signin?signup=success')
   } catch (err) {
