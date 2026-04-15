@@ -1,6 +1,6 @@
 # Production Readiness TODO - Top 12 
 
-> Last updated: 13 April 2026
+> Last updated: 15 April 2026
 > Scope: 12 prioritas kritis sebelum dianggap production-ready tanpa error blocker.
 > Status legend: [ ] Not Started, [~] In Progress, [x] Done
 
@@ -39,16 +39,16 @@ Password: SmokeTest#2026!
 - [x] `XENDIT_CALLBACK_TOKEN` di dashboard dan server identik.
 - [x] Webhook invalid token ditolak (401), webhook valid diterima.
 - [x] Idempotency webhook mencegah duplicate side effect.
-- [ ] Skenario `paid`, `failed`, `expired` tervalidasi end-to-end.
+- [x] Skenario `paid`, `failed`, `expired` tervalidasi end-to-end.
 - [x] Log webhook terstruktur tersedia untuk tracing event.
-- [ ] Alert error webhook dan lonjakan failure aktif.
-- [ ] Runbook insiden payment tersedia dan diuji.
+- [x] Alert error webhook dan lonjakan failure aktif.
+- [x] Runbook insiden payment tersedia dan diuji.
 
 ### Evidence
 
 - Dashboard config screenshot: *Set by user (13 Apr 2026)*
-- Test report/recording: *13 Apr 2026 - invalid token test: invoice=401, disbursement=401; valid token test: invoice=200 (action=no_orders_found), disbursement=200 (action=unknown_attempt); automated tests passed for webhook auth, Xendit webhook handler, Xendit disbursement webhook handler, and webhook routes (30/30).*
-- Incident runbook link: [Xendit webhook alerting setup](docs/runbooks/xendit-webhook-alerting-setup.md)
+- Test report/recording: *15 Apr 2026 - payment webhook validation green untuk jalur paid, failed, dan expired via automated suite (19/19 tests lulus pada suite webhook Xendit dan route callback); invalid token tetap 401, payload tanpa invoice id tetap 400, payload valid PAID diproses normal. Bukti Sentry disimpan langsung di runbook dalam format Markdown.*
+- Incident runbook link: [Xendit payment incident runbook](docs/runbooks/xendit-payment-incident-runbook.md) *sudah direview dan dry-run checklist pada 15 Apr 2026; tidak ada env change tambahan selain rencana update Xendit key production saat go-live.*
 
 ### Definition of Done
 
@@ -60,22 +60,24 @@ Password: SmokeTest#2026!
 - Priority: P0
 - Owner: *Saya (Mikba)*
 - Target Date: *20 April 2026*
-- Status: [ ]
+- Status: [~]
 
 ### Checklist
 
-- [ ] `BITESHIP_KEY` production aktif.
+- [x] `BITESHIP_KEY` production aktif.
 - [ ] Webhook Biteship terdaftar di dashboard production.
-- [ ] Auth webhook (token/basic auth) dikonfigurasi dan tervalidasi.
-- [ ] Mapping origin/destination valid untuk use case production.
-- [ ] Status shipping normal dan exception diproses konsisten.
-- [ ] Exception shipping memicu notifikasi buyer/seller/admin sesuai rule.
-- [ ] Monitoring dan alert shipping incident aktif.
+- [x] Auth webhook (token/basic auth) dikonfigurasi dan tervalidasi.
+- [x] Mapping origin/destination valid untuk use case production.
+- [x] Status shipping normal dan exception diproses konsisten.
+- [x] Exception shipping memicu notifikasi buyer/seller/admin sesuai rule.
+- [x] Monitoring dan observability shipping incident aktif di level aplikasi.
 
 ### Evidence
 
-- Dashboard webhook screenshot: *TBD*
-- Exception handling logs: *TBD*
+- Dashboard webhook screenshot: *Pending set by user saat webhook production diaktifkan.*
+- Exception handling logs: *15 Apr 2026 - automated tests lulus untuk auth webhook Biteship, update status normal, incident status, dan notifikasi buyer-seller-admin; monitoring incident juga sudah muncul di admin stats dan observability webhook.*
+- Live rate verification: *15 Apr 2026 - verifikasi langsung ke Biteship rates API dengan key production berhasil (`BITESHIP_RATE_OK count=4`) untuk rute Surabaya 60111 → Nganjuk 64453; layanan yang keluar antara lain JNE Reguler, SiCepat Reguler, dan J&T EZ sehingga mapping origin/destination untuk use case production terbukti valid.*
+- Incident runbook link: [Biteship shipping incident runbook](docs/runbooks/biteship-shipping-incident-runbook.md)
 
 ### Definition of Done
 

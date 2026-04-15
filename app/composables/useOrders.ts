@@ -47,7 +47,8 @@ export function useOrders() {
       .select(`
         id, status, total_amount, platform_fee, payment_gateway_fee,
         tracking_number, courier_name, shipped_at, completed_at,
-        shipping_method, shipping_cost, meetup_location, meetup_otp, meetup_confirmed_at, courier_code,
+        shipping_method, shipping_cost, shipping_collection_type, shipping_insurance_fee, shipping_is_insured,
+        meetup_location, meetup_otp, meetup_confirmed_at, courier_code,
         biteship_order_id, biteship_waybill_id, courier_service,
         created_at, updated_at, payment_url, offer_id, disbursement_id,
         order_items (

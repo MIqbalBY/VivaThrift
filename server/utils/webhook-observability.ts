@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/nuxt'
 
 type WebhookLogLevel = 'info' | 'warning' | 'error'
 
-type WebhookName = 'xendit-invoice' | 'xendit-disbursement'
+type WebhookName = 'xendit-invoice' | 'xendit-disbursement' | 'biteship-shipping'
 
 type WebhookLogContext = {
   webhook: WebhookName
@@ -11,6 +11,7 @@ type WebhookLogContext = {
   eventName?: string | null
   invoiceId?: string | null
   disbursementId?: string | null
+  biteshipOrderId?: string | null
   status?: string | null
   statusCode?: number
   orderCount?: number
@@ -35,6 +36,7 @@ function buildPayload(context: WebhookLogContext) {
     eventName: normalizeString(context.eventName),
     invoiceId: normalizeString(context.invoiceId),
     disbursementId: normalizeString(context.disbursementId),
+    biteshipOrderId: normalizeString(context.biteshipOrderId),
     status: normalizeString(context.status),
     statusCode: typeof context.statusCode === 'number' ? context.statusCode : undefined,
     orderCount: typeof context.orderCount === 'number' ? context.orderCount : undefined,

@@ -111,7 +111,7 @@ describe('processXenditWebhook', () => {
     expect(deps.sendEmail).not.toHaveBeenCalled()
   })
 
-  it('marks failed payments, restores stock, and restores offers', async () => {
+  it.each(['FAILED', 'EXPIRED'] as const)('marks %s payments, restores stock, and restores offers', async (status) => {
     const deps = createDeps({
       markOrdersPaymentFailed: vi.fn(async () => [{ id: 'order-1', offer_id: 'offer-1' }]),
       getOrderItems: vi.fn(async () => [{ product_id: 'product-1', quantity: 2 }]),
@@ -120,12 +120,13 @@ describe('processXenditWebhook', () => {
 
     const result = await processXenditWebhook({
       xenditInvoiceId: 'inv-3',
-      status: 'FAILED',
+      status,
       paymentMethod: null,
       paidAmount: null,
     }, deps)
 
     expect(result).toEqual({ received: true, action: 'payment_failed', orderCount: 1 })
+    expect(deps.markOrdersPaymentFailed).toHaveBeenCalledWith('inv-3', '2026-04-11T13:00:00.000Z')
     expect(deps.restoreProduct).toHaveBeenCalledWith('product-1', 5)
     expect(deps.restoreOffer).toHaveBeenCalledWith('offer-1', '2026-04-11T13:00:00.000Z')
     expect(deps.sendEmail).not.toHaveBeenCalled()

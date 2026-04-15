@@ -2,6 +2,13 @@ interface NavChatBadgeOptions {
   onNewMessage?: (chatId: string, senderId: string, content: string) => void
 }
 
+type NavChatStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting'
+
+export function getNavChatStatusForSetup(hasConnectedOnce: boolean, mode: 'initial' | 'retry' = 'initial'): NavChatStatus {
+  if (mode === 'retry' || hasConnectedOnce) return 'reconnecting'
+  return 'connecting'
+}
+
 interface NavChatMessage {
   id: string
   sender_id: string
@@ -27,10 +34,11 @@ export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
   const route = useRoute()
 
   const navUnreadCount = useState('navUnreadCount', () => 0)
-  const navChatStatus = useState<'idle' | 'connected' | 'reconnecting'>('navChatStatus', () => 'idle')
+  const navChatStatus = useState<NavChatStatus>('navChatStatus', () => 'idle')
   const navRefreshTrigger = useState('navRefreshTrigger', () => 0)
   const navUid = ref<string | null>(null)
   let navChatChannel: any = null
+  let hasConnectedOnce = false
   let navRetryTimer: ReturnType<typeof setTimeout> | null = null
   let navPollTimer: ReturnType<typeof setInterval> | null = null
   let navFetchTimer: ReturnType<typeof setTimeout> | null = null
@@ -135,13 +143,13 @@ export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
     return payload.old ?? payload.old_record ?? payload.data?.old ?? payload.data?.old_record ?? null
   }
 
-  function setupNavChannel(uid: string) {
+  function setupNavChannel(uid: string, mode: 'initial' | 'retry' = 'initial') {
     if (navRetryTimer) { clearTimeout(navRetryTimer); navRetryTimer = null }
     if (navChatChannel) {
       supabase.removeChannel(navChatChannel)
       navChatChannel = null
     }
-    navChatStatus.value = 'reconnecting'
+    navChatStatus.value = getNavChatStatusForSetup(hasConnectedOnce, mode)
     navChatChannel = supabase
       .channel(`user:${uid}:inbox`, { config: { private: true } })
       .on('broadcast', { event: 'INSERT' }, ({ payload }: any) => {
@@ -157,12 +165,13 @@ export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
       .on('broadcast', { event: 'DELETE' }, () => fetchNavUnread(uid))
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
+          hasConnectedOnce = true
           navChatStatus.value = 'connected'
           fetchNavUnread(uid, true)
         } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
           navChatStatus.value = 'reconnecting'
-          navRetryTimer = setTimeout(() => setupNavChannel(uid), 3000)
-        } else {
+          navRetryTimer = setTimeout(() => setupNavChannel(uid, 'retry'), 3000)
+        } else if (status === 'CLOSED') {
           navChatStatus.value = 'idle'
         }
       })
@@ -195,6 +204,7 @@ export function useNavChatBadge(options: NavChatBadgeOptions = {}) {
     if (navFetchTimer) { clearTimeout(navFetchTimer); navFetchTimer = null }
     if (navChatChannel) { supabase.removeChannel(navChatChannel); navChatChannel = null }
     navChatStatus.value = 'idle'
+    hasConnectedOnce = false
     hasUnreadBaseline = false
     knownUnreadMessageIds = new Set<string>()
   }

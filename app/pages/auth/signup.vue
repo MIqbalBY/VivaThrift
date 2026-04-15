@@ -1,5 +1,6 @@
 <script setup>
 import { FACULTIES_DEPARTMENTS } from '~/data/faculties'
+import { mapSignupErrorMessage, validateSignupCredentials, validateSignupProfileStep } from '~/utils/signup-validation'
 
 definePageMeta({ layout: false })
 useSeoMeta({ title: 'Daftar — VivaThrift' })
@@ -38,34 +39,71 @@ const usernameRegex = /^[a-zA-Z0-9._]{3,30}$/
 watch(username, (val) => {
   usernameError.value = ''
   if (usernameTimer) clearTimeout(usernameTimer)
-  if (!val) return
-  if (!usernameRegex.test(val)) {
+  usernameChecking.value = false
+
+  const normalized = val.trim().toLowerCase()
+  if (!normalized) return
+
+  if (!usernameRegex.test(normalized)) {
     usernameError.value = 'Hanya huruf, angka, titik (.) dan underscore (_). 3–30 karakter.'
     return
   }
+
   usernameChecking.value = true
   usernameTimer = setTimeout(async () => {
-    const { data } = await supabase.from('users').select('id').eq('username', val.toLowerCase()).maybeSingle()
-    usernameChecking.value = false
-    if (data) usernameError.value = 'Username sudah digunakan.'
+    try {
+      const { data, error } = await supabase.from('users').select('id').eq('username', normalized).maybeSingle()
+      if (username.value.trim().toLowerCase() !== normalized) return
+      if (error) {
+        usernameError.value = 'Username belum bisa dicek sekarang. Coba lagi sesaat.'
+        return
+      }
+      if (data) usernameError.value = 'Username sudah digunakan.'
+    } finally {
+      if (username.value.trim().toLowerCase() === normalized) {
+        usernameChecking.value = false
+      }
+    }
   }, 500)
 })
 
 function validateStep1() {
   errorMsg.value = ''
-  if (!name.value.trim() || !username.value.trim() || !nrp.value.trim() || !faculty.value || !department.value || !gender.value) {
-    errorMsg.value = 'Semua field wajib diisi.'
+
+  const validationError = validateSignupProfileStep({
+    name: name.value,
+    username: username.value,
+    nrp: nrp.value,
+    faculty: faculty.value,
+    department: department.value,
+    gender: gender.value,
+    usernameError: usernameError.value,
+    usernameChecking: usernameChecking.value,
+  })
+
+  if (validationError) {
+    errorMsg.value = validationError
     return false
   }
-  if (!usernameRegex.test(username.value)) {
-    errorMsg.value = 'Username tidak valid.'
-    return false
-  }
-  if (usernameError.value) {
-    errorMsg.value = usernameError.value
-    return false
-  }
+
   return true
+}
+
+async function ensureUsernameAvailable() {
+  const normalized = username.value.trim().toLowerCase()
+  if (!normalized) return 'Username tidak valid.'
+
+  const { data, error } = await supabase.from('users').select('id').eq('username', normalized).maybeSingle()
+
+  if (error) {
+    return 'Username belum bisa dicek sekarang. Coba lagi sesaat.'
+  }
+
+  if (data) {
+    return 'Username sudah digunakan. Silakan pilih username lain.'
+  }
+
+  return ''
 }
 
 function goStep2() {
@@ -78,32 +116,52 @@ function goStep2() {
 async function handleSignup() {
   errorMsg.value = ''
 
-  if (!email.value.trim() || !password.value || !confirmPassword.value) {
-    errorMsg.value = 'Semua field wajib diisi.'
+  const profileError = validateSignupProfileStep({
+    name: name.value,
+    username: username.value,
+    nrp: nrp.value,
+    faculty: faculty.value,
+    department: department.value,
+    gender: gender.value,
+    usernameError: usernameError.value,
+    usernameChecking: usernameChecking.value,
+  })
+  if (profileError) {
+    errorMsg.value = profileError
+    if (step.value !== 1) step.value = 1
     return
   }
-  if (password.value !== confirmPassword.value) {
-    errorMsg.value = 'Password dan konfirmasi password tidak cocok.'
-    return
-  }
-  if (password.value.length < 6) {
-    errorMsg.value = 'Password minimal 6 karakter.'
-    return
-  }
-  if (!email.value.trim().toLowerCase().endsWith('@student.its.ac.id')) {
-    errorMsg.value = 'Hanya email ITS (@student.its.ac.id) yang diizinkan.'
+
+  const credentialError = validateSignupCredentials({
+    email: email.value,
+    password: password.value,
+    confirmPassword: confirmPassword.value,
+  })
+  if (credentialError) {
+    errorMsg.value = credentialError
     return
   }
 
   isLoading.value = true
   try {
+    const usernameAvailabilityError = await ensureUsernameAvailable()
+    if (usernameAvailabilityError) {
+      errorMsg.value = usernameAvailabilityError
+      step.value = 1
+      return
+    }
+
+    const normalizedEmail = email.value.trim().toLowerCase()
+    const emailRedirectTo = import.meta.client ? `${window.location.origin}/auth/confirm` : undefined
+
     // Profile data is passed as metadata → DB trigger (handle_new_user) copies
     // it into public.users via SECURITY DEFINER. This avoids the RLS INSERT block
     // that occurs when email confirmation is enabled (no session yet).
     const { error } = await supabase.auth.signUp({
-      email: email.value.trim(),
+      email: normalizedEmail,
       password: password.value,
       options: {
+        emailRedirectTo,
         data: {
           name: name.value.trim(),
           username: username.value.trim().toLowerCase(),
@@ -118,15 +176,7 @@ async function handleSignup() {
 
     await navigateTo('/auth/signin?signup=success')
   } catch (err) {
-    const msg = err.message?.toLowerCase() ?? ''
-    if (msg.includes('already registered') || msg.includes('already been registered'))
-      errorMsg.value = 'Email sudah terdaftar. Silakan login.'
-    else if (msg.includes('rate limit') || msg.includes('too many requests'))
-      errorMsg.value = 'Terlalu banyak percobaan. Coba lagi nanti.'
-    else if (msg.includes('weak password') || msg.includes('password'))
-      errorMsg.value = 'Password terlalu lemah. Gunakan minimal 6 karakter.'
-    else
-      errorMsg.value = 'Pendaftaran gagal. Coba lagi nanti.'
+    errorMsg.value = mapSignupErrorMessage(err)
   } finally {
     isLoading.value = false
   }

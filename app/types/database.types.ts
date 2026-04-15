@@ -476,6 +476,7 @@ export type Database = {
           completed_at: string | null
           courier_code: string | null
           courier_name: string | null
+          courier_service: string | null
           created_at: string | null
           disbursement_id: string | null
           id: string
@@ -490,7 +491,10 @@ export type Database = {
           seller_id: string
           shipped_at: string | null
           shipping_address_id: string | null
+          shipping_collection_type: string | null
           shipping_cost: number | null
+          shipping_insurance_fee: number
+          shipping_is_insured: boolean
           shipping_method: string | null
           status: string | null
           total_amount: number
@@ -503,6 +507,7 @@ export type Database = {
           completed_at?: string | null
           courier_code?: string | null
           courier_name?: string | null
+          courier_service?: string | null
           created_at?: string | null
           disbursement_id?: string | null
           id?: string
@@ -517,7 +522,10 @@ export type Database = {
           seller_id: string
           shipped_at?: string | null
           shipping_address_id?: string | null
+          shipping_collection_type?: string | null
           shipping_cost?: number | null
+          shipping_insurance_fee?: number
+          shipping_is_insured?: boolean
           shipping_method?: string | null
           status?: string | null
           total_amount: number
@@ -530,6 +538,7 @@ export type Database = {
           completed_at?: string | null
           courier_code?: string | null
           courier_name?: string | null
+          courier_service?: string | null
           created_at?: string | null
           disbursement_id?: string | null
           id?: string
@@ -544,7 +553,10 @@ export type Database = {
           seller_id?: string
           shipped_at?: string | null
           shipping_address_id?: string | null
+          shipping_collection_type?: string | null
           shipping_cost?: number | null
+          shipping_insurance_fee?: number
+          shipping_is_insured?: boolean
           shipping_method?: string | null
           status?: string | null
           total_amount?: number

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../../utils/supabase-admin'
 import { processBiteshipWebhook } from '../../utils/biteship-webhook-handler'
 import { verifyOptionalBiteshipWebhookAuth } from '../../utils/webhook-auth'
+import { createWebhookRequestId, logWebhookEvent } from '../../utils/webhook-observability'
 
 // POST /api/webhooks/biteship
 //
@@ -45,6 +46,8 @@ async function filterDuplicateNotifications(rows: Array<Record<string, string>>)
 }
 
 export default defineEventHandler(async (event) => {
+  const requestId = createWebhookRequestId()
+
   const authResult = verifyOptionalBiteshipWebhookAuth({
     authorization: getHeader(event, 'authorization'),
     callbackToken: getHeader(event, 'x-callback-token'),
@@ -55,9 +58,12 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!authResult.ok) {
-    if (authResult.logMessage) {
-      console.error(authResult.logMessage)
-    }
+    await logWebhookEvent('warning', authResult.logMessage ?? '[biteship-webhook] Invalid webhook token.', {
+      webhook: 'biteship-shipping',
+      requestId,
+      statusCode: authResult.statusCode,
+      errorMessage: authResult.statusMessage,
+    })
 
     throw createError({ statusCode: authResult.statusCode, statusMessage: authResult.statusMessage })
   }
@@ -69,36 +75,69 @@ export default defineEventHandler(async (event) => {
   const biteshipOrderId = body?.order_id ?? body?.id
   const courierStatus   = body?.status ?? body?.courier_status
 
-  return processBiteshipWebhook({
-    eventType,
-    biteshipOrderId: biteshipOrderId ? String(biteshipOrderId) : null,
-    courierStatus: courierStatus ? String(courierStatus) : null,
-    courierWaybillId: body?.courier_waybill_id ?? body?.courier?.waybill_id ?? null,
-    courierCompany: body?.courier_company ?? body?.courier?.company ?? null,
-  }, {
-    findOrderByBiteshipId: async (incomingBiteshipOrderId) => {
-      const { data } = await supabaseAdmin
-        .from('orders')
-        .select('id, buyer_id, seller_id, status, tracking_number, courier_name, shipped_at, shipping_method')
-        .eq('biteship_order_id', incomingBiteshipOrderId)
-        .single()
+  try {
+    const result = await processBiteshipWebhook({
+      eventType,
+      biteshipOrderId: biteshipOrderId ? String(biteshipOrderId) : null,
+      courierStatus: courierStatus ? String(courierStatus) : null,
+      courierWaybillId: body?.courier_waybill_id ?? body?.courier?.waybill_id ?? null,
+      courierCompany: body?.courier_company ?? body?.courier?.company ?? null,
+    }, {
+      findOrderByBiteshipId: async (incomingBiteshipOrderId) => {
+        const { data } = await supabaseAdmin
+          .from('orders')
+          .select('id, buyer_id, seller_id, status, tracking_number, courier_name, shipped_at, shipping_method')
+          .eq('biteship_order_id', incomingBiteshipOrderId)
+          .single()
 
-      return data
-    },
-    updateOrder: async (orderId, updates) => {
-      await supabaseAdmin.from('orders').update(updates).eq('id', orderId)
-    },
-    getAdminIds: async () => {
-      const { data } = await supabaseAdmin
-        .from('users')
-        .select('id')
-        .in('role', ['admin', 'moderator'])
+        return data
+      },
+      updateOrder: async (orderId, updates) => {
+        await supabaseAdmin.from('orders').update(updates).eq('id', orderId)
+      },
+      getAdminIds: async () => {
+        const { data } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .in('role', ['admin', 'moderator'])
 
-      return (data ?? []).map((admin) => String(admin.id))
-    },
-    filterDuplicateNotifications,
-    insertNotifications: async (rows) => {
-      await supabaseAdmin.from('notifications').insert(rows)
-    },
-  })
+        return (data ?? []).map((admin) => String(admin.id))
+      },
+      filterDuplicateNotifications,
+      insertNotifications: async (rows) => {
+        await supabaseAdmin.from('notifications').insert(rows)
+      },
+    })
+
+    const level = result.action === 'updated' || result.action === 'noop' ? 'info' : 'warning'
+    const message = result.action === 'no_matching_order'
+      ? '[biteship-webhook] No matching order found for incoming payload.'
+      : result.action === 'ignored'
+        ? '[biteship-webhook] Payload ignored.'
+        : '[biteship-webhook] Processed webhook.'
+
+    await logWebhookEvent(level, message, {
+      webhook: 'biteship-shipping',
+      requestId,
+      action: typeof result.action === 'string' ? result.action : null,
+      eventName: eventType || null,
+      biteshipOrderId: biteshipOrderId ? String(biteshipOrderId) : null,
+      status: courierStatus ? String(courierStatus) : null,
+      updated: result.action === 'updated',
+    })
+
+    return result
+  } catch (error) {
+    await logWebhookEvent('error', '[biteship-webhook] Unhandled webhook error.', {
+      webhook: 'biteship-shipping',
+      requestId,
+      eventName: eventType || null,
+      biteshipOrderId: biteshipOrderId ? String(biteshipOrderId) : null,
+      status: courierStatus ? String(courierStatus) : null,
+      statusCode: 500,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    })
+
+    throw error
+  }
 })

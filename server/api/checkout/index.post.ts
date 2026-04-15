@@ -13,6 +13,7 @@ import {
   calculatePaymentChargeBreakdown,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
+import { normalizeShippingCollectionType } from '../../../app/utils/shipping-checkout'
 
 function paymentChannelLabel(channel: string): string {
   const labels: Record<string, string> = {
@@ -80,7 +81,11 @@ export default defineEventHandler(async (event) => {
   let meetupLocation: string | null = null
   let meetupOtp: string | null = null
   let shippingCost: number = 0
+  let shippingInsuranceFee: number = 0
+  let shippingIsInsured = false
+  let shippingCollectionType: 'pickup' | 'drop_off' | null = null
   const courierCode: string | null    = body?.courierCode    ?? null
+  const courierName: string | null    = body?.courierName    ?? null
   const courierService: string | null = body?.courierService ?? null
 
   if (shippingMethod === 'cod') {
@@ -91,6 +96,9 @@ export default defineEventHandler(async (event) => {
     meetupOtp = generateMeetupOTP()
   } else {
     shippingCost = Math.max(0, Math.round(Number(body?.shippingCost) || 0))
+    shippingInsuranceFee = Math.max(0, Math.round(Number(body?.shippingInsuranceFee) || 0))
+    shippingIsInsured = body?.shippingIsInsured === true && shippingInsuranceFee > 0
+    shippingCollectionType = normalizeShippingCollectionType(body?.shippingCollectionType)
   }
 
   const supabase = await serverSupabaseClient(event)
@@ -185,7 +193,7 @@ export default defineEventHandler(async (event) => {
   const subtotal: number    = offer.offered_price * offer.quantity
   const platformFee: number = calculatePlatformFee(subtotal)
   // Buyer only pays item subtotal + shipping. Platform + gateway fees are seller-borne.
-  const buyerPayableAmount: number = subtotal + shippingCost
+  const buyerPayableAmount: number = subtotal + shippingCost + shippingInsuranceFee
   const paymentGatewayFee: number = calculatePaymentChargeBreakdown(buyerPayableAmount, paymentChannel).total
   const totalAmount: number = buyerPayableAmount
 
@@ -203,9 +211,13 @@ export default defineEventHandler(async (event) => {
         payment_method: paymentChannel,
         shipping_method: shippingMethod,
         shipping_cost: shippingCost,
+        shipping_collection_type: shippingCollectionType,
+        shipping_insurance_fee: shippingInsuranceFee,
+        shipping_is_insured: shippingIsInsured,
         meetup_location: meetupLocation,
         meetup_otp: meetupOtp,
         courier_code: courierCode,
+        courier_name: courierName,
         courier_service: courierService,
         xendit_invoice_id: null,
         payment_url: null,
@@ -227,9 +239,13 @@ export default defineEventHandler(async (event) => {
           payment_method: paymentChannel,
           shipping_method: shippingMethod,
           shipping_cost: shippingCost,
+          shipping_collection_type: shippingCollectionType,
+          shipping_insurance_fee: shippingInsuranceFee,
+          shipping_is_insured: shippingIsInsured,
           meetup_location: meetupLocation,
           meetup_otp: meetupOtp,
           courier_code: courierCode,
+          courier_name: courierName,
           courier_service: courierService,
           updated_at: new Date().toISOString(),
         })
@@ -250,9 +266,13 @@ export default defineEventHandler(async (event) => {
           offer_id:        offerId,
           shipping_method: shippingMethod,
           shipping_cost:   shippingCost,
+          shipping_collection_type: shippingCollectionType,
+          shipping_insurance_fee: shippingInsuranceFee,
+          shipping_is_insured: shippingIsInsured,
           meetup_location: meetupLocation,
           meetup_otp:      meetupOtp,
           courier_code:    courierCode,
+          courier_name:    courierName,
           courier_service: courierService,
         })
         .select('id')

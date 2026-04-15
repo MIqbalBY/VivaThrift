@@ -235,7 +235,7 @@ onUnmounted(() => {
           to="/chat"
           class="relative items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition shrink-0 hidden md:flex"
           aria-label="Chat"
-          :title="navChatStatus === 'reconnecting' ? 'Chat realtime reconnecting' : 'Chat'"
+          :title="navChatStatus === 'reconnecting' ? 'Koneksi chat sedang mencoba tersambung ulang' : navChatStatus === 'connecting' ? 'Menyambungkan chat…' : 'Chat'"
         >
           <svg class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.836L3 20l1.09-3.27C3.39 15.522 3 13.809 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>

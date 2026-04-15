@@ -83,14 +83,31 @@ export default defineEventHandler(async (event) => {
       body: biteshipBody,
     })
 
-    const rates = (result?.pricing ?? []).map((rate: any) => ({
-      courier_code: rate.courier_code ?? '',
-      courier_name: rate.courier_name ?? '',
-      service:      rate.courier_service_code ?? rate.type ?? '',
-      description:  rate.courier_service_name ?? rate.description ?? '',
-      price:        rate.price ?? 0,
-      etd:          rate.shipment_duration_range ?? rate.duration ?? '—',
-    }))
+    const rates = (result?.pricing ?? []).map((rate: any) => {
+      const rawCollectionType = rate.shipping_type
+        ?? rate.collection_type
+        ?? rate.pickup_type
+        ?? rate.shipment_type
+        ?? null
+
+      const normalizedCollectionType = String(rawCollectionType ?? '').toLowerCase().includes('drop')
+        ? 'drop_off'
+        : 'pickup'
+
+      return {
+        courier_code: rate.courier_code ?? '',
+        courier_name: rate.courier_name ?? '',
+        service:      rate.courier_service_code ?? rate.type ?? '',
+        description:  rate.courier_service_name ?? rate.description ?? '',
+        price:        rate.price ?? 0,
+        etd:          rate.shipment_duration_range ?? rate.duration ?? '—',
+        collection_type: rawCollectionType ? normalizedCollectionType : null,
+        collection_label: rawCollectionType
+          ? (normalizedCollectionType === 'drop_off' ? 'Antar ke gerai' : 'Dijemput kurir')
+          : null,
+        supports_insurance: rate.insurance_available ?? rate.available_for_insurance ?? true,
+      }
+    })
 
     return { rates }
   } catch (e: any) {

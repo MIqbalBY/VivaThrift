@@ -114,6 +114,10 @@ const MEETUP_LOCATION_LABELS: Record<string, string> = {
   tower_3:         'Tower 3 ITS',
 }
 
+function shippingCollectionLabel(type: string | null | undefined) {
+  return type === 'drop_off' ? 'Antar ke gerai' : 'Dijemput kurir'
+}
+
 async function handleStartMeetup(orderId: string) {
   await startMeetup(orderId)
 }
@@ -352,6 +356,21 @@ onMounted(async () => {
           :class="isDark ? 'bg-teal-900/25 border border-teal-700/30 text-teal-300' : 'bg-teal-50 border border-teal-100 text-teal-700'"
         >
           📍 <span>Lokasi meetup: <strong>{{ MEETUP_LOCATION_LABELS[order.meetup_location] ?? order.meetup_location }}</strong></span>
+        </div>
+
+        <div
+          v-if="order.shipping_method !== 'cod'"
+          class="mx-4 mb-3 rounded-xl px-3 py-2.5 text-xs"
+          :class="isDark ? 'bg-sky-900/20 border border-sky-700/30 text-sky-200' : 'bg-sky-50 border border-sky-100 text-sky-800'"
+        >
+          <div class="flex flex-wrap gap-x-3 gap-y-1">
+            <span>Kurir: <strong>{{ order.courier_name ?? '—' }}</strong></span>
+            <span v-if="order.courier_service">Layanan: <strong>{{ order.courier_service }}</strong></span>
+            <span>Tipe kirim: <strong>{{ shippingCollectionLabel(order.shipping_collection_type) }}</strong></span>
+            <span>Ongkir: <strong>{{ formatRp(Number(order.shipping_cost ?? 0)) }}</strong></span>
+            <span v-if="order.shipping_is_insured">Asuransi: <strong>{{ formatRp(Number(order.shipping_insurance_fee ?? 0)) }}</strong></span>
+            <span v-else>Asuransi: <strong>Tidak aktif</strong></span>
+          </div>
         </div>
 
         <!-- Buyer: OTP display for awaiting_meetup -->

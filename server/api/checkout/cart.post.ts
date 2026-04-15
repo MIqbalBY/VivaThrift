@@ -12,6 +12,7 @@ import {
   calculatePaymentChargeBreakdown,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
+import { normalizeShippingCollectionType } from '../../../app/utils/shipping-checkout'
 
 function paymentChannelLabel(channel: string): string {
   const labels: Record<string, string> = {
@@ -76,7 +77,11 @@ export default defineEventHandler(async (event) => {
 
   let meetupLocation: string | null = null
   let shippingCost: number = 0
+  let shippingInsuranceFee: number = 0
+  let shippingIsInsured = false
+  let shippingCollectionType: 'pickup' | 'drop_off' | null = null
   const courierCode: string | null = body?.courierCode ?? null
+  const courierName: string | null = body?.courierName ?? null
 
   if (shippingMethod === 'cod') {
     meetupLocation = body?.meetupLocation
@@ -85,6 +90,9 @@ export default defineEventHandler(async (event) => {
     }
   } else {
     shippingCost = Math.max(0, Math.round(Number(body?.shippingCost) || 0))
+    shippingInsuranceFee = Math.max(0, Math.round(Number(body?.shippingInsuranceFee) || 0))
+    shippingIsInsured = body?.shippingIsInsured === true && shippingInsuranceFee > 0
+    shippingCollectionType = normalizeShippingCollectionType(body?.shippingCollectionType)
   }
 
   const supabase = await serverSupabaseClient(event)
@@ -291,15 +299,18 @@ export default defineEventHandler(async (event) => {
   // Split shippingCost evenly across seller groups (first group absorbs remainder)
   const sellerCount = sellerMap.size
   const costPerSeller = Math.floor(shippingCost / sellerCount)
+  const insurancePerSeller = Math.floor(shippingInsuranceFee / sellerCount)
   let remainderCost = shippingCost - costPerSeller * sellerCount
+  let remainderInsurance = shippingInsuranceFee - insurancePerSeller * sellerCount
   let sellerIndex = 0
 
   for (const [sellerId, group] of sellerMap.entries()) {
     const orderShippingCost = costPerSeller + (sellerIndex === 0 ? remainderCost : 0)
+    const orderInsuranceFee = insurancePerSeller + (sellerIndex === 0 ? remainderInsurance : 0)
     const meetupOtp = shippingMethod === 'cod' ? generateMeetupOTP() : null
     const platformFee = calculatePlatformFee(group.total)
     // Buyer only pays item subtotal + shipping. Platform + gateway fees are seller-borne.
-    const buyerPayableAmount = group.total + orderShippingCost
+    const buyerPayableAmount = group.total + orderShippingCost + orderInsuranceFee
     const paymentGatewayFee = calculatePaymentChargeBreakdown(buyerPayableAmount, paymentChannel).total
     const orderTotalAmount = buyerPayableAmount
     grandTotal += orderTotalAmount
@@ -316,9 +327,13 @@ export default defineEventHandler(async (event) => {
         status:          'pending_payment',
         shipping_method: shippingMethod,
         shipping_cost:   orderShippingCost,
+        shipping_collection_type: shippingCollectionType,
+        shipping_insurance_fee: orderInsuranceFee,
+        shipping_is_insured: shippingIsInsured,
         meetup_location: meetupLocation,
         meetup_otp:      meetupOtp,
         courier_code:    courierCode,
+        courier_name:    courierName,
       })
       .select('id')
       .single()

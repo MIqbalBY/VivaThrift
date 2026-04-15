@@ -124,6 +124,8 @@ useAsyncData(`similar-${route.params.id}`, async () => {
     .eq('status', 'active')
     .neq('id', p.id)
     .order('created_at', { ascending: false })
+    .order('is_primary', { foreignTable: 'product_media', ascending: false })
+    .limit(1, { foreignTable: 'product_media' })
     .limit(4)
   if (catName) q = q.eq('categories.name', catName)
   const { data } = await q

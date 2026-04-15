@@ -181,6 +181,8 @@ function buildQuery() {
     .eq('status', 'active')
     .order(sort.col, { ascending: sort.asc })
     .order('id', { ascending: true }) // tiebreaker for stable cursor
+    .order('is_primary', { foreignTable: 'product_media', ascending: false })
+    .limit(1, { foreignTable: 'product_media' })
 
   if (hasCatFilter)                     query = query.in('categories.name', activeCategory.value)
   if (activeCondition.value.length)     query = query.in('condition', activeCondition.value)

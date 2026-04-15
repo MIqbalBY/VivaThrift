@@ -2,6 +2,8 @@
 definePageMeta({ middleware: 'auth' })
 useSeoMeta({ title: 'Checkout Keranjang — VivaThrift' })
 import { CHECKOUT_MEETUP_LOCATIONS_WITH_OTHER } from '~/data/meetupLocations'
+import { calculateShippingInsuranceFee, getShippingCollectionOptions, isShippingInsuranceEligible, normalizeShippingCollectionType, type ShippingCollectionType } from '~/utils/shipping-checkout'
+import { classifyShippingRate, getAvailableShippingRateTabs, getShippingRateTabLabel, sortShippingRates, type ShippingRate, type ShippingRateCategory } from '~/utils/shipping-rates'
 
 const { isDark } = useDarkMode()
 const runtimeConfig = useRuntimeConfig()
@@ -28,17 +30,41 @@ const paymentChannel  = ref<string>('qris')
 const meetupLocation  = ref<string>('rektorat')
 const meetupCustom    = ref<string>('')
 const destPostal      = ref<string>('')
-const rates           = ref<any[]>([])
-const selectedRate    = ref<any | null>(null)
+const rates           = ref<ShippingRate[]>([])
+const selectedRate    = ref<ShippingRate | null>(null)
 const ratesLoading    = ref(false)
 const ratesErr        = ref('')
+const activeRateTab   = ref<ShippingRateCategory>('all')
+const shippingCollectionType = ref<ShippingCollectionType>('pickup')
+const shippingInsuranceEnabled = ref(false)
+const SHIPPING_COLLECTION_OPTIONS = getShippingCollectionOptions()
 
 // ── Buyer address (auto-fetched from profile) ───────────────────────────────
 const buyerAddress        = ref<any>(null)
 const buyerAddressLoading = ref(false)
 
+const cartCategoryHint = computed(() =>
+  cartItems.value
+    .map(item => [item.product?.title].filter(Boolean).join(' '))
+    .join(' ')
+)
+
+const shippingInsuranceEligible = computed(() =>
+  shippingMethod.value === 'shipping' && isShippingInsuranceEligible(cartCategoryHint.value)
+)
+
+const selectedCourierPrice = computed(() =>
+  shippingMethod.value === 'shipping' ? Number(selectedRate.value?.price ?? 0) : 0
+)
+
+const shippingInsuranceFee = computed(() => calculateShippingInsuranceFee({
+  declaredValue: cartTotal.value,
+  enabled: shippingInsuranceEnabled.value,
+  eligible: shippingInsuranceEligible.value,
+}))
+
 const ongkirAmount = computed(() =>
-  shippingMethod.value === 'shipping' ? (selectedRate.value?.price ?? 0) : 0
+  selectedCourierPrice.value + shippingInsuranceFee.value
 )
 
 // Mirror platform fee tiers from server/utils/domain-rules.ts
@@ -75,6 +101,63 @@ const paymentChargeBreakdown = computed(() => {
 
 const grandTotal = computed(() => cartTotal.value + ongkirAmount.value)
 
+const availableRateTabs = computed(() => getAvailableShippingRateTabs(rates.value))
+const visibleRates = computed(() => {
+  if (activeRateTab.value === 'all') return rates.value
+  return rates.value.filter((rate) => classifyShippingRate(rate) === activeRateTab.value)
+})
+const cheapestVisibleRate = computed(() => {
+  if (!visibleRates.value.length) return null
+  return [...visibleRates.value].sort((left, right) => Number(left.price ?? 0) - Number(right.price ?? 0))[0] ?? null
+})
+const selectedCollectionLabel = computed(() => {
+  const active = SHIPPING_COLLECTION_OPTIONS.find((option) => option.key === shippingCollectionType.value)
+  return active?.label ?? 'Dijemput Kurir'
+})
+
+watch(shippingMethod, (method) => {
+  if (method === 'shipping') {
+    if (shippingInsuranceEligible.value) shippingInsuranceEnabled.value = true
+    if (destPostal.value.trim().length >= 5) fetchRates()
+    return
+  }
+
+  shippingInsuranceEnabled.value = false
+  shippingCollectionType.value = 'pickup'
+})
+
+watch(rates, (nextRates) => {
+  const tabs = getAvailableShippingRateTabs(nextRates)
+  const hasCurrentTab = tabs.some((tab) => tab.key === activeRateTab.value)
+  if (!hasCurrentTab || activeRateTab.value === 'all') {
+    activeRateTab.value = tabs.find((tab) => tab.key !== 'all')?.key ?? 'all'
+  }
+}, { deep: true })
+
+watch(selectedRate, (rate) => {
+  if (rate?.collection_type) {
+    shippingCollectionType.value = normalizeShippingCollectionType(rate.collection_type)
+  }
+  if (rate && shippingInsuranceEligible.value) {
+    shippingInsuranceEnabled.value = true
+  }
+})
+
+function getRateBadgeClass(rate: ShippingRate) {
+  const category = classifyShippingRate(rate)
+  if (isDark.value) {
+    if (category === 'instant') return 'bg-emerald-900/40 text-emerald-300'
+    if (category === 'next_day') return 'bg-violet-900/40 text-violet-300'
+    if (category === 'economy') return 'bg-amber-900/40 text-amber-300'
+    return 'bg-sky-900/40 text-sky-300'
+  }
+
+  if (category === 'instant') return 'bg-emerald-50 text-emerald-700'
+  if (category === 'next_day') return 'bg-violet-50 text-violet-700'
+  if (category === 'economy') return 'bg-amber-50 text-amber-700'
+  return 'bg-blue-50 text-blue-700'
+}
+
 async function fetchRates() {
   if (!destPostal.value.trim()) {
     ratesErr.value = 'Masukkan kode pos tujuan.'
@@ -110,11 +193,11 @@ async function fetchRates() {
           items:                   shippingItems,
         }
 
-    const res = await $fetch<{ rates: any[] }>('/api/shipping/rates', {
+    const res = await $fetch<{ rates: ShippingRate[] }>('/api/shipping/rates', {
       method: 'POST',
       body: rateBody,
     })
-    rates.value = res.rates ?? []
+    rates.value = sortShippingRates(res.rates ?? [])
     if (!rates.value.length) ratesErr.value = 'Tidak ada layanan pengiriman tersedia untuk kode pos ini.'
   } catch (e: any) {
     ratesErr.value = e?.data?.statusMessage ?? e?.message ?? 'Gagal mengambil tarif pengiriman.'
@@ -196,8 +279,13 @@ async function handleCheckout(forceRegenerateInvoice = false) {
       }
       body.meetupLocation = loc
     } else {
-      body.shippingCost = selectedRate.value!.price
+      body.shippingCost = Number(selectedRate.value!.price ?? 0)
+      body.shippingInsuranceFee = shippingInsuranceFee.value
+      body.shippingIsInsured = shippingInsuranceEnabled.value && shippingInsuranceFee.value > 0
+      body.shippingCollectionType = shippingCollectionType.value
       body.courierCode  = selectedRate.value!.courier_code
+      body.courierName  = selectedRate.value!.courier_name
+      body.courierService = selectedRate.value!.service
     }
     const result = await $fetch<{ paymentUrl: string }>('/api/checkout/cart', { method: 'POST', body })
     if (result.paymentUrl) {
@@ -381,7 +469,8 @@ async function handleCheckout(forceRegenerateInvoice = false) {
           <!-- Shipping: Ongkir calculator -->
           <div v-if="shippingMethod === 'shipping'" class="mt-4">
             <p class="text-xs font-semibold mb-2" :class="isDark ? 'text-gray-400' : 'text-gray-500'">KALKULASI ONGKIR</p>
-            <p class="text-xs mb-2" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Dari: Kampus ITS Surabaya (60111)</p>
+            <p class="text-xs mb-1" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Dari: Kampus ITS Surabaya (60111)</p>
+            <p class="text-[11px] mb-2" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Kurir diurutkan dari harga termurah dan bisa difilter per layanan.</p>
             <div class="flex gap-2">
               <input
                 v-model="destPostal"
@@ -408,35 +497,122 @@ async function handleCheckout(forceRegenerateInvoice = false) {
             </div>
             <p v-if="ratesErr" class="text-xs text-red-500 mt-1.5">{{ ratesErr }}</p>
 
-            <!-- Rate options -->
-            <div v-if="rates.length" class="mt-3 space-y-2">
-              <label
-                v-for="rate in rates"
-                :key="`${rate.courier_code}-${rate.service}`"
-                class="flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition"
-                :class="selectedRate === rate
-                  ? (isDark ? 'border-sky-500 bg-sky-900/30' : 'border-blue-500 bg-blue-50')
-                  : (isDark ? 'border-white/10 hover:border-white/20' : 'border-gray-200 hover:border-gray-300')"
-              >
-                <input
-                  type="radio"
-                  name="shippingRate"
-                  :value="rate"
-                  v-model="selectedRate"
-                  class="accent-blue-600"
-                />
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">
-                    {{ rate.courier_name }} — {{ rate.description }}
-                  </p>
-                  <p class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
-                    Estimasi {{ rate.etd }}
-                  </p>
+            <p v-if="ratesLoading" class="text-xs mt-2" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Sedang mencari layanan kurir...</p>
+
+            <div v-if="rates.length" class="mt-4">
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="tab in availableRateTabs"
+                  :key="tab.key"
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border transition"
+                  :class="activeRateTab === tab.key
+                    ? (isDark ? 'border-sky-500 bg-sky-900/40 text-sky-300' : 'border-blue-600 bg-blue-50 text-blue-700')
+                    : (isDark ? 'border-white/10 text-gray-300 hover:border-white/20' : 'border-gray-200 text-gray-600 hover:border-gray-300')"
+                  @click="activeRateTab = tab.key"
+                >
+                  <span>{{ tab.label }}</span>
+                  <span class="rounded-full px-1.5 py-0.5 text-[10px]"
+                    :class="activeRateTab === tab.key
+                      ? (isDark ? 'bg-sky-950/70 text-sky-200' : 'bg-white text-blue-700')
+                      : (isDark ? 'bg-slate-800 text-gray-300' : 'bg-gray-100 text-gray-600')">
+                    {{ tab.count }}
+                  </span>
+                </button>
+              </div>
+
+              <div class="mt-3 space-y-3">
+                <label
+                  v-for="rate in visibleRates"
+                  :key="`${rate.courier_code}-${rate.service}`"
+                  class="block rounded-2xl cursor-pointer border transition"
+                  :class="selectedRate === rate
+                    ? (isDark ? 'border-sky-500 bg-sky-900/25' : 'border-blue-500 bg-blue-50/80')
+                    : (isDark ? 'border-white/10 hover:border-white/20 bg-slate-900/20' : 'border-gray-200 hover:border-gray-300 bg-white')"
+                >
+                  <div class="flex items-start gap-3 p-3 sm:p-4">
+                    <input
+                      type="radio"
+                      name="shippingRate"
+                      :value="rate"
+                      v-model="selectedRate"
+                      class="mt-1 accent-blue-600"
+                    />
+                    <div class="flex-1 min-w-0">
+                      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div class="min-w-0">
+                          <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
+                              :class="isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'">
+                              {{ rate.courier_name || 'Kurir' }}
+                            </span>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                              :class="getRateBadgeClass(rate)">
+                              {{ getShippingRateTabLabel(classifyShippingRate(rate)) }}
+                            </span>
+                            <span v-if="cheapestVisibleRate && cheapestVisibleRate === rate"
+                              class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                              :class="isDark ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-50 text-emerald-700'">
+                              Termurah
+                            </span>
+                          </div>
+
+                          <p class="text-sm font-semibold break-words" :class="isDark ? 'text-white' : 'text-gray-800'">
+                            {{ rate.description || rate.service || 'Layanan pengiriman' }}
+                          </p>
+                          <p class="text-xs mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">
+                            Estimasi {{ rate.etd || '—' }} · Kode layanan {{ rate.service || 'N/A' }}
+                          </p>
+                        </div>
+
+                        <div class="sm:text-right shrink-0">
+                          <p class="text-base font-bold" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
+                            Rp {{ Number(rate.price ?? 0).toLocaleString('id-ID') }}
+                          </p>
+                          <p class="text-[11px] mt-1" :class="isDark ? 'text-gray-500' : 'text-gray-400'">
+                            {{ selectedRate === rate ? 'Dipilih untuk checkout' : 'Tap untuk pilih' }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <div v-if="selectedRate" class="mt-4 space-y-4 rounded-2xl border p-4"
+                :class="isDark ? 'border-white/10 bg-slate-900/30' : 'border-gray-200 bg-gray-50/70'">
+                <div>
+                  <p class="text-xs font-semibold mb-2" :class="isDark ? 'text-gray-400' : 'text-gray-500'">TIPE PENGIRIMAN</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      v-for="option in SHIPPING_COLLECTION_OPTIONS"
+                      :key="option.key"
+                      type="button"
+                      class="rounded-xl border px-3 py-3 text-left transition"
+                      :class="shippingCollectionType === option.key
+                        ? (isDark ? 'border-sky-500 bg-sky-900/30 text-sky-300' : 'border-blue-500 bg-blue-50 text-blue-700')
+                        : (isDark ? 'border-white/10 text-gray-300 hover:border-white/20' : 'border-gray-200 text-gray-600 hover:border-gray-300')"
+                      @click="shippingCollectionType = option.key"
+                    >
+                      <p class="text-sm font-semibold">{{ option.label }}</p>
+                      <p class="text-[11px] mt-1 opacity-80">{{ option.description }}</p>
+                    </button>
+                  </div>
+                  <p class="text-[11px] mt-2" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Pilihan aktif: {{ selectedCollectionLabel }}</p>
                 </div>
-                <span class="text-sm font-bold shrink-0" :class="isDark ? 'text-sky-300' : 'text-blue-700'">
-                  Rp {{ rate.price.toLocaleString('id-ID') }}
-                </span>
-              </label>
+
+                <div v-if="shippingInsuranceEligible" class="rounded-xl border px-3 py-3"
+                  :class="isDark ? 'border-white/10 bg-slate-800/60' : 'border-gray-200 bg-white'">
+                  <label class="flex items-start gap-3 cursor-pointer">
+                    <input v-model="shippingInsuranceEnabled" type="checkbox" class="mt-1 accent-blue-600" />
+                    <span class="flex-1 min-w-0">
+                      <span class="block text-sm font-semibold" :class="isDark ? 'text-white' : 'text-gray-800'">Pakai asuransi tambahan</span>
+                      <span class="block text-[11px] mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Cocok untuk barang elektronik atau gadget. Biaya asuransi 0,5% dari nilai barang.</span>
+                    </span>
+                    <span class="text-sm font-bold shrink-0" :class="isDark ? 'text-sky-300' : 'text-blue-700'">Rp {{ shippingInsuranceFee.toLocaleString('id-ID') }}</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -494,8 +670,12 @@ async function handleCheckout(forceRegenerateInvoice = false) {
                   ? (isDark ? 'text-slate-200' : 'text-gray-700')
                   : (isDark ? 'text-slate-500' : 'text-gray-400')"
             >
-              {{ shippingMethod === 'cod' ? 'Gratis (COD)' : selectedRate ? `Rp ${selectedRate.price.toLocaleString('id-ID')}` : '—' }}
+              {{ shippingMethod === 'cod' ? 'Gratis (COD)' : selectedRate ? `Rp ${selectedCourierPrice.toLocaleString('id-ID')}` : '—' }}
             </span>
+          </div>
+          <div v-if="shippingInsuranceFee > 0" class="flex justify-between">
+            <span>Asuransi Pengiriman</span>
+            <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ shippingInsuranceFee.toLocaleString('id-ID') }}</span>
           </div>
           <div class="flex justify-between">
             <span>Biaya Layanan</span>
