@@ -1,4 +1,8 @@
 {
+  "files.associations": {
+    "*.sql": "postgres",
+    "supabase/migrations/*.sql": "postgres"
+  },
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
   }

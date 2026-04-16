@@ -10,6 +10,7 @@ const emit = defineEmits<{
 }>()
 
 const isMounted = ref(false)
+const { mediaUrl } = useMediaUrl()
 
 function getNotifInitial(name: string) {
   return (name ?? '?').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
@@ -44,7 +45,7 @@ onMounted(() => {
               class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 text-white text-xs font-bold"
               :style="isDark ? 'background:linear-gradient(135deg,#0ea5e9,#38bdf8)' : 'background:linear-gradient(to right,#162d6e,#1e40af)'"
             >
-              <img v-if="notif.senderAvatar" :src="notif.senderAvatar" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
+              <img v-if="notif.senderAvatar" :src="mediaUrl(notif.senderAvatar)" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
               <span v-else>{{ getNotifInitial(notif.senderName) }}</span>
             </div>
             <!-- Content -->

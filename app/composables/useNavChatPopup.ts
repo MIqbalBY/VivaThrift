@@ -1,6 +1,7 @@
 export function useNavChatPopup() {
   const supabase = useSupabaseClient() as any
   const { settings: userSettings } = useUserSettings()
+  const { mediaUrl } = useMediaUrl()
 
   const chatNotifications = ref<any[]>([])
   let notifIdCounter = 0
@@ -31,7 +32,7 @@ export function useNavChatPopup() {
       notifTimers[chatId] = setTimeout(() => { dismissChatNotification(existing.id); delete notifTimers[chatId] }, 5000)
       supabase.from('users').select('name, avatar_url').eq('id', senderId).single().then(({ data: s }: any) => {
         const n = chatNotifications.value.find((n: any) => n.chatId === chatId)
-        if (n) { n.senderName = s?.name ?? 'Pengguna'; n.senderAvatar = s?.avatar_url ?? null }
+        if (n) { n.senderName = s?.name ?? 'Pengguna'; n.senderAvatar = mediaUrl(s?.avatar_url ?? null) ?? null }
       })
       return
     }
@@ -41,7 +42,7 @@ export function useNavChatPopup() {
     notifTimers[chatId] = setTimeout(() => { dismissChatNotification(id); delete notifTimers[chatId] }, 5000)
     supabase.from('users').select('name, avatar_url').eq('id', senderId).single().then(({ data: s }: any) => {
       const n = chatNotifications.value.find((n: any) => n.id === id)
-      if (n) { n.senderName = s?.name ?? 'Pengguna'; n.senderAvatar = s?.avatar_url ?? null }
+      if (n) { n.senderName = s?.name ?? 'Pengguna'; n.senderAvatar = mediaUrl(s?.avatar_url ?? null) ?? null }
     })
   }
 

@@ -84,7 +84,7 @@ export async function createSignupAccount(payload: SignupPayload, deps: SignupDe
   const result = await deps.createAuthUser({
     email: normalizedEmail,
     password: payload.password,
-    email_confirm: true,
+    email_confirm: false,
     user_metadata: {
       name: String(payload.name ?? '').trim(),
       username: normalizedUsername,

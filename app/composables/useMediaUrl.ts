@@ -44,7 +44,24 @@ export function mediaUrl(url: string | null | undefined): string | undefined {
   if (base.startsWith(R2_DEV_ORIGIN + '/')) {
     return '/media/' + base.slice(R2_DEV_ORIGIN.length + 1) + qs
   }
-  return url
+
+  if (base.startsWith('http://') || base.startsWith('https://')) {
+    try {
+      const parsed = new URL(base)
+      if (parsed.origin === CDN_ORIGIN || parsed.hostname.endsWith('.r2.dev')) {
+        return '/media/' + parsed.pathname.replace(/^\/+/, '') + qs
+      }
+    } catch {
+      // fall through to original URL handling below
+    }
+    return url
+  }
+
+  if (base.startsWith('data:') || base.startsWith('blob:') || base.startsWith('/')) {
+    return url
+  }
+
+  return '/media/' + base.replace(/^\/+/, '') + qs
 }
 
 /** Composable wrapper — kept for backwards compat with components that already destructure it. */

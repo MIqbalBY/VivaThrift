@@ -6,6 +6,7 @@ const props = defineProps({
 })
 
 const supabase = useSupabaseClient()
+const { mediaUrl } = useMediaUrl()
 
 const sellerChats = ref([])
 const pending = ref(true)
@@ -138,7 +139,7 @@ onUnmounted(() => {
           : 'background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.5);'"
       >
         <div class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center overflow-hidden" :style="isDark ? 'background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc)' : 'background: linear-gradient(to right, #162d6e, #1e3a8a, #1e40af)'">
-          <img v-if="c.buyer?.avatar_url" :src="c.buyer.avatar_url" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
+          <img v-if="c.buyer?.avatar_url" :src="mediaUrl(c.buyer.avatar_url)" width="36" height="36" loading="lazy" class="w-full h-full object-cover" />
           <span v-else class="text-white text-xs font-bold">{{ (c.buyer?.name ?? '?').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase() }}</span>
         </div>
         <div class="flex-1 min-w-0">

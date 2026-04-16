@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createSignupAccount } from '../server/utils/signup-handler'
 
 describe('createSignupAccount', () => {
-  it('creates a confirmed account via admin auth when the payload is valid', async () => {
+  it('creates an unconfirmed account so the user must verify email first', async () => {
     const deps = {
       findUserByUsername: vi.fn(async () => null),
       createAuthUser: vi.fn(async () => ({
@@ -27,7 +27,7 @@ describe('createSignupAccount', () => {
     expect(result).toEqual({ ok: true, userId: 'user-1' })
     expect(deps.createAuthUser).toHaveBeenCalledWith(expect.objectContaining({
       email: '50252101@student.its.ac.id',
-      email_confirm: true,
+      email_confirm: false,
     }))
   })
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-const supabase = useSupabaseClient()
-const user     = useSupabaseUser()
+const user = useSupabaseUser()
 const { isDark } = useDarkMode()
 
 const props = defineProps<{
@@ -55,29 +54,19 @@ async function submit() {
 
   loading.value = true
   try {
-    const payload = {
-      reporter_id: (user.value as any).id as string,
-      reason:      finalReason.value,
-      status:      'pending' as const,
-      reported_product_id: props.targetType === 'product' ? props.targetId : null,
-      reported_user_id:    props.targetType === 'user'    ? props.targetId : null,
-    }
-
-    const { error: insertErr } = await supabase.from('reports').insert(payload)
-
-    if (insertErr) {
-      if (insertErr.code === '23505') {
-        error.value = 'Kamu sudah pernah melaporkan ini sebelumnya.'
-      } else {
-        error.value = insertErr.message
-      }
-      return
-    }
+    await $fetch('/api/reports', {
+      method: 'POST',
+      body: {
+        targetType: props.targetType,
+        targetId: props.targetId,
+        reason: finalReason.value,
+      },
+    })
 
     success.value = true
     setTimeout(() => emit('submitted'), 1500)
   } catch (e: any) {
-    error.value = e?.message ?? 'Gagal mengirim laporan.'
+    error.value = e?.data?.statusMessage ?? e?.message ?? 'Gagal mengirim laporan.'
   } finally {
     loading.value = false
   }

@@ -3,6 +3,8 @@
  * Fetch, filter, dan mutate order data untuk buyer dan seller.
  */
 
+import { mediaUrl } from './useMediaUrl'
+
 export type OrderRole   = 'buyer' | 'seller'
 export type OrderTabKey = 'pending_payment' | 'confirmed' | 'awaiting_meetup' | 'shipped' | 'completed' | 'cancelled'
 
@@ -120,12 +122,12 @@ export function useOrders() {
   // ── Helpers ──────────────────────────────────────────────────────────────────
   function primaryMedia(order: any) {
     const items = order.order_items ?? []
-    if (!items.length) return null
+    if (!items.length) return undefined
     const media = items[0]?.product?.product_media ?? []
-    if (!media.length) return null
+    if (!media.length) return undefined
     const primary = media.find((m: any) => m.is_primary) ?? media[0]
-    if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return primary.thumbnail_url
-    return primary.media_url ?? null
+    if (primary.media_type?.startsWith('video') && primary.thumbnail_url) return mediaUrl(primary.thumbnail_url)
+    return mediaUrl(primary.media_url ?? null)
   }
 
   function productTitle(order: any) {
