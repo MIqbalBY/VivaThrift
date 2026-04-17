@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../../utils/supabase-admin'
 import { resolveServerUid } from '../../utils/resolve-server-uid'
-import { getBiteshipTracking } from '../../utils/biteship'
+import { extractBiteshipLabelUrl, getBiteshipTracking } from '../../utils/biteship'
 
 // GET /api/shipping/track?order_id=<uuid>
 // Returns Biteship tracking history for an order.
@@ -49,5 +49,6 @@ export default defineEventHandler(async (event) => {
     status:            tracking?.status ?? null,
     courier:           tracking?.courier ?? null,
     history:           tracking?.courier?.history ?? [],
+    label_url:         extractBiteshipLabelUrl(tracking),
   }
 })

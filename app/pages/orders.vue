@@ -98,6 +98,23 @@ async function loadTracking(orderId: string, biteshipOrderId: string) {
 // Meetup OTP state (per order)
 const meetupOtpInputs = ref<Record<string, string>>({})
 
+function orderShippingWarnings(order: any) {
+  return getOrderShippingWarnings({
+    shippingMethod: order.shipping_method,
+    status: order.status,
+    sellerPhone: order.seller?.phone,
+    buyerPhone: order.buyer?.phone,
+  })
+}
+
+function shippingHandlingBadges(order: any) {
+  return getShippingHandlingBadges({
+    shippingIsInsured: order.shipping_is_insured,
+    shippingInsuranceFee: order.shipping_insurance_fee,
+    shippingIsFragile: order.shipping_is_fragile,
+  })
+}
+
 const MEETUP_LOCATION_LABELS: Record<string, string> = {
   aula_asrama:     'Aula Asrama ITS',
   ccws_ikoma:      'CCWS IKOMA ITS',
@@ -371,6 +388,18 @@ onMounted(async () => {
             <span v-if="order.shipping_is_insured">Asuransi: <strong>{{ formatRp(Number(order.shipping_insurance_fee ?? 0)) }}</strong></span>
             <span v-else>Asuransi: <strong>Tidak aktif</strong></span>
           </div>
+          <div v-if="shippingHandlingBadges(order).length" class="mt-2 flex flex-wrap gap-2">
+            <span
+              v-for="badge in shippingHandlingBadges(order)"
+              :key="badge"
+              class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              :class="badge.includes('Fragile')
+                ? (isDark ? 'bg-amber-900/40 text-amber-200' : 'bg-amber-100 text-amber-800')
+                : (isDark ? 'bg-emerald-900/40 text-emerald-200' : 'bg-emerald-100 text-emerald-800')"
+            >
+              {{ badge }}
+            </span>
+          </div>
         </div>
 
         <!-- Buyer: OTP display for awaiting_meetup -->
@@ -564,11 +593,23 @@ onMounted(async () => {
             class="mx-4 mb-4 rounded-xl p-4 space-y-3"
             :style="isDark ? 'background:rgba(30,58,138,0.15);border:1px solid rgba(56,189,248,0.15);' : 'background:rgba(239,246,255,0.80);border:1px solid rgba(147,197,253,0.50);'"
           >
+            <div
+              v-if="orderShippingWarnings(order).length"
+              class="rounded-xl px-3 py-3 text-xs border"
+              :class="isDark ? 'bg-amber-900/20 border-amber-700/40 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'"
+            >
+              <p class="font-semibold mb-1">Lengkapi data sebelum buat resi:</p>
+              <ul class="list-disc pl-4 space-y-1">
+                <li v-for="warning in orderShippingWarnings(order)" :key="warning">{{ warning }}</li>
+              </ul>
+              <NuxtLink to="/profile/edit" class="inline-block mt-2 underline font-semibold">Buka profil</NuxtLink>
+            </div>
+
             <!-- Biteship auto-create button (primary) -->
             <p class="text-xs font-semibold" :class="isDark ? 'text-sky-300' : 'text-blue-700'">Buat resi otomatis via Biteship</p>
             <button
               @click="handleShipViaBiteship(order.id)"
-              :disabled="actionLoading[order.id]"
+              :disabled="actionLoading[order.id] || orderShippingWarnings(order).length > 0"
               class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50"
               style="background:linear-gradient(to right,#162d6e,#1e3a8a,#1e40af);"
             >
@@ -639,18 +680,31 @@ onMounted(async () => {
           v-if="order.biteship_order_id && (order.status === 'shipped' || order.status === 'completed')"
           class="mx-4 mb-3"
         >
-          <button
-            @click="loadTracking(order.id, order.biteship_order_id)"
-            :disabled="trackingLoading[order.id]"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition"
-            :class="isDark ? 'border-indigo-600 text-indigo-300 hover:bg-indigo-900/20 disabled:opacity-50' : 'border-indigo-300 text-indigo-700 hover:bg-indigo-50 disabled:opacity-50'"
-          >
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              @click="loadTracking(order.id, order.biteship_order_id)"
+              :disabled="trackingLoading[order.id]"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition"
+              :class="isDark ? 'border-indigo-600 text-indigo-300 hover:bg-indigo-900/20 disabled:opacity-50' : 'border-indigo-300 text-indigo-700 hover:bg-indigo-50 disabled:opacity-50'"
+            >
             <span v-if="trackingLoading[order.id]" class="flex items-center gap-1">
               <span class="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin border-current"></span>
               Memuat…
             </span>
-            <span v-else>{{ trackingOpen[order.id] ? '▲ Tutup pelacakan' : '📍 Lacak Paket' }}</span>
-          </button>
+              <span v-else>{{ trackingOpen[order.id] ? '▲ Tutup pelacakan' : '📍 Lacak Paket' }}</span>
+            </button>
+
+            <a
+              v-if="role === 'seller'"
+              :href="`/api/shipping/label?order_id=${order.id}`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition"
+              :class="isDark ? 'border-emerald-600 text-emerald-300 hover:bg-emerald-900/20' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'"
+            >
+              🏷️ Unduh Label
+            </a>
+          </div>
 
           <Transition
             enter-active-class="transition duration-200 ease-out"
@@ -671,6 +725,16 @@ onMounted(async () => {
               <p v-if="trackingData[order.id].tracking_number" :class="isDark ? 'text-slate-300' : 'text-gray-600'">
                 Resi: <strong>{{ trackingData[order.id].tracking_number }}</strong>
               </p>
+              <a
+                v-if="trackingData[order.id].label_url"
+                :href="trackingData[order.id].label_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1.5 text-[11px] font-semibold underline underline-offset-2"
+                :class="isDark ? 'text-emerald-300' : 'text-emerald-700'"
+              >
+                Buka label resmi kurir
+              </a>
               <template v-if="trackingData[order.id].history?.length">
                 <p class="font-medium pt-1" :class="isDark ? 'text-slate-400' : 'text-gray-500'">Histori:</p>
                 <div class="max-h-40 overflow-y-auto space-y-1">

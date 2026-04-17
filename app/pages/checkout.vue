@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CHECKOUT_MEETUP_LOCATIONS_WITH_OTHER } from '~/data/meetupLocations'
-import { calculateShippingInsuranceFee, getShippingCollectionOptions, isShippingInsuranceEligible, normalizeShippingCollectionType, type ShippingCollectionType } from '~/utils/shipping-checkout'
+import { calculateShippingInsuranceFee, getShippingCollectionOptions, isShippingInsuranceEligible, normalizeShippingCollectionType, validateCheckoutReadiness, type ShippingCollectionType } from '~/utils/shipping-checkout'
 import { classifyShippingRate, getAvailableShippingRateTabs, getShippingRateTabLabel, sortShippingRates, type ShippingRate, type ShippingRateCategory } from '~/utils/shipping-rates'
 
 definePageMeta({ middleware: 'auth' })
@@ -39,27 +39,41 @@ const ratesErr             = ref('')
 const activeRateTab        = ref<ShippingRateCategory>('all')
 const shippingCollectionType = ref<ShippingCollectionType>('pickup')
 const shippingInsuranceEnabled = ref(false)
+const shippingIsFragile = ref(false)
 
 const MEETUP_LOCATIONS = CHECKOUT_MEETUP_LOCATIONS_WITH_OTHER
 const SHIPPING_COLLECTION_OPTIONS = getShippingCollectionOptions()
 
 // ── Buyer shipping address (always fresh, no SSR cache) ──────────────────────
-const { data: addrData } = await useAsyncData('buyer-address', async () => {
-  if (!myId.value) return null
-  const { data } = await supabase
-    .from('addresses')
-    .select('label, full_address, city, postal_code, lat, lng')
-    .eq('user_id', myId.value)
-    .eq('address_type', 'shipping')
-    .maybeSingle()
-  return data ?? null
+const { data: buyerCheckoutData } = await useAsyncData('buyer-address', async () => {
+  if (!myId.value) return { address: null, phone: '' }
+
+  const [{ data: address }, { data: profile }] = await Promise.all([
+    supabase
+      .from('addresses')
+      .select('label, full_address, city, postal_code, lat, lng')
+      .eq('user_id', myId.value)
+      .eq('address_type', 'shipping')
+      .maybeSingle(),
+    supabase
+      .from('users')
+      .select('phone')
+      .eq('id', myId.value)
+      .maybeSingle(),
+  ])
+
+  return {
+    address: address ?? null,
+    phone: String(profile?.phone ?? '').trim(),
+  }
 }, { server: false })
 
 // Derived as computed so it reacts when the client-side fetch resolves
-const buyerAddress = computed(() => addrData.value ?? null)
+const buyerAddress = computed(() => buyerCheckoutData.value?.address ?? null)
+const buyerPhone = computed(() => buyerCheckoutData.value?.phone ?? '')
 
 // Auto-fill destPostal reactively once address data arrives, then auto-fetch rates
-watch(addrData, (addr) => {
+watch(() => buyerAddress.value, (addr) => {
   if (addr?.postal_code) {
     destPostal.value = addr.postal_code
     // Auto-fetch ongkir if user has already selected shipping method
@@ -77,6 +91,7 @@ watch(shippingMethod, (method) => {
 
   shippingInsuranceEnabled.value = false
   shippingCollectionType.value = 'pickup'
+  shippingIsFragile.value = false
 })
 
 // ── Load Offer + check for existing order in one round-trip ───────
@@ -295,17 +310,15 @@ async function placeOrder(forceRegenerateInvoice = false) {
   existingPaymentUrl.value = ''
   canRegenerateInvoice.value = false
 
-  // Validate shipping selection
-  if (shippingMethod.value === 'shipping' && !buyerAddress.value) {
-    orderErr.value = 'Tambahkan alamat pengiriman di profil terlebih dahulu.'
-    return
-  }
-  if (shippingMethod.value === 'shipping' && !selectedRate.value) {
-    orderErr.value = 'Pilih layanan pengiriman terlebih dahulu.'
-    return
-  }
-  if (shippingMethod.value === 'cod' && !meetupLocation.value) {
-    orderErr.value = 'Pilih lokasi meetup.'
+  const checkoutError = validateCheckoutReadiness({
+    shippingMethod: shippingMethod.value,
+    buyerAddress: buyerAddress.value,
+    buyerPhone: buyerPhone.value,
+    selectedRate: selectedRate.value,
+    meetupLocation: meetupLocation.value,
+  })
+  if (checkoutError) {
+    orderErr.value = checkoutError
     return
   }
 
@@ -330,6 +343,7 @@ async function placeOrder(forceRegenerateInvoice = false) {
       body.shippingCost   = Number(selectedRate.value!.price ?? 0)
       body.shippingInsuranceFee = shippingInsuranceFee.value
       body.shippingIsInsured = shippingInsuranceEnabled.value && shippingInsuranceFee.value > 0
+      body.shippingIsFragile = shippingIsFragile.value
       body.shippingCollectionType = shippingCollectionType.value
       body.courierCode    = selectedRate.value!.courier_code
       body.courierName    = selectedRate.value!.courier_name
@@ -467,6 +481,10 @@ async function placeOrder(forceRegenerateInvoice = false) {
             <span class="font-medium" :class="isDark ? 'text-white' : 'text-gray-800'">
               Rp {{ shippingInsuranceFee.toLocaleString('id-ID') }}
             </span>
+          </div>
+          <div v-if="shippingMethod === 'shipping' && shippingIsFragile" class="flex justify-between">
+            <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Penanganan Khusus</span>
+            <span class="font-medium" :class="isDark ? 'text-amber-300' : 'text-amber-700'">Fragile / Pecah Belah</span>
           </div>
           <div v-if="shippingMethod === 'cod'" class="flex justify-between">
             <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">Ongkos Kirim</span>

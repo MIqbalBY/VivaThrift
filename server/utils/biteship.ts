@@ -19,6 +19,31 @@ export interface BiteshipOrderResult {
   trackingId: string      // Biteship internal tracking id
 }
 
+function sanitizePhoneNumber(phone?: string) {
+  return String(phone ?? '').trim().replace(/[^\d+]/g, '')
+}
+
+export function extractBiteshipLabelUrl(payload: any): string | null {
+  const candidates = [
+    payload?.label_url,
+    payload?.label?.url,
+    payload?.label?.download_url,
+    payload?.courier?.label_url,
+    payload?.courier?.label?.url,
+    payload?.courier?.label?.download_url,
+    payload?.order?.label_url,
+    payload?.order?.label?.url,
+  ]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim()
+    }
+  }
+
+  return null
+}
+
 export async function createBiteshipOrder(params: {
   orderId?: string
   sellerName: string
@@ -44,6 +69,13 @@ export async function createBiteshipOrder(params: {
     throw new Error('Kode pos tujuan tidak valid. Minta pembeli melengkapi alamat pengiriman terlebih dahulu.')
   }
 
+  const sellerPhone = sanitizePhoneNumber(params.sellerPhone)
+  const buyerPhone = sanitizePhoneNumber(params.buyerPhone)
+
+  if (!sellerPhone || !buyerPhone) {
+    throw new Error('Nomor HP penjual dan pembeli wajib tersedia sebelum membuat pengiriman Biteship.')
+  }
+
   const biteshipItems = (params.items.length ? params.items : [{ name: 'Produk VivaThrift', quantity: 1, value: 1000 }]).map((item) => ({
     name:     item.name.substring(0, 100) || 'Produk',
     value:    Math.max(1, Math.round(item.value)),
@@ -56,11 +88,11 @@ export async function createBiteshipOrder(params: {
 
   const reqBody: Record<string, unknown> = {
     origin_contact_name:       params.sellerName || 'Penjual VivaThrift',
-    origin_contact_phone:      params.sellerPhone || '081200000000',
+    origin_contact_phone:      sellerPhone,
     origin_address:            params.sellerAddress || 'Jl. Keputih Tegal Timur, ITS Surabaya',
     origin_postal_code:        originPostal,
     destination_contact_name:  params.buyerName || 'Pembeli VivaThrift',
-    destination_contact_phone: params.buyerPhone || '081200000000',
+    destination_contact_phone: buyerPhone,
     destination_address:       params.buyerAddress || 'Alamat pembeli',
     destination_postal_code:   destPostal,
     courier_company:           params.courierCompany,

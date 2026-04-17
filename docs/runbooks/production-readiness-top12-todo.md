@@ -78,6 +78,7 @@ Password: SmokeTest#2026!
 - Exception handling logs: *15 Apr 2026 - automated tests lulus untuk auth webhook Biteship, update status normal, incident status, dan notifikasi buyer-seller-admin; monitoring incident juga sudah muncul di admin stats dan observability webhook.*
 - Live rate verification: *15 Apr 2026 - verifikasi langsung ke Biteship rates API dengan key production berhasil (`BITESHIP_RATE_OK count=4`) untuk rute Surabaya 60111 → Nganjuk 64453; layanan yang keluar antara lain JNE Reguler, SiCepat Reguler, dan J&T EZ sehingga mapping origin/destination untuk use case production terbukti valid.*
 - Incident runbook link: [Biteship shipping incident runbook](docs/runbooks/biteship-shipping-incident-runbook.md)
+- Operator guide: [Biteship E2E buyer-seller playbook](docs/runbooks/biteship-e2e-buyer-seller-playbook.md) — panduan kronologis dari daftar akun, isi alamat dan rekening, checkout shipping, packing, pickup/drop-off, sampai order delivered/cancelled.
 
 ### Definition of Done
 

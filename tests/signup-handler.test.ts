@@ -19,6 +19,7 @@ describe('createSignupAccount', () => {
       faculty: 'FTEIC',
       department: 'Informatika',
       gender: 'Laki-laki',
+      phone: '081234567890',
       email: '50252101@student.its.ac.id',
       password: 'Rahasia123',
       confirmPassword: 'Rahasia123',
@@ -28,6 +29,9 @@ describe('createSignupAccount', () => {
     expect(deps.createAuthUser).toHaveBeenCalledWith(expect.objectContaining({
       email: '50252101@student.its.ac.id',
       email_confirm: false,
+      user_metadata: expect.objectContaining({
+        phone: '081234567890',
+      }),
     }))
   })
 
@@ -44,6 +48,7 @@ describe('createSignupAccount', () => {
       faculty: 'FTEIC',
       department: 'Informatika',
       gender: 'Laki-laki',
+      phone: '081234567890',
       email: '50252101@student.its.ac.id',
       password: 'Rahasia123',
       confirmPassword: 'Rahasia123',
@@ -68,6 +73,7 @@ describe('createSignupAccount', () => {
       faculty: 'FTEIC',
       department: 'Informatika',
       gender: 'Laki-laki',
+      phone: '081234567890',
       email: 'iqbal@gmail.com',
       password: 'Rahasia123',
       confirmPassword: 'Rahasia123',

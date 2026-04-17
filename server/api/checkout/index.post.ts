@@ -83,6 +83,7 @@ export default defineEventHandler(async (event) => {
   let shippingCost: number = 0
   let shippingInsuranceFee: number = 0
   let shippingIsInsured = false
+  let shippingIsFragile = false
   let shippingCollectionType: 'pickup' | 'drop_off' | null = null
   const courierCode: string | null    = body?.courierCode    ?? null
   const courierName: string | null    = body?.courierName    ?? null
@@ -98,10 +99,35 @@ export default defineEventHandler(async (event) => {
     shippingCost = Math.max(0, Math.round(Number(body?.shippingCost) || 0))
     shippingInsuranceFee = Math.max(0, Math.round(Number(body?.shippingInsuranceFee) || 0))
     shippingIsInsured = body?.shippingIsInsured === true && shippingInsuranceFee > 0
+    shippingIsFragile = body?.shippingIsFragile === true
     shippingCollectionType = normalizeShippingCollectionType(body?.shippingCollectionType)
   }
 
   const supabase = await serverSupabaseClient(event)
+
+  if (shippingMethod === 'shipping') {
+    const [{ data: profile }, { data: address }] = await Promise.all([
+      supabaseAdmin
+        .from('users')
+        .select('phone')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from('addresses')
+        .select('full_address, postal_code')
+        .eq('user_id', user.id)
+        .eq('address_type', 'shipping')
+        .maybeSingle(),
+    ])
+
+    if (!String(profile?.phone ?? '').trim()) {
+      throw createError({ statusCode: 422, statusMessage: 'Nomor HP aktif wajib diisi di profil sebelum checkout pengiriman.' })
+    }
+
+    if (!String(address?.full_address ?? '').trim() || !String(address?.postal_code ?? '').trim()) {
+      throw createError({ statusCode: 422, statusMessage: 'Alamat pengiriman belum lengkap. Lengkapi profil alamat terlebih dahulu.' })
+    }
+  }
 
   // ── 1. Load offer (RLS ensures caller is buyer) ──────────────────────────
   const { data: offer, error: offerErr } = await supabase
@@ -214,6 +240,7 @@ export default defineEventHandler(async (event) => {
         shipping_collection_type: shippingCollectionType,
         shipping_insurance_fee: shippingInsuranceFee,
         shipping_is_insured: shippingIsInsured,
+        shipping_is_fragile: shippingIsFragile,
         meetup_location: meetupLocation,
         meetup_otp: meetupOtp,
         courier_code: courierCode,
@@ -269,6 +296,7 @@ export default defineEventHandler(async (event) => {
           shipping_collection_type: shippingCollectionType,
           shipping_insurance_fee: shippingInsuranceFee,
           shipping_is_insured: shippingIsInsured,
+          shipping_is_fragile: shippingIsFragile,
           meetup_location: meetupLocation,
           meetup_otp:      meetupOtp,
           courier_code:    courierCode,

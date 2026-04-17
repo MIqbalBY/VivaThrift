@@ -314,6 +314,7 @@ watch(user, (u) => {
           :myRating="myRating" :myRatingCount="myRatingCount" :isDark="isDark"
           @update:name="name = $event"
           @update:username="username = $event"
+          @update:phone="phone = $event"
           @update:gender="gender = $event"
           @update:bio="bio = $event"
           @save-profile="saveProfile"

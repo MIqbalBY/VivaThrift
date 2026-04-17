@@ -2,7 +2,7 @@
 definePageMeta({ middleware: 'auth' })
 useSeoMeta({ title: 'Checkout Keranjang — VivaThrift' })
 import { CHECKOUT_MEETUP_LOCATIONS_WITH_OTHER } from '~/data/meetupLocations'
-import { calculateShippingInsuranceFee, getShippingCollectionOptions, isShippingInsuranceEligible, normalizeShippingCollectionType, type ShippingCollectionType } from '~/utils/shipping-checkout'
+import { calculateShippingInsuranceFee, getShippingCollectionOptions, getOrderShippingWarnings, isShippingInsuranceEligible, normalizeShippingCollectionType, validateCheckoutReadiness, type ShippingCollectionType } from '~/utils/shipping-checkout'
 import { classifyShippingRate, getAvailableShippingRateTabs, getShippingRateTabLabel, sortShippingRates, type ShippingRate, type ShippingRateCategory } from '~/utils/shipping-rates'
 
 const { isDark } = useDarkMode()
@@ -37,10 +37,12 @@ const ratesErr        = ref('')
 const activeRateTab   = ref<ShippingRateCategory>('all')
 const shippingCollectionType = ref<ShippingCollectionType>('pickup')
 const shippingInsuranceEnabled = ref(false)
+const shippingIsFragile = ref(false)
 const SHIPPING_COLLECTION_OPTIONS = getShippingCollectionOptions()
 
 // ── Buyer address (auto-fetched from profile) ───────────────────────────────
 const buyerAddress        = ref<any>(null)
+const buyerPhone          = ref('')
 const buyerAddressLoading = ref(false)
 
 const cartCategoryHint = computed(() =>
@@ -124,6 +126,7 @@ watch(shippingMethod, (method) => {
 
   shippingInsuranceEnabled.value = false
   shippingCollectionType.value = 'pickup'
+  shippingIsFragile.value = false
 })
 
 watch(rates, (nextRates) => {
@@ -217,14 +220,22 @@ onMounted(async () => {
   if (!uid) return
 
   buyerAddressLoading.value = true
-  const { data } = await supabase
-    .from('addresses')
-    .select('label, full_address, city, postal_code, lat, lng')
-    .eq('user_id', uid)
-    .eq('address_type', 'shipping')
-    .maybeSingle()
-  buyerAddress.value = data ?? null
-  if (data?.postal_code) destPostal.value = data.postal_code
+  const [{ data: address }, { data: profile }] = await Promise.all([
+    supabase
+      .from('addresses')
+      .select('label, full_address, city, postal_code, lat, lng')
+      .eq('user_id', uid)
+      .eq('address_type', 'shipping')
+      .maybeSingle(),
+    supabase
+      .from('users')
+      .select('phone')
+      .eq('id', uid)
+      .maybeSingle(),
+  ])
+  buyerAddress.value = address ?? null
+  buyerPhone.value = String(profile?.phone ?? '').trim()
+  if (address?.postal_code) destPostal.value = address.postal_code
   buyerAddressLoading.value = false
 })
 
@@ -256,8 +267,15 @@ async function handleCheckout(forceRegenerateInvoice = false) {
   if (placing.value) return
   existingPaymentUrl.value = ''
   canRegenerateInvoice.value = false
-  if (shippingMethod.value === 'shipping' && !selectedRate.value) {
-    errorMsg.value = 'Pilih layanan pengiriman terlebih dahulu.'
+  const checkoutError = validateCheckoutReadiness({
+    shippingMethod: shippingMethod.value,
+    buyerAddress: buyerAddress.value,
+    buyerPhone: buyerPhone.value,
+    selectedRate: selectedRate.value,
+    meetupLocation: meetupLocation.value,
+  })
+  if (checkoutError) {
+    errorMsg.value = checkoutError
     return
   }
   placing.value = true
@@ -282,6 +300,7 @@ async function handleCheckout(forceRegenerateInvoice = false) {
       body.shippingCost = Number(selectedRate.value!.price ?? 0)
       body.shippingInsuranceFee = shippingInsuranceFee.value
       body.shippingIsInsured = shippingInsuranceEnabled.value && shippingInsuranceFee.value > 0
+      body.shippingIsFragile = shippingIsFragile.value
       body.shippingCollectionType = shippingCollectionType.value
       body.courierCode  = selectedRate.value!.courier_code
       body.courierName  = selectedRate.value!.courier_name
@@ -454,11 +473,15 @@ async function handleCheckout(forceRegenerateInvoice = false) {
             <div v-if="buyerAddressLoading" class="text-xs" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Memuat alamat…</div>
             <div v-else-if="buyerAddress" class="rounded-xl border p-3 text-sm" :class="isDark ? 'border-white/10 bg-slate-800/50' : 'border-gray-200 bg-gray-50'">
               <p v-if="buyerAddress.label" class="text-xs font-semibold uppercase tracking-wide mb-1" :class="isDark ? 'text-sky-400' : 'text-blue-700'">{{ buyerAddress.label }}</p>
+              <p v-if="buyerPhone" class="text-xs mb-1" :class="isDark ? 'text-slate-300' : 'text-gray-600'">📞 {{ buyerPhone }}</p>
               <p :class="isDark ? 'text-slate-200' : 'text-gray-800'">{{ buyerAddress.full_address }}</p>
               <p v-if="buyerAddress.city" class="text-xs mt-0.5" :class="isDark ? 'text-slate-400' : 'text-gray-500'">
                 {{ buyerAddress.city }}<template v-if="buyerAddress.postal_code"> · {{ buyerAddress.postal_code }}</template>
               </p>
               <NuxtLink to="/profile/edit?tab=address" class="text-xs mt-1 inline-block hover:underline" :class="isDark ? 'text-sky-400' : 'text-blue-500'">Ganti alamat</NuxtLink>
+            </div>
+            <div v-if="buyerAddress && !buyerPhone" class="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800" :class="isDark ? 'border-amber-700/40 bg-amber-900/20 text-amber-300' : ''">
+              ⚠️ Nomor HP penerima belum diisi. <NuxtLink to="/profile/edit" class="font-semibold underline ml-1">Lengkapi profil</NuxtLink> sebelum checkout.
             </div>
             <div v-else class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800" :class="isDark ? 'border-amber-700/40 bg-amber-900/20 text-amber-300' : ''">
               ⚠️ Belum ada alamat pengiriman.
@@ -601,16 +624,29 @@ async function handleCheckout(forceRegenerateInvoice = false) {
                   <p class="text-[11px] mt-2" :class="isDark ? 'text-gray-500' : 'text-gray-400'">Pilihan aktif: {{ selectedCollectionLabel }}</p>
                 </div>
 
-                <div v-if="shippingInsuranceEligible" class="rounded-xl border px-3 py-3"
-                  :class="isDark ? 'border-white/10 bg-slate-800/60' : 'border-gray-200 bg-white'">
-                  <label class="flex items-start gap-3 cursor-pointer">
-                    <input v-model="shippingInsuranceEnabled" type="checkbox" class="mt-1 accent-blue-600" />
-                    <span class="flex-1 min-w-0">
-                      <span class="block text-sm font-semibold" :class="isDark ? 'text-white' : 'text-gray-800'">Pakai asuransi tambahan</span>
-                      <span class="block text-[11px] mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Cocok untuk barang elektronik atau gadget. Biaya asuransi 0,5% dari nilai barang.</span>
-                    </span>
-                    <span class="text-sm font-bold shrink-0" :class="isDark ? 'text-sky-300' : 'text-blue-700'">Rp {{ shippingInsuranceFee.toLocaleString('id-ID') }}</span>
-                  </label>
+                <div class="space-y-3">
+                  <div v-if="shippingInsuranceEligible" class="rounded-xl border px-3 py-3"
+                    :class="isDark ? 'border-white/10 bg-slate-800/60' : 'border-gray-200 bg-white'">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                      <input v-model="shippingInsuranceEnabled" type="checkbox" class="mt-1 accent-blue-600" />
+                      <span class="flex-1 min-w-0">
+                        <span class="block text-sm font-semibold" :class="isDark ? 'text-white' : 'text-gray-800'">Pakai asuransi tambahan</span>
+                        <span class="block text-[11px] mt-1" :class="isDark ? 'text-gray-400' : 'text-gray-500'">Cocok untuk barang elektronik atau gadget. Biaya asuransi 0,5% dari nilai barang.</span>
+                      </span>
+                      <span class="text-sm font-bold shrink-0" :class="isDark ? 'text-sky-300' : 'text-blue-700'">Rp {{ shippingInsuranceFee.toLocaleString('id-ID') }}</span>
+                    </label>
+                  </div>
+
+                  <div class="rounded-xl border px-3 py-3"
+                    :class="isDark ? 'border-amber-700/30 bg-amber-900/10' : 'border-amber-200 bg-amber-50/70'">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                      <input v-model="shippingIsFragile" type="checkbox" class="mt-1 accent-amber-600" />
+                      <span class="flex-1 min-w-0">
+                        <span class="block text-sm font-semibold" :class="isDark ? 'text-amber-200' : 'text-amber-800'">Tandai sebagai barang fragile atau pecah belah</span>
+                        <span class="block text-[11px] mt-1" :class="isDark ? 'text-amber-300/80' : 'text-amber-700'">Akan muncul di label pengiriman sebagai pengingat handle with care atau jangan dibanting.</span>
+                      </span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -676,6 +712,10 @@ async function handleCheckout(forceRegenerateInvoice = false) {
           <div v-if="shippingInsuranceFee > 0" class="flex justify-between">
             <span>Asuransi Pengiriman</span>
             <span class="font-medium" :class="isDark ? 'text-slate-200' : 'text-gray-700'">Rp {{ shippingInsuranceFee.toLocaleString('id-ID') }}</span>
+          </div>
+          <div v-if="shippingIsFragile" class="flex justify-between">
+            <span>Penanganan Khusus</span>
+            <span class="font-medium" :class="isDark ? 'text-amber-300' : 'text-amber-700'">Fragile / Pecah Belah</span>
           </div>
           <div class="flex justify-between">
             <span>Biaya Layanan</span>

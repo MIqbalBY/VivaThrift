@@ -5,6 +5,7 @@ type SignupProfileStepInput = {
   faculty: string
   department: string
   gender: string
+  phone: string
   usernameError?: string
   usernameChecking?: boolean
 }
@@ -17,8 +18,28 @@ type SignupCredentialInput = {
 
 const USERNAME_REGEX = /^[a-zA-Z0-9._]{3,30}$/
 const ITS_EMAIL_REGEX = /^[^\s@]+@student\.its\.ac\.id$/i
+const PHONE_REGEX = /^[+]?[0-9\s()\-]{8,20}$/
+
+export function validatePhoneNumber(phone: string) {
+  const normalized = String(phone ?? '').trim()
+
+  if (!normalized) {
+    return 'Nomor HP wajib diisi.'
+  }
+
+  if (!PHONE_REGEX.test(normalized)) {
+    return 'Nomor HP tidak valid.'
+  }
+
+  return ''
+}
 
 export function validateSignupProfileStep(input: SignupProfileStepInput) {
+  const phoneError = validatePhoneNumber(input.phone)
+  if (phoneError) {
+    return phoneError
+  }
+
   if (!input.name.trim() || !input.username.trim() || !input.nrp.trim() || !input.faculty || !input.department || !input.gender) {
     return 'Semua field wajib diisi.'
   }

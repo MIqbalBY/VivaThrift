@@ -15,9 +15,24 @@ describe('signup validation', () => {
       faculty: 'FTEIC',
       department: 'Informatika',
       gender: 'Laki-laki',
+      phone: '081234567890',
       usernameError: '',
       usernameChecking: true,
     })).toBe('Tunggu pengecekan username selesai.')
+  })
+
+  it('requires a phone number in the profile step', () => {
+    expect(validateSignupProfileStep({
+      name: 'Iqbal Maulana',
+      username: 'iqbal.maulana',
+      nrp: '5025211010',
+      faculty: 'FTEIC',
+      department: 'Informatika',
+      gender: 'Laki-laki',
+      phone: '',
+      usernameError: '',
+      usernameChecking: false,
+    })).toContain('Nomor HP')
   })
 
   it('validates the ITS email and password confirmation', () => {

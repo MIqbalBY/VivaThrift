@@ -57,10 +57,10 @@ export default defineEventHandler(async (event) => {
       id, status, total_amount, offer_id, seller_id, buyer_id,
       shipping_method, shipping_cost, platform_fee, payment_gateway_fee, meetup_otp, meetup_location, courier_code, courier_service,
       seller:users!seller_id (
-        id, name, email, bank_code, bank_account_number, bank_account_name
+        id, name, email, phone, bank_code, bank_account_number, bank_account_name
       ),
       buyer:users!buyer_id (
-        id, name, email
+        id, name, email, phone
       ),
       order_items ( quantity, product:products ( title ) )
     `)
@@ -149,12 +149,21 @@ export default defineEventHandler(async (event) => {
       const seller = o.seller as any
       const buyer  = o.buyer  as any
 
+      if (!seller?.phone?.trim() || !buyer?.phone?.trim()) {
+        throw createError({
+          statusCode: 422,
+          statusMessage: 'Nomor HP penjual dan pembeli wajib diisi di profil sebelum membuat resi Biteship.',
+        })
+      }
+
       const biteshipResult = await createBiteshipOrder({
         orderId:          orderId,
         sellerName:       seller?.name ?? 'Penjual',
+        sellerPhone:      seller?.phone,
         sellerAddress:    sellerAddr.full_address,
         sellerPostalCode: sellerAddr.postal_code ?? 60111,
         buyerName:        buyer?.name ?? 'Pembeli',
+        buyerPhone:       buyer?.phone,
         buyerAddress:     buyerAddr.full_address,
         buyerPostalCode:  buyerAddr.postal_code ?? 60111,
         courierCompany:   courierCode,

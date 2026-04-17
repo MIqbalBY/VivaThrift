@@ -27,7 +27,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'update:name', 'update:username', 'update:gender', 'update:bio',
+  'update:name', 'update:username', 'update:phone', 'update:gender', 'update:bio',
   'save-profile', 'open-avatar-input', 'delete-avatar',
 ])
 
@@ -38,6 +38,10 @@ const localName = computed({
 const localUsername = computed({
   get: () => props.username,
   set: (v) => emit('update:username', v),
+})
+const localPhone = computed({
+  get: () => props.phone,
+  set: (v) => emit('update:phone', v),
 })
 const localGender = computed({
   get: () => props.gender,
@@ -152,6 +156,13 @@ watch(() => props.avatarUrl, () => {
         <div v-if="usernameChecking" class="text-xs text-gray-400">Memeriksa...</div>
         <div v-else-if="usernameError" class="text-xs text-red-500 dark:text-red-400">{{ usernameError }}</div>
         <div v-else-if="username && !usernameError" class="text-xs text-gray-400 dark:text-slate-500">Huruf, angka, titik (.) dan underscore (_). 3–30 karakter.</div>
+      </div>
+
+      <!-- Nomor HP -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-semibold vt-label">Nomor HP</label>
+        <input v-model="localPhone" type="tel" placeholder="08xxxxxxxxxx" class="vt-input" maxlength="20" />
+        <p class="text-xs vt-text-muted opacity-70">Dipakai untuk pengiriman, kurir, dan koordinasi pesanan.</p>
       </div>
 
       <!-- Bio -->

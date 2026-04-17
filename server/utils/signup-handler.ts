@@ -7,6 +7,7 @@ type SignupPayload = {
   faculty: string
   department: string
   gender: string
+  phone: string
   email: string
   password: string
   confirmPassword: string
@@ -50,6 +51,7 @@ function mapCreateUserError(message: string) {
 export async function createSignupAccount(payload: SignupPayload, deps: SignupDeps) {
   const normalizedUsername = String(payload.username ?? '').trim().toLowerCase()
   const normalizedEmail = String(payload.email ?? '').trim().toLowerCase()
+  const normalizedPhone = String(payload.phone ?? '').trim()
 
   const profileError = validateSignupProfileStep({
     name: payload.name,
@@ -58,6 +60,7 @@ export async function createSignupAccount(payload: SignupPayload, deps: SignupDe
     faculty: payload.faculty,
     department: payload.department,
     gender: payload.gender,
+    phone: normalizedPhone,
     usernameChecking: false,
     usernameError: '',
   })
@@ -92,6 +95,7 @@ export async function createSignupAccount(payload: SignupPayload, deps: SignupDe
       faculty: String(payload.faculty ?? '').trim(),
       department: String(payload.department ?? '').trim(),
       gender: String(payload.gender ?? '').trim(),
+      phone: normalizedPhone,
     },
   })
 

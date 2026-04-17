@@ -15,6 +15,7 @@ const nrp = ref('')
 const faculty = ref('')
 const department = ref('')
 const gender = ref('')
+const phone = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -77,6 +78,7 @@ function validateStep1() {
     faculty: faculty.value,
     department: department.value,
     gender: gender.value,
+    phone: phone.value,
     usernameError: usernameError.value,
     usernameChecking: usernameChecking.value,
   })
@@ -123,6 +125,7 @@ async function handleSignup() {
     faculty: faculty.value,
     department: department.value,
     gender: gender.value,
+    phone: phone.value,
     usernameError: usernameError.value,
     usernameChecking: usernameChecking.value,
   })
@@ -160,6 +163,7 @@ async function handleSignup() {
         faculty: faculty.value,
         department: department.value,
         gender: gender.value,
+        phone: phone.value.trim(),
         email: email.value.trim().toLowerCase(),
         password: password.value,
         confirmPassword: confirmPassword.value,
@@ -300,6 +304,18 @@ async function handleSignup() {
             type="text"
             placeholder="NRP (Nomor Registrasi Pokok)"
             autocomplete="off"
+            class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
+            :disabled="isLoading"
+          />
+        </div>
+
+        <!-- Nomor HP -->
+        <div class="border-b border-white/30 focus-within:border-white/70 transition-colors pb-1">
+          <input
+            v-model="phone"
+            type="tel"
+            placeholder="Nomor HP aktif (WA / telepon)"
+            autocomplete="tel"
             class="w-full px-3 py-1.5 text-sm text-white placeholder-white/50 bg-transparent focus:outline-hidden"
             :disabled="isLoading"
           />

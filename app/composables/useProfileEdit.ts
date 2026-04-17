@@ -1,3 +1,5 @@
+import { validatePhoneNumber } from '~/utils/signup-validation'
+
 export function useProfileEdit() {
   const supabase = useSupabaseClient() as any
   const user = useSupabaseUser()
@@ -54,7 +56,7 @@ export function useProfileEdit() {
     profileLoading.value = true
     const { data, error } = await supabase
       .from('users')
-      .select('name, username, faculty, department, avatar_url, nrp, email, gender, bio')
+      .select('name, username, faculty, department, avatar_url, nrp, email, phone, gender, bio')
       .eq('id', id)
       .maybeSingle()
     profileLoading.value = false
@@ -90,12 +92,19 @@ export function useProfileEdit() {
       profileMsgType.value = 'err'
       return
     }
+    const phoneError = validatePhoneNumber(phone.value)
+    if (phoneError) {
+      profileMsg.value = phoneError
+      profileMsgType.value = 'err'
+      return
+    }
     profileSaving.value = true
     profileMsg.value = ''
     const updates = {
       name: name.value.trim(),
       gender: gender.value || null,
       bio: bio.value.trim() || null,
+      phone: phone.value.trim(),
       username: username.value.trim().toLowerCase() || null,
     }
     const { error } = await supabase

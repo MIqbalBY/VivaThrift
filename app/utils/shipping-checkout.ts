@@ -20,6 +20,81 @@ export function getShippingCollectionOptions() {
   ]
 }
 
+function hasFilledAddress(address: any) {
+  return !!String(address?.full_address ?? '').trim() && !!String(address?.postal_code ?? '').trim()
+}
+
+export function validateCheckoutReadiness(input: {
+  shippingMethod: 'cod' | 'shipping'
+  buyerAddress: any
+  buyerPhone?: string | null
+  selectedRate?: any
+  meetupLocation?: string | null
+}) {
+  if (input.shippingMethod === 'shipping') {
+    if (!hasFilledAddress(input.buyerAddress)) {
+      return 'Tambahkan alamat pengiriman di profil terlebih dahulu.'
+    }
+
+    if (!String(input.buyerPhone ?? '').trim()) {
+      return 'Nomor HP aktif wajib diisi di profil sebelum checkout pengiriman.'
+    }
+
+    if (!input.selectedRate) {
+      return 'Pilih layanan pengiriman terlebih dahulu.'
+    }
+
+    return ''
+  }
+
+  if (!String(input.meetupLocation ?? '').trim()) {
+    return 'Pilih lokasi meetup.'
+  }
+
+  return ''
+}
+
+export function getOrderShippingWarnings(input: {
+  shippingMethod?: string | null
+  status?: string | null
+  sellerPhone?: string | null
+  buyerPhone?: string | null
+}) {
+  if (input.shippingMethod !== 'shipping' || input.status !== 'confirmed') {
+    return [] as string[]
+  }
+
+  const warnings: string[] = []
+
+  if (!String(input.sellerPhone ?? '').trim()) {
+    warnings.push('Nomor HP penjual belum diisi di profil.')
+  }
+
+  if (!String(input.buyerPhone ?? '').trim()) {
+    warnings.push('Nomor HP pembeli belum lengkap sehingga resi Biteship belum bisa dibuat.')
+  }
+
+  return warnings
+}
+
+export function getShippingHandlingBadges(input: {
+  shippingIsInsured?: boolean | null
+  shippingInsuranceFee?: number | null
+  shippingIsFragile?: boolean | null
+}) {
+  const badges: string[] = []
+
+  if (input.shippingIsInsured) {
+    badges.push('Asuransi Aktif')
+  }
+
+  if (input.shippingIsFragile) {
+    badges.push('Fragile / Pecah Belah')
+  }
+
+  return badges
+}
+
 export function isShippingInsuranceEligible(categoryOrName?: string | null) {
   const text = String(categoryOrName ?? '').trim().toLowerCase()
   if (!text) return false
