@@ -953,6 +953,7 @@ export type Database = {
           last_seen_at: string | null
           name: string
           nrp: string
+          phone: string | null
           role: string
           username: string | null
         }
@@ -974,6 +975,7 @@ export type Database = {
           last_seen_at?: string | null
           name: string
           nrp: string
+          phone?: string | null
           role?: string
           username?: string | null
         }
@@ -995,6 +997,7 @@ export type Database = {
           last_seen_at?: string | null
           name?: string
           nrp?: string
+          phone?: string | null
           role?: string
           username?: string | null
         }
