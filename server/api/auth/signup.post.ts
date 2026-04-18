@@ -44,6 +44,15 @@ export default defineEventHandler(async (event) => {
         },
       })
     },
+    syncUserProfile: async (profile) => {
+      const { error } = await supabaseAdmin
+        .from('users')
+        .upsert(profile, { onConflict: 'id' })
+
+      if (error) {
+        throw new Error(`Gagal sinkronisasi profil pengguna: ${error.message}`)
+      }
+    },
   }, {
     emailRedirectTo,
   })

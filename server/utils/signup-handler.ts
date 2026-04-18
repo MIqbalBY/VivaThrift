@@ -28,6 +28,17 @@ type SignupAuthResult = {
 type SignupDeps = {
   findUserByUsername: (username: string) => Promise<{ id: string } | null>
   createAuthUser: (payload: SignupAuthPayload) => Promise<SignupAuthResult>
+  syncUserProfile?: (payload: {
+    id: string
+    name: string
+    username: string
+    nrp: string
+    faculty: string
+    department: string
+    gender: string
+    phone: string
+    email: string
+  }) => Promise<void>
 }
 
 type SignupCustomEmailDeps = {
@@ -174,6 +185,18 @@ export async function createSignupAccount(payload: SignupPayload, deps: SignupDe
   if (!userId) {
     throwSignupError(500, 'Pendaftaran gagal. Coba lagi nanti.')
   }
+
+  await deps.syncUserProfile?.({
+    id: userId,
+    name: String(payload.name ?? '').trim(),
+    username: normalizedUsername,
+    nrp: String(payload.nrp ?? '').trim(),
+    faculty: String(payload.faculty ?? '').trim(),
+    department: String(payload.department ?? '').trim(),
+    gender: String(payload.gender ?? '').trim(),
+    phone: normalizedPhone,
+    email: normalizedEmail,
+  })
 
   return { ok: true as const, userId }
 }

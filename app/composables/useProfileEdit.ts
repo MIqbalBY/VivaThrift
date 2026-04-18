@@ -51,8 +51,14 @@ export function useProfileEdit() {
   })
 
   async function fetchProfile(uid?: string) {
-    const id = uid ?? user.value?.id
+    const id = uid ?? user.value?.id ?? await resolveUid()
     if (!id) return
+
+    const authUser = user.value?.id === id
+      ? user.value
+      : (await supabase.auth.getUser()).data.user
+    const metadata = (authUser?.user_metadata ?? {}) as Record<string, string | null | undefined>
+
     profileLoading.value = true
     const { data, error } = await supabase
       .from('users')
@@ -61,22 +67,55 @@ export function useProfileEdit() {
       .maybeSingle()
     profileLoading.value = false
     if (error) { console.error('[fetchProfile]', error.message); return }
-    if (!data) return
-    name.value            = data.name        ?? ''
-    username.value        = data.username     ?? ''
-    originalUsername.value = data.username     ?? ''
-    faculty.value         = data.faculty      ?? ''
-    department.value      = data.department   ?? ''
-    avatarUrl.value       = data.avatar_url   ?? ''
-    nrp.value             = data.nrp          ?? ''
-    email.value           = data.email        ?? user.value?.email ?? ''
-    phone.value           = data.phone        ?? ''
-    gender.value          = data.gender       ?? ''
-    bio.value             = data.bio          ?? ''
+
+    const merged = {
+      name: data?.name ?? metadata.name ?? '',
+      username: data?.username ?? metadata.username ?? '',
+      faculty: data?.faculty ?? metadata.faculty ?? '',
+      department: data?.department ?? metadata.department ?? '',
+      avatar_url: data?.avatar_url ?? '',
+      nrp: data?.nrp ?? metadata.nrp ?? '',
+      email: data?.email ?? authUser?.email ?? '',
+      phone: data?.phone ?? metadata.phone ?? '',
+      gender: data?.gender ?? metadata.gender ?? '',
+      bio: data?.bio ?? '',
+    }
+
+    name.value = merged.name
+    username.value = merged.username
+    originalUsername.value = merged.username
+    faculty.value = merged.faculty
+    department.value = merged.department
+    avatarUrl.value = merged.avatar_url
+    nrp.value = merged.nrp
+    email.value = merged.email
+    phone.value = merged.phone
+    gender.value = merged.gender
+    bio.value = merged.bio
+
+    if (!data && (merged.name || merged.username || merged.email)) {
+      const { error: syncError } = await supabase
+        .from('users')
+        .upsert({
+          id,
+          name: merged.name || null,
+          username: merged.username || null,
+          faculty: merged.faculty || null,
+          department: merged.department || null,
+          avatar_url: merged.avatar_url || null,
+          nrp: merged.nrp || null,
+          email: merged.email || null,
+          phone: merged.phone || null,
+          gender: merged.gender || null,
+          bio: merged.bio || null,
+        }, { onConflict: 'id' })
+
+      if (syncError) console.error('[fetchProfile:sync]', syncError.message)
+    }
 
     // Sync ke shared Navbar state
     const sharedProfile = useState('userProfile')
-    sharedProfile.value = { ...(sharedProfile.value ?? {}), name: data.name ?? '', avatar_url: data.avatar_url ?? null, username: data.username ?? null }
+    sharedProfile.value = { ...(sharedProfile.value ?? {}), name: merged.name ?? '', avatar_url: merged.avatar_url ?? null, username: merged.username ?? null }
   }
 
   async function saveProfile(userId?: string | null) {
@@ -101,16 +140,21 @@ export function useProfileEdit() {
     profileSaving.value = true
     profileMsg.value = ''
     const updates = {
+      id: uid,
       name: name.value.trim(),
       gender: gender.value || null,
       bio: bio.value.trim() || null,
       phone: phone.value.trim(),
       username: username.value.trim().toLowerCase() || null,
+      faculty: faculty.value.trim() || null,
+      department: department.value.trim() || null,
+      nrp: nrp.value.trim() || null,
+      email: email.value.trim() || user.value?.email || null,
+      avatar_url: avatarUrl.value || null,
     }
     const { error } = await supabase
       .from('users')
-      .update(updates)
-      .eq('id', uid)
+      .upsert(updates, { onConflict: 'id' })
     profileSaving.value = false
     if (error) {
       profileMsg.value = error.message.includes('idx_users_username_lower')

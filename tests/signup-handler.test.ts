@@ -77,6 +77,43 @@ describe('createSignupAccount', () => {
     })
   })
 
+  it('syncs signup profile data into the app user profile record', async () => {
+    const deps = {
+      findUserByUsername: vi.fn(async () => null),
+      createAuthUser: vi.fn(async () => ({
+        user: { id: 'user-2', email: '50252101@student.its.ac.id' },
+        error: null,
+      })),
+      syncUserProfile: vi.fn(async () => undefined),
+    }
+
+    const result = await createSignupAccount({
+      name: 'Iqbal Maulana',
+      username: 'iqbal.maulana',
+      nrp: '50252101',
+      faculty: 'FTEIC',
+      department: 'Informatika',
+      gender: 'Laki-laki',
+      phone: '081234567890',
+      email: '50252101@student.its.ac.id',
+      password: 'Rahasia123',
+      confirmPassword: 'Rahasia123',
+    }, deps)
+
+    expect(result).toEqual({ ok: true, userId: 'user-2' })
+    expect(deps.syncUserProfile).toHaveBeenCalledWith({
+      id: 'user-2',
+      name: 'Iqbal Maulana',
+      username: 'iqbal.maulana',
+      nrp: '50252101',
+      faculty: 'FTEIC',
+      department: 'Informatika',
+      gender: 'Laki-laki',
+      phone: '081234567890',
+      email: '50252101@student.its.ac.id',
+    })
+  })
+
   it('rejects duplicate usernames before creating the auth user', async () => {
     const deps = {
       findUserByUsername: vi.fn(async () => ({ id: 'existing-user' })),
