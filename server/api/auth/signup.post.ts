@@ -1,8 +1,13 @@
-import { createSignupAccount } from '../../utils/signup-handler'
+import { createSignupAccount, createAuthUserWithCustomVerificationEmail } from '../../utils/signup-handler'
 import { supabaseAdmin } from '../../utils/supabase-admin'
+import { sendEmail } from '../../utils/send-email'
+import { emailSignupVerification } from '../../utils/email-templates'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
+  const requestOrigin = getRequestURL(event).origin.replace(/\/+$/, '')
+  const preferredOrigin = String(process.env.SITE_URL ?? '').trim().replace(/\/+$/, '')
+  const emailRedirectTo = `${preferredOrigin || requestOrigin}/auth/confirm?type=signup`
 
   return createSignupAccount(body, {
     findUserByUsername: async (username: string) => {
@@ -15,13 +20,31 @@ export default defineEventHandler(async (event) => {
       return data
     },
     createAuthUser: async (payload) => {
-      const { data, error } = await supabaseAdmin.auth.admin.createUser(payload)
-      return {
-        user: data.user ?? null,
-        error: error
-          ? { message: error.message }
-          : null,
-      }
+      return createAuthUserWithCustomVerificationEmail(payload, {
+        generateSignupLink: async (linkPayload) => {
+          const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'signup',
+            email: linkPayload.email,
+            password: linkPayload.password,
+            options: {
+              redirectTo: linkPayload.emailRedirectTo,
+              data: linkPayload.user_metadata,
+            },
+          })
+
+          return {
+            user: data.user ?? null,
+            actionLink: data.properties?.action_link ?? null,
+            error: error ? { message: error.message } : null,
+          }
+        },
+        sendVerificationEmail: async ({ to, name, confirmationUrl }) => {
+          const mail = emailSignupVerification({ name, confirmationUrl })
+          return sendEmail({ to, ...mail })
+        },
+      })
     },
+  }, {
+    emailRedirectTo,
   })
 })

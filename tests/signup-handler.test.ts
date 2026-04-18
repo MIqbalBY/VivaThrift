@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createSignupAccount } from '../server/utils/signup-handler'
+import { createSignupAccount, createAuthUserWithCustomVerificationEmail } from '../server/utils/signup-handler'
 
 describe('createSignupAccount', () => {
   it('creates an unconfirmed account so the user must verify email first', async () => {
@@ -23,16 +23,58 @@ describe('createSignupAccount', () => {
       email: '50252101@student.its.ac.id',
       password: 'Rahasia123',
       confirmPassword: 'Rahasia123',
-    }, deps)
+    }, deps, {
+      emailRedirectTo: 'https://www.vivathrift.store/auth/confirm?type=signup',
+    })
 
     expect(result).toEqual({ ok: true, userId: 'user-1' })
     expect(deps.createAuthUser).toHaveBeenCalledWith(expect.objectContaining({
       email: '50252101@student.its.ac.id',
-      email_confirm: false,
+      emailRedirectTo: 'https://www.vivathrift.store/auth/confirm?type=signup',
       user_metadata: expect.objectContaining({
         phone: '081234567890',
       }),
     }))
+  })
+
+  it('sends signup verification email using custom email delivery', async () => {
+    const deps = {
+      generateSignupLink: vi.fn(async () => ({
+        user: { id: 'user-verify-1' },
+        actionLink: 'https://jwnisdkjgqnoergsoorf.supabase.co/auth/v1/verify?token=abc',
+        error: null,
+      })),
+      sendVerificationEmail: vi.fn(async () => true),
+    }
+
+    const result = await createAuthUserWithCustomVerificationEmail({
+      email: '50252101@student.its.ac.id',
+      password: 'Rahasia123',
+      emailRedirectTo: 'https://www.vivathrift.store/auth/confirm?type=signup',
+      user_metadata: {
+        name: 'Iqbal Maulana',
+        username: 'iqbal.maulana',
+        nrp: '50252101',
+        faculty: 'FTEIC',
+        department: 'Informatika',
+        gender: 'Laki-laki',
+        phone: '081234567890',
+      },
+    }, deps)
+
+    expect(result).toEqual({
+      user: { id: 'user-verify-1' },
+      error: null,
+    })
+    expect(deps.generateSignupLink).toHaveBeenCalledWith(expect.objectContaining({
+      email: '50252101@student.its.ac.id',
+      emailRedirectTo: 'https://www.vivathrift.store/auth/confirm?type=signup',
+    }))
+    expect(deps.sendVerificationEmail).toHaveBeenCalledWith({
+      to: '50252101@student.its.ac.id',
+      name: 'Iqbal Maulana',
+      confirmationUrl: 'https://jwnisdkjgqnoergsoorf.supabase.co/auth/v1/verify?token=abc',
+    })
   })
 
   it('rejects duplicate usernames before creating the auth user', async () => {

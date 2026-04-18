@@ -11,6 +11,7 @@ import {
   generateMeetupOTP,
   calculatePlatformFee,
   calculatePaymentChargeBreakdown,
+  getProductStockUpdateAfterPurchase,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
 import { normalizeShippingCollectionType } from '../../../app/utils/shipping-checkout'
@@ -323,14 +324,9 @@ export default defineEventHandler(async (event) => {
       orderId = order.id
     }
 
-    // Decrement stock & mark sold (runs for both fresh checkout and retry).
-    // Always mark sold (secondhand = each item is unique); only update stock if tracked.
+    // Decrement stock after checkout. Keep product active while units remain.
     if (!isReissuing) {
-      const stockUpdate: Record<string, unknown> = { status: 'sold' }
-      const currentStock = currentProduct?.stock
-      if (currentStock !== null && currentStock !== undefined) {
-        stockUpdate.stock = Math.max(0, currentStock - offer.quantity)
-      }
+      const stockUpdate = getProductStockUpdateAfterPurchase(currentProduct?.stock, offer.quantity)
       await supabaseAdmin
         .from('products')
         .update(stockUpdate)

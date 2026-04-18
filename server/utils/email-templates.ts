@@ -75,6 +75,32 @@ function divider(): string {
 </table>`
 }
 
+// ── Signup Verification ─────────────────────────────────────────────
+
+export function emailSignupVerification(p: { name: string; confirmationUrl: string }): { subject: string; html: string } {
+  const body = `
+    <p style="margin:0 0 16px 0;font-size:14px;color:#475569;line-height:1.7;">
+      Hai <strong>${p.name}</strong>, akunmu hampir siap dipakai.
+    </p>
+    <p style="margin:0 0 16px 0;font-size:14px;color:#475569;line-height:1.7;">
+      Klik tombol di bawah untuk memverifikasi email dan menyelesaikan pendaftaran VivaThrift.
+    </p>
+    ${ctaButton(p.confirmationUrl, 'Verifikasi Email')}
+    <p style="margin:0 0 8px 0;font-size:12px;color:#64748b;line-height:1.7;">
+      Jika tombol tidak berfungsi, buka link ini secara manual:
+    </p>
+    <p style="margin:0 0 16px 0;font-size:12px;line-height:1.7;word-break:break-all;">
+      <a href="${p.confirmationUrl}" target="_blank" style="color:#2563eb;">${p.confirmationUrl}</a>
+    </p>
+    ${divider()}
+    <p style="margin:0;font-size:12px;color:#94a3b8;">Jika kamu tidak merasa membuat akun, abaikan email ini.</p>`
+
+  return {
+    subject: 'Verifikasi Email Akun VivaThrift',
+    html: layout('Verifikasi Akun', '#eff6ff', '#1d4ed8', 'Konfirmasi Email Kamu', body),
+  }
+}
+
 // ── Order Confirmed (buyer) ─────────────────────────────────────────
 
 interface OrderConfirmedBuyerParams {

@@ -13,21 +13,83 @@ type SignupPayload = {
   confirmPassword: string
 }
 
+type SignupAuthPayload = {
+  email: string
+  password: string
+  emailRedirectTo?: string
+  user_metadata: Record<string, string>
+}
+
+type SignupAuthResult = {
+  user: { id?: string | null } | null
+  error: { message?: string | null } | null
+}
+
 type SignupDeps = {
   findUserByUsername: (username: string) => Promise<{ id: string } | null>
-  createAuthUser: (payload: {
-    email: string
-    password: string
-    email_confirm: boolean
-    user_metadata: Record<string, string>
-  }) => Promise<{
-    user: { id?: string | null } | null
-    error: { message?: string | null } | null
+  createAuthUser: (payload: SignupAuthPayload) => Promise<SignupAuthResult>
+}
+
+type SignupCustomEmailDeps = {
+  generateSignupLink: (payload: SignupAuthPayload) => Promise<SignupAuthResult & {
+    actionLink?: string | null
+    action_link?: string | null
   }>
+  sendVerificationEmail: (payload: {
+    to: string
+    name: string
+    confirmationUrl: string
+  }) => Promise<boolean>
+}
+
+type SignupOptions = {
+  emailRedirectTo?: string
 }
 
 function throwSignupError(statusCode: number, statusMessage: string): never {
   throw Object.assign(new Error(statusMessage), { statusCode, statusMessage })
+}
+
+export async function createAuthUserWithCustomVerificationEmail(
+  payload: SignupAuthPayload,
+  deps: SignupCustomEmailDeps,
+): Promise<SignupAuthResult> {
+  const result = await deps.generateSignupLink(payload)
+
+  if (result.error) {
+    return {
+      user: result.user ?? null,
+      error: result.error,
+    }
+  }
+
+  const confirmationUrl = String(result.actionLink ?? result.action_link ?? '').trim()
+  const userId = result.user?.id
+
+  if (!userId || !confirmationUrl) {
+    return {
+      user: result.user ?? null,
+      error: { message: 'Error sending confirmation email' },
+    }
+  }
+
+  const sent = await deps.sendVerificationEmail({
+    to: payload.email,
+    name: String(payload.user_metadata.name ?? 'Teman VivaThrift').trim() || 'Teman VivaThrift',
+    confirmationUrl,
+  })
+
+  if (!sent) {
+    return {
+      user: result.user ?? null,
+      error: { message: 'Error sending confirmation email' },
+    }
+  }
+
+  return {
+    user: result.user,
+    error: null,
+  }
 }
 
 function mapCreateUserError(message: string) {
@@ -41,6 +103,10 @@ function mapCreateUserError(message: string) {
     return { statusCode: 409, statusMessage: 'Username sudah digunakan. Silakan pilih username lain.' }
   }
 
+  if (msg.includes('confirmation email')) {
+    return { statusCode: 503, statusMessage: 'Email verifikasi belum bisa dikirim. Coba lagi beberapa saat lagi.' }
+  }
+
   if (msg.includes('weak password') || msg.includes('password')) {
     return { statusCode: 400, statusMessage: 'Password terlalu lemah. Gunakan minimal 6 karakter.' }
   }
@@ -48,7 +114,7 @@ function mapCreateUserError(message: string) {
   return { statusCode: 500, statusMessage: 'Pendaftaran gagal. Coba lagi nanti.' }
 }
 
-export async function createSignupAccount(payload: SignupPayload, deps: SignupDeps) {
+export async function createSignupAccount(payload: SignupPayload, deps: SignupDeps, options: SignupOptions = {}) {
   const normalizedUsername = String(payload.username ?? '').trim().toLowerCase()
   const normalizedEmail = String(payload.email ?? '').trim().toLowerCase()
   const normalizedPhone = String(payload.phone ?? '').trim()
@@ -87,7 +153,7 @@ export async function createSignupAccount(payload: SignupPayload, deps: SignupDe
   const result = await deps.createAuthUser({
     email: normalizedEmail,
     password: payload.password,
-    email_confirm: false,
+    emailRedirectTo: options.emailRedirectTo,
     user_metadata: {
       name: String(payload.name ?? '').trim(),
       username: normalizedUsername,

@@ -10,6 +10,7 @@ import {
   generateMeetupOTP,
   calculatePlatformFee,
   calculatePaymentChargeBreakdown,
+  getProductStockUpdateAfterPurchase,
 } from '../../utils/domain-rules'
 import type { ShippingMethod } from '../../utils/domain-rules'
 import { normalizeShippingCollectionType } from '../../../app/utils/shipping-checkout'
@@ -382,14 +383,10 @@ export default defineEventHandler(async (event) => {
     sellerIndex++
   }
 
-  // ── 6b. Decrement stock & mark sold per product (optimistic) ─────────────
+  // ── 6b. Decrement stock per product (optimistic) ─────────────────────────
   for (const item of items) {
     const p = item.product as any
-    // Always mark sold (secondhand = each item is unique); only update stock if tracked
-    const stockUpdate: Record<string, unknown> = { status: 'sold' }
-    if (p.stock !== null && p.stock !== undefined) {
-      stockUpdate.stock = Math.max(0, p.stock - item.quantity)
-    }
+    const stockUpdate = getProductStockUpdateAfterPurchase(p.stock, item.quantity)
     await supabaseAdmin
       .from('products')
       .update(stockUpdate)

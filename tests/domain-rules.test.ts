@@ -6,6 +6,7 @@ import {
   isValidMeetupLocation,
   generateMeetupOTP,
   MEETUP_OTP,
+  getProductStockUpdateAfterPurchase,
 } from '../server/utils/domain-rules'
 
 // ── calculatePlatformFee ──────────────────────────────────────────────────────
@@ -90,6 +91,30 @@ describe('isProductAvailable', () => {
     for (const s of unavailable) {
       expect(isProductAvailable(s), `status: ${s}`).toBe(false)
     }
+  })
+})
+
+// ── getProductStockUpdateAfterPurchase ──────────────────────────────────────
+
+describe('getProductStockUpdateAfterPurchase', () => {
+  it('keeps product active when stock remains after purchase', () => {
+    expect(getProductStockUpdateAfterPurchase(10, 4)).toEqual({
+      stock: 6,
+      status: 'active',
+    })
+  })
+
+  it('marks product sold only when tracked stock reaches zero', () => {
+    expect(getProductStockUpdateAfterPurchase(4, 4)).toEqual({
+      stock: 0,
+      status: 'sold',
+    })
+  })
+
+  it('marks untracked stock products as sold for one-off items', () => {
+    expect(getProductStockUpdateAfterPurchase(null, 1)).toEqual({
+      status: 'sold',
+    })
   })
 })
 

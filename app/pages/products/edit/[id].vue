@@ -246,7 +246,8 @@ async function deleteProduct() {
 
         <ProductFormFields :form="form" :categories="categories ?? []" :disabled="isSubmitting" :description-rows="10">
           <template #stock-help>
-            <p class="text-xs text-gray-400 mt-1">Atur stok &gt; 0 untuk mengaktifkan kembali produk yang habis</p>
+            <p class="text-xs text-gray-400 mt-1">Atur stok &gt; 0 untuk mengaktifkan kembali produk yang habis.</p>
+            <p class="text-xs text-gray-400 mt-1">Angka ini menunjukkan stok tersedia saat ini. Kalau 4 unit sudah masuk pesanan dari total 10, sisa yang tampil memang menjadi 6.</p>
           </template>
         </ProductFormFields>
 

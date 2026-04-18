@@ -16,6 +16,21 @@ export function isProductAvailable(status: string | null): boolean {
   return status === 'active'
 }
 
+export function getProductStockUpdateAfterPurchase(currentStock: number | null | undefined, purchasedQty: number): { stock?: number; status: 'active' | 'sold' } {
+  if (currentStock === null || currentStock === undefined) {
+    return { status: 'sold' }
+  }
+
+  const safeStock = Math.max(0, Math.trunc(currentStock))
+  const safeQty = Math.max(0, Math.trunc(purchasedQty))
+  const nextStock = Math.max(0, safeStock - safeQty)
+
+  return {
+    stock: nextStock,
+    status: nextStock > 0 ? 'active' : 'sold',
+  }
+}
+
 // ── Offer ─────────────────────────────────────────────────────────────────────
 
 export const OFFER_RULES = {

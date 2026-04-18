@@ -1,6 +1,6 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { resolveServerUid } from '../../utils/resolve-server-uid'
-import { PRODUCT_UNAVAILABLE_STATUSES } from '../../utils/domain-rules'
+import { PRODUCT_UNAVAILABLE_STATUSES, getProductStockUpdateAfterPurchase } from '../../utils/domain-rules'
 
 // POST /api/orders
 // Body: { offerId: string }
@@ -101,12 +101,8 @@ export default defineEventHandler(async (event) => {
   if (itemErr) throw createError({ statusCode: 500, statusMessage: itemErr.message })
 
   // ── 7. Decrement stock ────────────────────────────────────────────
-  if (currentProduct.stock !== null && currentProduct.stock !== undefined) {
-    const newStock = Math.max(0, currentProduct.stock - offer.quantity)
-    const stockUpdate: Record<string, unknown> = { stock: newStock }
-    if (newStock === 0) stockUpdate.status = 'sold'
-    await supabase.from('products').update(stockUpdate).eq('id', offer.product_id as string)
-  }
+  const stockUpdate = getProductStockUpdateAfterPurchase(currentProduct.stock, offer.quantity)
+  await supabase.from('products').update(stockUpdate).eq('id', offer.product_id as string)
 
   // ── 8. Mark offer as expired ──────────────────────────────────────
   await supabase
