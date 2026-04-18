@@ -57,7 +57,19 @@ export function mediaUrl(url: string | null | undefined): string | undefined {
     return url
   }
 
-  if (base.startsWith('data:') || base.startsWith('blob:') || base.startsWith('/')) {
+  if (base.startsWith('data:') || base.startsWith('blob:')) {
+    return url
+  }
+
+  if (base.startsWith('/media/')) {
+    return base + qs
+  }
+
+  if (/^\/(avatars|product-media|team-photo)\//.test(base)) {
+    return '/media/' + base.replace(/^\/+/, '') + qs
+  }
+
+  if (base.startsWith('/')) {
     return url
   }
 

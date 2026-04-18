@@ -20,4 +20,8 @@ describe('mediaUrl', () => {
   it('rewrites avatar object keys with cache-busting query strings', () => {
     expect(mediaUrl('avatars/user-1/avatar.webp?t=999')).toBe('/media/avatars/user-1/avatar.webp?t=999')
   })
+
+  it('rewrites site-relative avatar paths through the local media proxy', () => {
+    expect(mediaUrl('/avatars/user-1/avatar.webp?t=999')).toBe('/media/avatars/user-1/avatar.webp?t=999')
+  })
 })

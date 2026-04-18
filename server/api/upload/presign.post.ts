@@ -84,7 +84,8 @@ export default defineEventHandler(async (event) => {
   })
 
   const presignedUrl = await getSignedUrl(client, command, { expiresIn: 300 })
-  const publicUrl    = `${config.public.r2PublicUrl}/${key}`
+  const publicBase   = String(config.public.r2PublicUrl ?? '').replace(/\/+$/, '')
+  const publicUrl    = publicBase ? `${publicBase}/${key}` : `/media/${key}`
 
   return { presignedUrl, publicUrl, key }
 })
